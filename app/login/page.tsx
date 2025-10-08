@@ -4,9 +4,11 @@ import type React from "react"
 
 import { useState } from "react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { FiEye, FiEyeOff } from "react-icons/fi"
 
 export default function LoginPage() {
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -14,6 +16,8 @@ export default function LoginPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     console.log("[v0] Login attempt:", { email, password: "***" })
+    // Navigate to dashboard after login
+    router.push("/client/pages/dashboard")
   }
 
   return (
