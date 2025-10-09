@@ -29,6 +29,17 @@ interface Partner {
   isActive: boolean
 }
 
+interface SubscriptionHistory {
+  id: string
+  plan: string
+  period: string
+  amount: string
+  method: string
+  transactionId: string
+  date: string
+  status: 'paid' | 'pending'
+}
+
 const mockPartners: Partner[] = [
   {
     id: "1",
@@ -65,9 +76,166 @@ const mockPartners: Partner[] = [
   },
 ]
 
+const subscriptionHistoryData: SubscriptionHistory[] = [
+  {
+    id: "1",
+    plan: "Gold",
+    period: "15 Jun 2025 → 15 Jun 2026",
+    amount: "2,999 MAD",
+    method: "Card (Visa ••3421)",
+    transactionId: "#INV-2025-0061",
+    date: "23 Mar 2024, 10:42",
+    status: "paid"
+  },
+  {
+    id: "2",
+    plan: "Gold",
+    period: "15 Jun 2024 → 15 Jun 2025",
+    amount: "2,999 MAD",
+    method: "Card (Visa ••3421)",
+    transactionId: "#INV-2024-0061",
+    date: "23 Mar 2023, 10:42",
+    status: "pending"
+  },
+  {
+    id: "3",
+    plan: "Gold",
+    period: "15 Jun 2023 → 15 Jun 2024",
+    amount: "2,999 MAD",
+    method: "Card (Visa ••3421)",
+    transactionId: "#INV-2023-0061",
+    date: "23 Mar 2022, 10:42",
+    status: "paid"
+  },
+  {
+    id: "4",
+    plan: "Gold",
+    period: "15 Jun 2022 → 15 Jun 2023",
+    amount: "2,999 MAD",
+    method: "Card (Visa ••3421)",
+    transactionId: "#INV-2022-0061",
+    date: "23 Mar 2021, 10:42",
+    status: "pending"
+  }
+]
+
+// Reusable Subscription Card Component
+const SubscriptionCard = ({ subscription }: { subscription: SubscriptionHistory }) => {
+  const statusStyles = {
+    paid: {
+      border: "0.5px solid rgba(80, 190, 135, 0.25)",
+      background: "#EEF9F3",
+      textColor: "text-green-700"
+    },
+    pending: {
+      border: "0.5px solid rgba(206, 148, 29, 0.25)",
+      background: "rgba(206, 148, 29, 0.05)",
+      textColor: "text-yellow-700"
+    }
+  }
+
+  const currentStatusStyle = statusStyles[subscription.status]
+
+  return (
+    <div 
+      className="flex-shrink-0 rounded-2xl border bg-white flex flex-col justify-between"
+      style={{
+        height: "224px",
+        borderRadius: "16px",
+        border: "1px solid rgba(0, 0, 0, 0.06)",
+        background: "#FFF",
+        boxShadow: "5px 10px 40px 0 rgba(217, 222, 234, 0.14)"
+      }}
+    >
+      {/* Card Content */}
+      <div className="flex flex-col gap-4 p-4">
+        <div className="flex justify-between items-center self-stretch">
+          <span className="text-sm font-medium text-black">Plan</span>
+          <span className="text-sm font-light text-gray-500">{subscription.plan}</span>
+        </div>
+        <div className="flex justify-between items-center self-stretch">
+          <span className="text-sm font-medium text-black">Period</span>
+          <span className="text-sm font-light text-gray-500">{subscription.period}</span>
+        </div>
+        <div className="flex justify-between items-center self-stretch">
+          <span className="text-sm font-medium text-black">Amount</span>
+          <span className="text-sm font-light text-gray-500">{subscription.amount}</span>
+        </div>
+        <div className="flex justify-between items-center self-stretch">
+          <span className="text-sm font-medium text-black">Method</span>
+          <span className="text-sm font-light text-gray-500">{subscription.method}</span>
+        </div>
+        <div className="flex justify-between items-center self-stretch">
+          <span className="text-sm font-medium text-black">Transaction ID</span>
+          <span className="text-sm font-light text-gray-500">{subscription.transactionId}</span>
+        </div>
+        <div className="flex justify-between items-center self-stretch">
+          <span className="text-sm font-medium text-black">Date</span>
+          <span className="text-sm font-light text-gray-500">{subscription.date}</span>
+        </div>
+      </div>
+
+      {/* Card Footer - Inside Card at Bottom */}
+      <div className="flex justify-between items-center self-stretch p-4 pt-0">
+        <div className="flex items-center gap-2">
+          <button 
+            className="flex w-7 h-7 justify-center items-center gap-1.5 rounded border"
+            style={{
+              width: "30px",
+              height: "30px",
+              padding: "4px 7.333px",
+              borderRadius: "5px",
+              border: "0.789px solid #F6F3F2",
+              background: "#FBFAFA"
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="12" viewBox="0 0 16 12" fill="none">
+              <path d="M14.3623 5.21847C14.565 5.50268 14.6663 5.64479 14.6663 5.85514C14.6663 6.0655 14.565 6.20761 14.3623 6.49182C13.4516 7.76885 11.1258 10.5218 7.99968 10.5218C4.87353 10.5218 2.54774 7.76885 1.63704 6.49182C1.43435 6.20761 1.33301 6.0655 1.33301 5.85514C1.33301 5.64479 1.43435 5.50268 1.63703 5.21847C2.54774 3.94144 4.87353 1.18848 7.99968 1.18848C11.1258 1.18848 13.4516 3.94144 14.3623 5.21847Z" stroke="#141B34"/>
+              <path d="M10 5.85547C10 4.7509 9.10457 3.85547 8 3.85547C6.89543 3.85547 6 4.7509 6 5.85547C6 6.96004 6.89543 7.85547 8 7.85547C9.10457 7.85547 10 6.96004 10 5.85547Z" stroke="#121212"/>
+            </svg>
+          </button>
+          <button 
+            className="flex w-7 h-7 justify-center items-center gap-1.5 rounded border"
+            style={{
+              width: "30px",
+              height: "30px",
+              padding: "4px 7.333px",
+              borderRadius: "5px",
+              border: "0.789px solid #F6F3F2",
+              background: "#FBFAFA"
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6.00016 7.52214L6.00016 0.855469M6.00016 7.52214C5.53334 7.52214 4.66118 6.1926 4.3335 5.85547M6.00016 7.52214C6.46698 7.52214 7.33914 6.1926 7.66683 5.85547" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M11.3332 8.85547C11.3332 10.5101 10.9878 10.8555 9.33317 10.8555H2.6665C1.01184 10.8555 0.666504 10.5101 0.666504 8.85547" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div 
+          className="flex h-5.5 justify-center items-center gap-1 rounded border"
+          style={{
+            height: "22px",
+            padding: "10px",
+            borderRadius: "4px",
+            border: currentStatusStyle.border,
+            background: currentStatusStyle.background
+          }}
+        >
+          <span className={`text-xs font-medium ${currentStatusStyle.textColor}`}>
+            {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function PartnersPage() {
   const [partners, setPartners] = useState<Partner[]>(mockPartners)
   const [selectedPartners, setSelectedPartners] = useState<string[]>([])
+  const [showAddPartnerModal, setShowAddPartnerModal] = useState(false)
+  const [currentStep, setCurrentStep] = useState(1)
+  const [showSuccessCard, setShowSuccessCard] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(8)
   const [showServicesDropdown, setShowServicesDropdown] = useState<string | null>(null)
@@ -199,7 +367,10 @@ export default function PartnersPage() {
               Export
             </button>
 
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-sm font-medium transition-colors">
+            <button 
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-sm font-medium transition-colors"
+              onClick={() => setShowAddPartnerModal(true)}
+            >
               <RiAddLine className="w-5 h-5" />
               Add new Partner
             </button>
@@ -375,9 +546,6 @@ export default function PartnersPage() {
 
   return (
     <div className="p-6">
-     
-      
-
       {/* Content */}
       {overviewContent}
 
@@ -819,16 +987,253 @@ export default function PartnersPage() {
               )}
 
               {activeTab === 'subscription' && (
-                <div className="flex flex-col gap-5">
-                  <h3 className="text-lg font-semibold">Subscription Details</h3>
-                  <p className="text-gray-600">Subscription information will be displayed here.</p>
+                <div className="flex flex-col justify-center items-start gap-6 self-stretch">
+                  {/* Subscription Header */}
+                  <div className="flex items-center gap-4">
+                    <div 
+                      className="flex w-12 h-12 justify-center items-center rounded-full border"
+                      style={{
+                        width: "46px",
+                        height: "46px",
+                        padding: "9.583px",
+                        borderRadius: "157.843px",
+                        border: "1px solid rgba(209, 146, 79, 0.25)",
+                        background: "rgba(209, 146, 79, 0.05)",
+                        boxShadow: "0 5.525px 8.681px 0 rgba(0, 0, 0, 0.02)"
+                      }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="16" viewBox="0 0 14 16" fill="none">
+                        <path d="M1.34546 6.87018C1.08675 6.15418 0.957399 5.79618 1.01256 5.56677C1.07289 5.31585 1.25133 5.12024 1.47942 5.05498C1.68795 4.99532 2.01235 5.1395 2.66115 5.42786C3.23502 5.68291 3.52196 5.81044 3.79155 5.80335C4.08838 5.79553 4.37392 5.6765 4.60107 5.46588C4.80737 5.27459 4.94574 4.96976 5.22249 4.3601L5.8324 3.01651C6.34187 1.89417 6.5966 1.33301 7 1.33301C7.4034 1.33301 7.65813 1.89417 8.1676 3.01651L8.77751 4.3601C9.05426 4.96976 9.19263 5.27459 9.39893 5.46588C9.62608 5.6765 9.91162 5.79553 10.2085 5.80335C10.478 5.81044 10.765 5.68291 11.3388 5.42786C11.9876 5.1395 12.312 4.99532 12.5206 5.05498C12.7487 5.12024 12.9271 5.31585 12.9874 5.56677C13.0426 5.79618 12.9132 6.15418 12.6545 6.87017L11.5425 9.94779C11.0668 11.2643 10.829 11.9226 10.3312 12.2945C9.83349 12.6663 9.19027 12.6663 7.90384 12.6663H6.09616C4.80973 12.6663 4.16651 12.6663 3.66877 12.2945C3.17102 11.9226 2.93318 11.2643 2.45748 9.94779L1.34546 6.87018Z" stroke="#D1924F"/>
+                        <path d="M7 9.33301H7.00599" stroke="#D1924F" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M3.6665 14.667H10.3332" stroke="#D1924F" strokeLinecap="round"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-black">Gold</h3>
+                      <p className="text-sm text-gray-600">Full access to premium hotel management features and priority support.</p>
+                    </div>
+                  </div>
+
+                  {/* Subscription Period */}
+                  <div 
+                    className="flex flex-col p-4 justify-center items-start gap-6 self-stretch rounded-lg border"
+                    style={{
+                      padding: "16px",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(33, 33, 33, 0.08)",
+                      background: "#FBFAFA"
+                    }}
+                  >
+                    {/* Start Date Row */}
+                    <div className="flex items-center gap-64 self-stretch">
+                      <div className="flex items-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="17" viewBox="0 0 16 17" fill="none">
+                          <path d="M7.25 9.65723H11M5 9.65723H5.00674M8.75 12.6572H5M11 12.6572H10.9933" stroke="#141B34" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M12.5 1.40723V2.90723M3.5 1.40723V2.90723" stroke="#141B34" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M0.875 9.08966C0.875 5.82168 0.875 4.18769 1.81409 3.17246C2.75318 2.15723 4.26462 2.15723 7.2875 2.15723H8.7125C11.7354 2.15723 13.2468 2.15723 14.1859 3.17246C15.125 4.18769 15.125 5.82168 15.125 9.08966V9.47479C15.125 12.7428 15.125 14.3768 14.1859 15.392C13.2468 16.4072 11.7354 16.4072 8.7125 16.4072H7.2875C4.26462 16.4072 2.75318 16.4072 1.81409 15.392C0.875 14.3768 0.875 12.7428 0.875 9.47479V9.08966Z" stroke="#141B34" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M1.25 5.90723H14.75" stroke="#141B34" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span className="text-sm text-black">Start date</span>
+                      </div>
+                      <span className="text-sm text-gray-600">15 juin 2025</span>
+                    </div>
+
+                    {/* End Date Row */}
+                    <div className="flex items-center gap-64 self-stretch">
+                      <div className="flex items-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="17" viewBox="0 0 16 17" fill="none">
+                          <path d="M7.25 9.65723H11M5 9.65723H5.00674M8.75 12.6572H5M11 12.6572H10.9933" stroke="#141B34" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M12.5 1.40723V2.90723M3.5 1.40723V2.90723" stroke="#141B34" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M0.875 9.08966C0.875 5.82168 0.875 4.18769 1.81409 3.17246C2.75318 2.15723 4.26462 2.15723 7.2875 2.15723H8.7125C11.7354 2.15723 13.2468 2.15723 14.1859 3.17246C15.125 4.18769 15.125 5.82168 15.125 9.08966V9.47479C15.125 12.7428 15.125 14.3768 14.1859 15.392C13.2468 16.4072 11.7354 16.4072 8.7125 16.4072H7.2875C4.26462 16.4072 2.75318 16.4072 1.81409 15.392C0.875 14.3768 0.875 12.7428 0.875 9.47479V9.08966Z" stroke="#141B34" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M1.25 5.90723H14.75" stroke="#141B34" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span className="text-sm text-black">End date</span>
+                      </div>
+                      <span className="text-sm text-gray-600">15 juin 2026</span>
+                    </div>
+                  </div>
+
+                  {/* Subscription History */}
+                  <div className="flex flex-col items-start gap-2.5 self-stretch">
+                    {/* Header */}
+                    <div className="flex items-center justify-between self-stretch">
+                      <h4 className="text-lg font-semibold text-black">Subscription History</h4>
+                      <button 
+                        className="flex w-8 h-8 justify-center items-center gap-1.5 rounded-md border"
+                        style={{
+                          width: "33.04px",
+                          padding: "8.52px 20px",
+                          borderRadius: "6px",
+                          border: "1px solid #CED4DA",
+                          background: "#FBFAFA"
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 17 17" fill="none">
+                          <path d="M4.47998 8.33496H12.48M2.47998 4.33496H14.48M6.47998 12.335H10.48" stroke="black" strokeWidth="1.11333" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Subscription Cards Grid */}
+                    <div className="grid grid-cols-2 gap-4 w-full">
+                      {subscriptionHistoryData.map((subscription) => (
+                        <SubscriptionCard key={subscription.id} subscription={subscription} />
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
               {activeTab === 'room-api' && (
-                <div className="flex flex-col gap-5">
-                  <h3 className="text-lg font-semibold">Room API Data</h3>
-                  <p className="text-gray-600">Room API data will be displayed here.</p>
+                <div className="flex flex-col items-end gap-5 self-stretch">
+                  {/* Upload Room Section */}
+                  <div 
+                    className="flex flex-col items-center gap-5 p-6 self-stretch rounded-xl border"
+                    style={{
+                      padding: "25px",
+                      borderRadius: "12px",
+                      border: "1px dashed rgba(0, 0, 0, 0.12)",
+                      background: "#FFF"
+                    }}
+                  >
+                    {/* Upload Room Heading */}
+                    <div 
+                      className="flex items-center "
+                      style={{
+                        width: "550px",
+                      
+                      }}
+                    >
+                      <h3 className="text-lg font-semibold text-black">Upload rooms</h3>
+                    </div>
+
+                    {/* Room API Loading Bar Section */}
+                    <div 
+                      className="flex items-center gap-5 self-stretch rounded-lg border"
+                      style={{
+                        height: "42px",
+                        padding: "12px 13px",
+                        borderRadius: "6.75px",
+                        border: "1px solid #E6E6E6",
+                        background: "#FFF",
+                        boxShadow: "0 2px 2px 0 rgba(0, 0, 0, 0.05)"
+                      }}
+                    >
+                      {/* File Icon */}
+                      <div 
+                        className="flex-shrink-0"
+                        style={{
+                          width: "20px",
+                          height: "20px",
+                          aspectRatio: "1/1"
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                          <path d="M5.12276 0H11.8146L17.4792 5.90996V17.3982C17.4792 18.8353 16.3145 20 14.8774 20H5.12276C3.68571 20 2.521 18.8353 2.521 17.3982V2.60177C2.521 1.16474 3.68571 0 5.12276 0Z" fill="#0263D1"/>
+                          <path opacity="0.302" fillRule="evenodd" clipRule="evenodd" d="M11.8062 0V5.86141H17.4789L11.8062 0Z" fill="white"/>
+                          <path d="M4.93652 14.2705V10.9596H6.10935C6.34391 10.9596 6.56232 10.9947 6.76453 11.0594C6.96674 11.1268 7.15007 11.2239 7.31455 11.3533C7.47901 11.4827 7.60844 11.6553 7.7028 11.8709C7.79716 12.0866 7.8457 12.3347 7.8457 12.6151C7.8457 12.8955 7.79716 13.1435 7.7028 13.3592C7.60844 13.5749 7.47901 13.7474 7.31455 13.8768C7.15009 14.0062 6.96674 14.1033 6.76453 14.1707C6.56232 14.2354 6.34393 14.2705 6.10935 14.2705H4.93652ZM5.76424 13.5506H6.00959C6.1417 13.5506 6.26572 13.5345 6.37625 13.5048C6.48949 13.4724 6.59193 13.4212 6.68899 13.3538C6.78606 13.2864 6.86154 13.1893 6.91546 13.0626C6.97209 12.9386 6.99903 12.7876 6.99903 12.6151C6.99903 12.4425 6.97207 12.2915 6.91546 12.1648C6.86154 12.0408 6.78606 11.9437 6.68899 11.8763C6.59193 11.8062 6.48949 11.7577 6.37625 11.7253C6.26572 11.6957 6.1417 11.6795 6.00959 11.6795H5.76424V13.5506ZM9.85431 14.3082C9.35553 14.3082 8.94302 14.1465 8.61679 13.8256C8.29055 13.5048 8.12877 13.1004 8.12877 12.6151C8.12877 12.1298 8.29055 11.7254 8.61679 11.4045C8.94302 11.0837 9.35553 10.9219 9.85431 10.9219C10.345 10.9219 10.7521 11.0837 11.0784 11.4045C11.4019 11.7254 11.5637 12.1298 11.5637 12.6151C11.5637 13.1004 11.4019 13.5048 11.0784 13.8256C10.7521 14.1465 10.345 14.3082 9.85431 14.3082ZM9.21801 13.3134C9.38247 13.4967 9.59276 13.5884 9.8489 13.5884C10.105 13.5884 10.3126 13.4967 10.4771 13.3134C10.6416 13.1273 10.7225 12.8955 10.7225 12.6151C10.7225 12.3347 10.6416 12.1028 10.4771 11.9168C10.3127 11.7334 10.105 11.6417 9.8489 11.6417C9.59276 11.6417 9.38247 11.7334 9.21801 11.9168C9.05355 12.1028 8.96996 12.3347 8.96996 12.6151C8.96996 12.8955 9.05355 13.1273 9.21801 13.3134ZM13.5318 14.3082C13.0492 14.3082 12.6475 14.1573 12.3294 13.8607C12.0085 13.5614 11.8495 13.1462 11.8495 12.6151C11.8495 12.0866 12.0112 11.6714 12.3348 11.3721C12.661 11.0729 13.0573 10.9219 13.5319 10.9219C13.9605 10.9219 14.311 11.027 14.5888 11.24C14.8638 11.4503 15.0228 11.7307 15.0633 12.0812L14.2275 12.2511C14.1924 12.0677 14.1088 11.9195 13.9794 11.8089C13.85 11.6983 13.699 11.6417 13.5265 11.6417C13.2892 11.6417 13.0924 11.7253 12.9333 11.8952C12.7742 12.0677 12.6933 12.305 12.6933 12.615C12.6933 12.9251 12.7742 13.1624 12.9306 13.3322C13.0897 13.5048 13.2865 13.5884 13.5264 13.5884C13.699 13.5884 13.8473 13.5398 13.9686 13.4428C14.0899 13.3457 14.1654 13.2163 14.1978 13.0545L15.0525 13.2487C14.9743 13.583 14.8017 13.8418 14.5321 14.0278C14.2652 14.2139 13.9309 14.3082 13.5318 14.3082Z" fill="white"/>
+                        </svg>
+                      </div>
+
+                      {/* Room API Data Text */}
+                      <span className="text-sm font-medium text-black">Rooms api data</span>
+
+                      {/* Loading Bar */}
+                      <div 
+                        className="flex flex-col items-start gap-2.5 flex-1"
+                        style={{
+                          height: "8px",
+                          borderRadius: "10px",
+                          background: "#F5F6F6"
+                        }}
+                      >
+                        {/* Progress Bar */}
+                        <div 
+                          className="h-2 rounded-lg"
+                          style={{
+                            width: "230px",
+                            height: "8px",
+                            borderRadius: "10px",
+                            background: "#56C6FF"
+                          }}
+                        />
+                      </div>
+
+                      {/* X Button */}
+                      <button className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Choose File Section */}
+                    <div 
+                      className="flex flex-col justify-center items-center gap-3 rounded-lg border"
+                      style={{
+                        height: "150px",
+                        padding: "25px 13px",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        gap: "12px",
+                        alignSelf: "stretch",
+                        borderRadius: "6.75px",
+                        border: "1px solid rgba(0, 0, 0, 0.06)",
+                        background: "#FBFAFA"
+                      }}
+                    >
+                      {/* Hidden File Input */}
+                      <input
+                        type="file"
+                        id="room-file-input"
+                        className="hidden"
+                        accept=".csv,.xlsx,.xls,.json"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            console.log('Selected file:', file.name)
+                            // Here you can add file processing logic
+                          }
+                        }}
+                      />
+                      
+                      {/* Upload Icon */}
+                      <div 
+                        className="flex justify-center items-center flex-shrink-0"
+                        style={{
+                          width: "24px",
+                          height: "24px",
+                          padding: "2px"
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="22" viewBox="0 0 23 22" fill="none">
+                          <circle cx="11.5" cy="11" r="10" stroke="#141B34" strokeWidth="1.5"/>
+                          <path d="M14.5 7.75C14.9142 7.75 15.25 7.41421 15.25 7C15.25 6.58579 14.9142 6.25 14.5 6.25V7V7.75ZM8.5 6.25C8.08579 6.25 7.75 6.58579 7.75 7C7.75 7.41421 8.08579 7.75 8.5 7.75L8.5 7L8.5 6.25ZM8.94325 11.3691C8.66572 11.6766 8.68999 12.1508 8.99747 12.4284C9.30496 12.7059 9.77921 12.6816 10.0567 12.3741L9.5 11.8716L8.94325 11.3691ZM10.4393 10.8309L9.88259 10.3284L10.4393 10.8309ZM12.5607 10.8309L12.0039 11.3334H12.0039L12.5607 10.8309ZM12.9433 12.3741C13.2208 12.6816 13.695 12.7059 14.0025 12.4284C14.31 12.1508 14.3343 11.6766 14.0567 11.3691L13.5 11.8716L12.9433 12.3741ZM10.75 16C10.75 16.4142 11.0858 16.75 11.5 16.75C11.9142 16.75 12.25 16.4142 12.25 16H11.5H10.75ZM14.5 7V6.25L8.5 6.25L8.5 7L8.5 7.75L14.5 7.75V7ZM9.5 11.8716L10.0567 12.3741L10.9961 11.3334L10.4393 10.8309L9.88259 10.3284L8.94325 11.3691L9.5 11.8716ZM12.5607 10.8309L12.0039 11.3334L12.9433 12.3741L13.5 11.8716L14.0567 11.3691L13.1174 10.3284L12.5607 10.8309ZM10.4393 10.8309L10.9961 11.3334C11.2607 11.0403 11.409 10.8785 11.5248 10.7805C11.6273 10.6939 11.5993 10.75 11.5 10.75V10V9.25C11.09 9.25 10.7817 9.44458 10.5565 9.63495C10.3447 9.81396 10.118 10.0676 9.88259 10.3284L10.4393 10.8309ZM12.5607 10.8309L13.1174 10.3284C12.882 10.0676 12.6553 9.81397 12.4435 9.63495C12.2183 9.44458 11.91 9.25 11.5 9.25V10V10.75C11.4007 10.75 11.3727 10.6939 11.4752 10.7805C11.591 10.8785 11.7393 11.0403 12.0039 11.3334L12.5607 10.8309ZM11.5 10H10.75L10.75 16H11.5H12.25L12.25 10H11.5Z" fill="#141B34"/>
+                        </svg>
+                      </div>
+                      <span className="text-sm font-medium text-black">Drag and drop your files here or 
+                        <label 
+                          htmlFor="room-file-input" 
+                          className="text-blue-600 cursor-pointer hover:underline ml-1"
+                        >
+                          choose file
+                        </label>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <button 
+                    className="flex justify-center items-center gap-1.5 rounded-md text-white font-medium hover:opacity-90 transition-opacity"
+                    style={{
+                      padding: "8.52px 20px",
+                      borderRadius: "6px",
+                      background: "#1F2A44"
+                    }}
+                  >
+                    Save
+                  </button>
                 </div>
               )}
             </div>
@@ -853,6 +1258,1038 @@ export default function PartnersPage() {
                   <path d="M6 2.69629H10M2 4.69629H14M12.6667 4.69629L12.1991 11.7092C12.129 12.7613 12.0939 13.2874 11.8667 13.6863C11.6666 14.0375 11.3648 14.3198 11.0011 14.4961C10.588 14.6963 10.0607 14.6963 9.00623 14.6963H6.99377C5.93927 14.6963 5.41202 14.6963 4.99889 14.4961C4.63517 14.3198 4.33339 14.0375 4.13332 13.6863C3.90607 13.2874 3.871 12.7613 3.80086 11.7092L3.33333 4.69629" stroke="#FF0D0D" strokeWidth="1.11333" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add New Partner Modal */}
+      {showAddPartnerModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{backgroundColor: "rgba(0,0,0,0.4)"}}>
+           <div className="bg-white rounded-xl w-[47vw] mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div 
+              className="flex justify-between items-center border-b"
+              style={{
+                padding: "20px 16px",
+                borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
+                borderRadius: "10px 10px 0 0",
+                background: "#FFF"
+              }}
+            >
+              <div>
+                <h2 className="text-lg font-semibold text-black">Add new Partner</h2>
+                <p className="text-sm text-gray-600 mt-1">Make changes to your profile here. Click save when you're done.</p>
+              </div>
+              <button 
+                onClick={() => setShowAddPartnerModal(false)}
+                className="flex items-center justify-center"
+                style={{
+                  width: "24px",
+                  height: "24px",
+                  aspectRatio: "1/1"
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
+                  <path d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244" stroke="#525866" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Step Navigation */}
+            <div 
+              className="flex justify-between items-center py-6 px-6"
+              style={{
+                alignItems: "center",
+                alignSelf: "stretch"
+              }}
+            >
+                <div 
+                  className="flex items-center gap-2"
+                  style={{
+                    alignItems: "center",
+                    gap: "8px"
+                  }}
+                >
+                  {/* Step 1 */}
+                  <div 
+                    className="flex items-center justify-center rounded-full"
+                    style={{
+                      width: currentStep === 1 ? "35px" : "33px",
+                      height: currentStep === 1 ? "35px" : "33px",
+                      background: currentStep === 1 ? "#1F2A44" : currentStep > 1 ? "#17B26A" : "#E5E7EB",
+                      borderRadius: "999px"
+                    }}
+                  >
+                    {currentStep > 1 ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="13" viewBox="0 0 17 13" fill="none">
+                        <path d="M0.5 6.46934L2.1 4.86934L6.1 8.86934L14.9 0.0693359L16.5 1.66934L6.1 12.0693L0.5 6.46934Z" fill="white"/>
+                      </svg>
+                    ) : (
+                      <span 
+                        className="text-white font-semibold"
+                        style={{ fontSize: "14px" }}
+                      >
+                        1
+                      </span>
+                    )}
+                  </div>
+                  <span 
+                    className="font-semibold"
+                    style={{
+                      color: currentStep === 1 ? "#0A0A0A" : "#717182",
+                      fontSize: "14px",
+                      fontWeight: currentStep === 1 ? "600" : "500",
+                      lineHeight: "22px"
+                    }}
+                  >
+                    Partner info
+                  </span>
+                </div>
+
+                <div 
+                  className="flex items-center gap-2"
+                  style={{
+                    alignItems: "center",
+                    gap: "8px"
+                  }}
+                >
+                  {/* Step 2 */}
+                  <div 
+                    className="flex items-center justify-center rounded-full"
+                    style={{
+                      width: currentStep === 2 ? "35px" : "33px",
+                      height: currentStep === 2 ? "35px" : "33px",
+                      background: currentStep === 2 ? "#1F2A44" : currentStep > 2 ? "#17B26A" : "#E5E7EB",
+                      borderRadius: "999px"
+                    }}
+                  >
+                    {currentStep > 2 ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="13" viewBox="0 0 17 13" fill="none">
+                        <path d="M0.5 6.46934L2.1 4.86934L6.1 8.86934L14.9 0.0693359L16.5 1.66934L6.1 12.0693L0.5 6.46934Z" fill="white"/>
+                      </svg>
+                    ) : (
+                      <span 
+                        className="text-white font-semibold"
+                        style={{ fontSize: "14px" }}
+                      >
+                        2
+                      </span>
+                    )}
+                  </div>
+                  <span 
+                    className="font-semibold"
+                    style={{
+                      color: currentStep === 2 ? "#0A0A0A" : "#717182",
+                      fontSize: "14px",
+                      fontWeight: currentStep === 2 ? "600" : "500",
+                      lineHeight: "22px"
+                    }}
+                  >
+                    Account
+                  </span>
+                </div>
+
+                <div 
+                  className="flex items-center gap-2"
+                  style={{
+                    alignItems: "center",
+                    gap: "8px"
+                  }}
+                >
+                  {/* Step 3 */}
+                  <div 
+                    className="flex items-center justify-center rounded-full"
+                    style={{
+                      width: currentStep === 3 ? "35px" : "33px",
+                      height: currentStep === 3 ? "35px" : "33px",
+                      background: currentStep === 3 ? "#1F2A44" : currentStep > 3 ? "#17B26A" : "#E5E7EB",
+                      borderRadius: "999px"
+                    }}
+                  >
+                    {currentStep > 3 ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="13" viewBox="0 0 17 13" fill="none">
+                        <path d="M0.5 6.46934L2.1 4.86934L6.1 8.86934L14.9 0.0693359L16.5 1.66934L6.1 12.0693L0.5 6.46934Z" fill="white"/>
+                      </svg>
+                    ) : (
+                      <span 
+                        className="text-white font-semibold"
+                        style={{ fontSize: "14px" }}
+                      >
+                        3
+                      </span>
+                    )}
+                  </div>
+                  <span 
+                    className="font-semibold"
+                    style={{
+                      color: currentStep === 3 ? "#0A0A0A" : "#717182",
+                      fontSize: "14px",
+                      fontWeight: currentStep === 3 ? "600" : "500",
+                      lineHeight: "22px"
+                    }}
+                  >
+                    Subscription
+                  </span>
+                </div>
+
+                <div 
+                  className="flex items-center gap-2"
+                  style={{
+                    alignItems: "center",
+                    gap: "8px"
+                  }}
+                >
+                  {/* Step 4 */}
+                  <div 
+                    className="flex items-center justify-center rounded-full"
+                    style={{
+                      width: currentStep === 4 ? "35px" : "33px",
+                      height: currentStep === 4 ? "35px" : "33px",
+                      background: currentStep === 4 ? "#1F2A44" : "#E5E7EB",
+                      borderRadius: "999px"
+                    }}
+                  >
+                    <span 
+                      className="text-white font-semibold"
+                      style={{ fontSize: "14px" }}
+                    >
+                      4
+                    </span>
+                  </div>
+                  <span 
+                    className="font-semibold"
+                    style={{
+                      color: currentStep === 4 ? "#0A0A0A" : "#717182",
+                      fontSize: "14px",
+                      fontWeight: currentStep === 4 ? "600" : "500",
+                      lineHeight: "22px"
+                    }}
+                  >
+                    Rooms api data
+                  </span>
+                </div>
+            </div>
+
+            {/* Step Content */}
+            <div className="px-6 pb-6">
+              {currentStep === 1 && (
+                <div 
+                  className="flex flex-col gap-5"
+                  style={{
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: "20px",
+                    alignSelf: "stretch"
+                  }}
+                >
+                  {/* Name and City Row */}
+                  <div 
+                    className="flex gap-4 w-full"
+                    style={{
+                      alignItems: "flex-start",
+                      gap: "16px",
+                      alignSelf: "stretch"
+                    }}
+                  >
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label 
+                        className="text-sm font-medium"
+                        style={{
+                          color: "#212121",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          lineHeight: "19.5px"
+                        }}
+                      >
+                        Hotel name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Write Here..."
+                        className="w-full px-3 py-2 border rounded"
+                        style={{
+                          width: "326px",
+                          padding: "7.52px 12px",
+                          borderRadius: "4px",
+                          border: "1px solid #CED4DA",
+                          background: "#FFF"
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label 
+                        className="text-sm font-medium"
+                        style={{
+                          color: "#212121",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          lineHeight: "19.5px"
+                        }}
+                      >
+                        Hotel city
+                      </label>
+                      <select
+                        className="w-full px-3 py-2 border rounded"
+                        style={{
+                          width: "326px",
+                          padding: "7.52px 12px",
+                          borderRadius: "4px",
+                          border: "1px solid #CED4DA",
+                          background: "#FFF"
+                        }}
+                      >
+                        <option>Select</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Hotel Address Email and Phone Number Row */}
+                  <div 
+                    className="flex gap-4 w-full"
+                    style={{
+                      alignItems: "flex-start",
+                      gap: "16px",
+                      alignSelf: "stretch"
+                    }}
+                  >
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label 
+                        className="text-sm font-medium"
+                        style={{
+                          color: "#212121",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          lineHeight: "19.5px"
+                        }}
+                      >
+                        Hotel address email
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="Write Here..."
+                        className="w-full px-3 py-2 border rounded"
+                        style={{
+                          width: "326px",
+                          padding: "7.52px 12px",
+                          borderRadius: "4px",
+                          border: "1px solid #CED4DA",
+                          background: "#FFF"
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label 
+                        className="text-sm font-medium"
+                        style={{
+                          color: "#212121",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          lineHeight: "19.5px"
+                        }}
+                      >
+                        Phone number
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="Write Here..."
+                        className="w-full px-3 py-2 border rounded"
+                        style={{
+                          width: "326px",
+                          padding: "7.52px 12px",
+                          borderRadius: "4px",
+                          border: "1px solid #CED4DA",
+                          background: "#FFF"
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* RC and ICE Row */}
+                  <div 
+                    className="flex gap-4 w-full"
+                    style={{
+                      alignItems: "flex-start",
+                      gap: "16px",
+                      alignSelf: "stretch"
+                    }}
+                  >
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label 
+                        className="text-sm font-medium"
+                        style={{
+                          color: "#212121",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          lineHeight: "19.5px"
+                        }}
+                      >
+                        RC
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Write Here..."
+                        className="w-full px-3 py-2 border rounded"
+                        style={{
+                          width: "326px",
+                          padding: "7.52px 12px",
+                          borderRadius: "4px",
+                          border: "1px solid #CED4DA",
+                          background: "#FFF"
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label 
+                        className="text-sm font-medium"
+                        style={{
+                          color: "#212121",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          lineHeight: "19.5px"
+                        }}
+                      >
+                        ICE
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Write Here..."
+                        className="w-full px-3 py-2 border rounded"
+                        style={{
+                          width: "326px",
+                          padding: "7.52px 12px",
+                          borderRadius: "4px",
+                          border: "1px solid #CED4DA",
+                          background: "#FFF"
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Identifiant Fiscal and Taxe Professionnelle Row */}
+                  <div 
+                    className="flex gap-4 w-full"
+                    style={{
+                      alignItems: "flex-start",
+                      gap: "16px",
+                      alignSelf: "stretch"
+                    }}
+                  >
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label 
+                        className="text-sm font-medium"
+                        style={{
+                          color: "#212121",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          lineHeight: "19.5px"
+                        }}
+                      >
+                        Identifiant Fiscal
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Write Here..."
+                        className="w-full px-3 py-2 border rounded"
+                        style={{
+                          width: "326px",
+                          padding: "7.52px 12px",
+                          borderRadius: "4px",
+                          border: "1px solid #CED4DA",
+                          background: "#FFF"
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label 
+                        className="text-sm font-medium"
+                        style={{
+                          color: "#212121",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          lineHeight: "19.5px"
+                        }}
+                      >
+                        Taxe Professionnelle
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Write Here..."
+                        className="w-full px-3 py-2 border rounded"
+                        style={{
+                          width: "326px",
+                          padding: "7.52px 12px",
+                          borderRadius: "4px",
+                          border: "1px solid #CED4DA",
+                          background: "#FFF"
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Hotel Image Section */}
+                  <div 
+                    className="w-full"
+                    style={{
+                      padding: "25px",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "20px",
+                      alignSelf: "stretch",
+                      borderRadius: "12px",
+                      border: "1px dashed rgba(0, 0, 0, 0.12)",
+                      background: "#FFF"
+                    }}
+                  >
+                    <h3 
+                      className="text-sm font-medium mb-5"
+                      style={{
+                        color: "#0A0A0A",
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        lineHeight: "22px"
+                      }}
+                    >
+                      Hotel image
+                    </h3>
+                    
+                    <div 
+                      className="flex flex-col items-center justify-center"
+                      style={{
+                        height: "150px",
+                        padding: "25px 13px",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        gap: "12px",
+                        alignSelf: "stretch",
+                        borderRadius: "6.75px",
+                        border: "1px solid rgba(0, 0, 0, 0.06)",
+                        background: "#FBFAFA"
+                      }}
+                    >
+                      <div 
+                        style={{
+                          width: "20px",
+                          height: "20px",
+                          flexShrink: "0"
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="23" viewBox="0 0 22 23" fill="none">
+                          <path d="M12 2.56872C11.5299 2.56641 11.0307 2.56641 10.5 2.56641C6.02166 2.56641 3.78249 2.56641 2.39124 3.95765C1 5.34889 1 7.58806 1 12.0664C1 16.5447 1 18.7839 2.39124 20.1752C3.78249 21.5664 6.02166 21.5664 10.5 21.5664C14.9783 21.5664 17.2175 21.5664 18.6088 20.1752C19.9472 18.8367 19.998 16.7134 19.9999 12.5664" stroke="#141B34" strokeWidth="1.5" strokeLinecap="round"/>
+                          <path d="M1 13.7018C1.61902 13.6119 2.24484 13.5675 2.87171 13.5691C5.52365 13.513 8.11064 14.3394 10.1711 15.9006C12.082 17.3485 13.4247 19.3413 14 21.5664" stroke="#141B34" strokeWidth="1.5" strokeLinejoin="round"/>
+                          <path d="M20 16.4626C18.8246 15.8673 17.6088 15.5652 16.3862 15.5665C14.5345 15.5592 12.7015 16.2398 11 17.5664" stroke="#141B34" strokeWidth="1.5" strokeLinejoin="round"/>
+                          <path d="M16 4.06641C16.4915 3.56071 17.7998 1.56641 18.5 1.56641M21 4.06641C20.5085 3.56071 19.2002 1.56641 18.5 1.56641M18.5 1.56641V9.56641" stroke="#141B34" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                      <span className="text-sm text-gray-600 text-center">
+                        Drag and drop your image here or <span className="text-blue-600 cursor-pointer hover:underline">choose file</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 2 && (
+                <div 
+                  className="flex flex-col gap-5"
+                  style={{
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: "20px",
+                    alignSelf: "stretch"
+                  }}
+                >
+                  <div 
+                    className="flex gap-4 w-full"
+                    style={{
+                      alignItems: "flex-start",
+                      gap: "16px",
+                      alignSelf: "stretch"
+                    }}
+                  >
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label 
+                        className="text-sm font-medium"
+                        style={{
+                          color: "#212121",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          lineHeight: "19.5px"
+                        }}
+                      >
+                        Username
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Write Here..."
+                        className="w-full px-3 py-2 border rounded"
+                        style={{
+                          width: "326px",
+                          padding: "7.52px 12px",
+                          borderRadius: "4px",
+                          border: "1px solid #CED4DA",
+                          background: "#FFF"
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label 
+                        className="text-sm font-medium"
+                        style={{
+                          color: "#212121",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          lineHeight: "19.5px"
+                        }}
+                      >
+                        Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="password"
+                          placeholder="Enter password"
+                          className="w-full px-3 py-2 border rounded pr-10"
+                          style={{
+                            width: "326px",
+                            padding: "7.52px 12px",
+                            borderRadius: "4px",
+                            border: "1px solid #CED4DA",
+                            background: "#FFF"
+                          }}
+                        />
+                        <button className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 3 && (
+                <div 
+                  className="flex flex-col gap-5"
+                  style={{
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: "20px",
+                    alignSelf: "stretch"
+                  }}
+                >
+                  <div 
+                    className="flex gap-4 w-full"
+                    style={{
+                      alignItems: "flex-start",
+                      gap: "16px",
+                      alignSelf: "stretch"
+                    }}
+                  >
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label 
+                        className="text-sm font-medium"
+                        style={{
+                          color: "#212121",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          lineHeight: "19.5px"
+                        }}
+                      >
+                        Start date
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="mm/dd/yyyy"
+                          className="w-full px-3 py-2 border rounded pr-10"
+                          style={{
+                            width: "326px",
+                            padding: "7.52px 12px",
+                            borderRadius: "4px",
+                            border: "1px solid #CED4DA",
+                            background: "#FFF"
+                          }}
+                        />
+                        <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label 
+                        className="text-sm font-medium"
+                        style={{
+                          color: "#212121",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          lineHeight: "19.5px"
+                        }}
+                      >
+                        End date
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="mm/dd/yyyy"
+                          className="w-full px-3 py-2 border rounded pr-10"
+                          style={{
+                            width: "326px",
+                            padding: "7.52px 12px",
+                            borderRadius: "4px",
+                            border: "1px solid #CED4DA",
+                            background: "#FFF"
+                          }}
+                        />
+                        <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div 
+                    className="flex gap-4 w-full"
+                    style={{
+                      alignItems: "flex-start",
+                      gap: "16px",
+                      alignSelf: "stretch"
+                    }}
+                  >
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label 
+                        className="text-sm font-medium"
+                        style={{
+                          color: "#212121",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          lineHeight: "19.5px"
+                        }}
+                      >
+                        Plan
+                      </label>
+                      <select
+                        className="w-full px-3 py-2 border rounded"
+                        style={{
+                          width: "326px",
+                          padding: "7.52px 12px",
+                          borderRadius: "4px",
+                          border: "1px solid #CED4DA",
+                          background: "#FFF"
+                        }}
+                      >
+                        <option>Select</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-2 flex-1">
+                      <label 
+                        className="text-sm font-medium"
+                        style={{
+                          color: "#212121",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          lineHeight: "19.5px"
+                        }}
+                      >
+                        Services
+                      </label>
+                      <select
+                        className="w-full px-3 py-2 border rounded"
+                        style={{
+                          width: "326px",
+                          padding: "7.52px 12px",
+                          borderRadius: "4px",
+                          border: "1px solid #CED4DA",
+                          background: "#FFF"
+                        }}
+                      >
+                        <option>Select</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 4 && (
+                <div className="flex flex-col items-end gap-5 self-stretch">
+                  {/* Upload Room Section */}
+                  <div 
+                    className="flex flex-col items-center gap-5 p-6 self-stretch rounded-xl border w-full"
+                    style={{
+                      padding: "25px",
+                      borderRadius: "12px",
+                      border: "1px dashed rgba(0, 0, 0, 0.12)",
+                      background: "#FFF"
+                    }}
+                  >
+                    {/* Upload Room Heading */}
+                    <div 
+                      className="flex items-center gap-2 w-full"
+                      style={{
+                        width: "550px",
+                        gap: "7px"
+                      }}
+                    >
+                      <h3 className="text-lg font-semibold text-black">Upload rooms</h3>
+                    </div>
+
+                    {/* Room API Loading Bar Section */}
+                    <div 
+                      className="flex items-center gap-5 self-stretch rounded-lg border"
+                      style={{
+                        height: "42px",
+                        padding: "12px 13px",
+                        borderRadius: "6.75px",
+                        border: "1px solid #E6E6E6",
+                        background: "#FFF",
+                        boxShadow: "0 2px 2px 0 rgba(0, 0, 0, 0.05)"
+                      }}
+                    >
+                      {/* File Icon */}
+                      <div 
+                        className="flex-shrink-0"
+                        style={{
+                          width: "20px",
+                          height: "20px",
+                          aspectRatio: "1/1"
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                          <path d="M5.12276 0H11.8146L17.4792 5.90996V17.3982C17.4792 18.8353 16.3145 20 14.8774 20H5.12276C3.68571 20 2.521 18.8353 2.521 17.3982V2.60177C2.521 1.16474 3.68571 0 5.12276 0Z" fill="#0263D1"/>
+                          <path opacity="0.302" fillRule="evenodd" clipRule="evenodd" d="M11.8062 0V5.86141H17.4789L11.8062 0Z" fill="white"/>
+                          <path d="M4.93652 14.2705V10.9596H6.10935C6.34391 10.9596 6.56232 10.9947 6.76453 11.0594C6.96674 11.1268 7.15007 11.2239 7.31455 11.3533C7.47901 11.4827 7.60844 11.6553 7.7028 11.8709C7.79716 12.0866 7.8457 12.3347 7.8457 12.6151C7.8457 12.8955 7.79716 13.1435 7.7028 13.3592C7.60844 13.5749 7.47901 13.7474 7.31455 13.8768C7.15009 14.0062 6.96674 14.1033 6.76453 14.1707C6.56232 14.2354 6.34393 14.2705 6.10935 14.2705H4.93652ZM5.76424 13.5506H6.00959C6.1417 13.5506 6.26572 13.5345 6.37625 13.5048C6.48949 13.4724 6.59193 13.4212 6.68899 13.3538C6.78606 13.2864 6.86154 13.1893 6.91546 13.0626C6.97209 12.9386 6.99903 12.7876 6.99903 12.6151C6.99903 12.4425 6.97207 12.2915 6.91546 12.1648C6.86154 12.0408 6.78606 11.9437 6.68899 11.8763C6.59193 11.8062 6.48949 11.7577 6.37625 11.7253C6.26572 11.6957 6.1417 11.6795 6.00959 11.6795H5.76424V13.5506ZM9.85431 14.3082C9.35553 14.3082 8.94302 14.1465 8.61679 13.8256C8.29055 13.5048 8.12877 13.1004 8.12877 12.6151C8.12877 12.1298 8.29055 11.7254 8.61679 11.4045C8.94302 11.0837 9.35553 10.9219 9.85431 10.9219C10.345 10.9219 10.7521 11.0837 11.0784 11.4045C11.4019 11.7254 11.5637 12.1298 11.5637 12.6151C11.5637 13.1004 11.4019 13.5048 11.0784 13.8256C10.7521 14.1465 10.345 14.3082 9.85431 14.3082ZM9.21801 13.3134C9.38247 13.4967 9.59276 13.5884 9.8489 13.5884C10.105 13.5884 10.3126 13.4967 10.4771 13.3134C10.6416 13.1273 10.7225 12.8955 10.7225 12.6151C10.7225 12.3347 10.6416 12.1028 10.4771 11.9168C10.3127 11.7334 10.105 11.6417 9.8489 11.6417C9.59276 11.6417 9.38247 11.7334 9.21801 11.9168C9.05355 12.1028 8.96996 12.3347 8.96996 12.6151C8.96996 12.8955 9.05355 13.1273 9.21801 13.3134ZM13.5318 14.3082C13.0492 14.3082 12.6475 14.1573 12.3294 13.8607C12.0085 13.5614 11.8495 13.1462 11.8495 12.6151C11.8495 12.0866 12.0112 11.6714 12.3348 11.3721C12.661 11.0729 13.0573 10.9219 13.5319 10.9219C13.9605 10.9219 14.311 11.027 14.5888 11.24C14.8638 11.4503 15.0228 11.7307 15.0633 12.0812L14.2275 12.2511C14.1924 12.0677 14.1088 11.9195 13.9794 11.8089C13.85 11.6983 13.699 11.6417 13.5265 11.6417C13.2892 11.6417 13.0924 11.7253 12.9333 11.8952C12.7742 12.0677 12.6933 12.305 12.6933 12.615C12.6933 12.9251 12.7742 13.1624 12.9306 13.3322C13.0897 13.5048 13.2865 13.5884 13.5264 13.5884C13.699 13.5884 13.8473 13.5398 13.9686 13.4428C14.0899 13.3457 14.1654 13.2163 14.1978 13.0545L15.0525 13.2487C14.9743 13.583 14.8017 13.8418 14.5321 14.0278C14.2652 14.2139 13.9309 14.3082 13.5318 14.3082Z" fill="white"/>
+                        </svg>
+                      </div>
+
+                      {/* Room API Data Text */}
+                      <span className="text-sm font-medium text-black">Rooms api data</span>
+
+                      {/* Loading Bar */}
+                      <div 
+                        className="flex flex-col items-start gap-2.5 flex-1"
+                        style={{
+                          height: "8px",
+                          borderRadius: "10px",
+                          background: "#F5F6F6"
+                        }}
+                      >
+                        {/* Progress Bar */}
+                        <div 
+                          className="h-2 rounded-lg"
+                          style={{
+                            width: "230px",
+                            height: "8px",
+                            borderRadius: "10px",
+                            background: "#56C6FF"
+                          }}
+                        />
+                      </div>
+
+                      {/* X Button */}
+                      <button className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Choose File Section */}
+                    <div 
+                      className="flex flex-col justify-center items-center gap-3 rounded-lg border w-full"
+                      style={{
+                        height: "150px",
+                        padding: "25px 13px",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        gap: "12px",
+                        alignSelf: "stretch",
+                        borderRadius: "6.75px",
+                        border: "1px solid rgba(0, 0, 0, 0.06)",
+                        background: "#FBFAFA"
+                      }}
+                    >
+                      <div 
+                        className="flex justify-center items-center flex-shrink-0"
+                        style={{
+                          width: "24px",
+                          height: "24px",
+                          padding: "2px"
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="22" viewBox="0 0 23 22" fill="none">
+                          <circle cx="11.5" cy="11" r="10" stroke="#141B34" strokeWidth="1.5"/>
+                          <path d="M14.5 7.75C14.9142 7.75 15.25 7.41421 15.25 7C15.25 6.58579 14.9142 6.25 14.5 6.25V7V7.75ZM8.5 6.25C8.08579 6.25 7.75 6.58579 7.75 7C7.75 7.41421 8.08579 7.75 8.5 7.75L8.5 7L8.5 6.25ZM8.94325 11.3691C8.66572 11.6766 8.68999 12.1508 8.99747 12.4284C9.30496 12.7059 9.77921 12.6816 10.0567 12.3741L9.5 11.8716L8.94325 11.3691ZM10.4393 10.8309L9.88259 10.3284L10.4393 10.8309ZM12.5607 10.8309L12.0039 11.3334H12.0039L12.5607 10.8309ZM12.9433 12.3741C13.2208 12.6816 13.695 12.7059 14.0025 12.4284C14.31 12.1508 14.3343 11.6766 14.0567 11.3691L13.5 11.8716L12.9433 12.3741ZM10.75 16C10.75 16.4142 11.0858 16.75 11.5 16.75C11.9142 16.75 12.25 16.4142 12.25 16H11.5H10.75ZM14.5 7V6.25L8.5 6.25L8.5 7L8.5 7.75L14.5 7.75V7ZM9.5 11.8716L10.0567 12.3741L10.9961 11.3334L10.4393 10.8309L9.88259 10.3284L8.94325 11.3691L9.5 11.8716ZM12.5607 10.8309L12.0039 11.3334L12.9433 12.3741L13.5 11.8716L14.0567 11.3691L13.1174 10.3284L12.5607 10.8309ZM10.4393 10.8309L10.9961 11.3334C11.2607 11.0403 11.409 10.8785 11.5248 10.7805C11.6273 10.6939 11.5993 10.75 11.5 10.75V10V9.25C11.09 9.25 10.7817 9.44458 10.5565 9.63495C10.3447 9.81396 10.118 10.0676 9.88259 10.3284L10.4393 10.8309ZM12.5607 10.8309L13.1174 10.3284C12.882 10.0676 12.6553 9.81397 12.4435 9.63495C12.2183 9.44458 11.91 9.25 11.5 9.25V10V10.75C11.4007 10.75 11.3727 10.6939 11.4752 10.7805C11.591 10.8785 11.7393 11.0403 12.0039 11.3334L12.5607 10.8309ZM11.5 10H10.75L10.75 16H11.5H12.25L12.25 10H11.5Z" fill="#141B34"/>
+                        </svg>
+                      </div>
+                      <span className="text-sm font-medium text-black">Drag and drop your files here or <span className="text-blue-600 cursor-pointer hover:underline">choose file</span></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div 
+              className="flex justify-end items-center border-t"
+              style={{
+                padding: "20px 16px",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                gap: "72px",
+                alignSelf: "stretch",
+                borderRadius: "0 0 10px 10px",
+                borderTop: "1px solid rgba(0, 0, 0, 0.04)",
+                background: "#FFF"
+              }}
+            >
+              <button 
+                onClick={() => currentStep > 1 ? setCurrentStep(currentStep - 1) : setShowAddPartnerModal(false)}
+                className="px-4 py-2 rounded text-gray-700 hover:bg-gray-100 transition-colors"
+                style={{
+                  padding: "8.52px 10px",
+                  borderRadius: "6px",
+                  background: "#FBFAFA"
+                }}
+              >
+                {currentStep > 1 ? 'Prev' : 'Cancel'}
+              </button>
+              
+              <button 
+                onClick={() => {
+                  if (currentStep < 4) {
+                    setCurrentStep(currentStep + 1)
+                  } else {
+                    // Save logic here
+                    setShowAddPartnerModal(false)
+                    setCurrentStep(1)
+                    setShowSuccessCard(true)
+                    // Auto hide success card after 5 seconds
+                    setTimeout(() => {
+                      setShowSuccessCard(false)
+                    }, 5000)
+                  }
+                }}
+                className="px-4 py-2 rounded text-white font-medium hover:opacity-90 transition-opacity"
+                style={{
+                  padding: "8.52px 20px",
+                  borderRadius: "6px",
+                  background: "#1F2A44"
+                }}
+              >
+                {currentStep === 4 ? 'Save' : 'Next'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Card */}
+      {showSuccessCard && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <div 
+            className="flex items-center gap-3"
+            style={{
+              display: "inline-flex",
+              padding: "10px 15px 10px 10px",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "10px",
+              borderRadius: "10px 0 0 10px",
+              borderTop: "1px solid #13B601",
+              borderBottom: "1px solid #13B601",
+              borderLeft: "1px solid #13B601",
+              background: "#F3FFEA"
+            }}
+          >
+            {/* Success Message Row */}
+            <div 
+              className="flex items-center gap-3"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px"
+              }}
+            >
+              {/* Tick Icon */}
+              <div 
+                style={{
+                  width: "15px",
+                  height: "15px",
+                  aspectRatio: "1/1"
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="16" viewBox="0 0 15 16" fill="none">
+                  <path d="M7.5 0.5C6.01664 0.5 4.56659 0.939867 3.33323 1.76398C2.09986 2.58809 1.13856 3.75943 0.570907 5.12987C0.00324974 6.50032 -0.145275 8.00832 0.144114 9.46318C0.433503 10.918 1.14781 12.2544 2.1967 13.3033C3.2456 14.3522 4.58197 15.0665 6.03682 15.3559C7.49168 15.6453 8.99968 15.4968 10.3701 14.9291C11.7406 14.3614 12.9119 13.4001 13.736 12.1668C14.5601 10.9334 15 9.48336 15 8C15 6.01088 14.2098 4.10322 12.8033 2.6967C11.3968 1.29018 9.48913 0.5 7.5 0.5Z" fill="url(#paint0_linear_1_14241)"/>
+                  <path d="M11.7796 6.75737L7.26942 11.4921C7.1466 11.621 6.999 11.7239 6.83549 11.7945C6.67197 11.865 6.4959 11.9019 6.3178 11.9028H6.31207C6.13501 11.9028 5.95975 11.8673 5.79667 11.7983C5.63359 11.7293 5.48601 11.6284 5.36266 11.5013L2.97016 9.03648C2.84004 8.91391 2.73611 8.76624 2.66463 8.6024C2.59315 8.43856 2.55559 8.26193 2.55424 8.08318C2.55288 7.90442 2.58775 7.72725 2.65674 7.56234C2.72573 7.39743 2.82741 7.24821 2.95564 7.12367C3.08388 6.99913 3.23601 6.90186 3.40287 6.83772C3.56973 6.77359 3.74785 6.74392 3.92648 6.7505C4.10512 6.75709 4.28057 6.79979 4.44225 6.87604C4.60393 6.95228 4.74849 7.06049 4.86721 7.19413L6.30104 8.67163L9.86089 4.9331C9.98067 4.80712 10.1241 4.70596 10.283 4.63541C10.4418 4.56486 10.6131 4.52629 10.7868 4.52191C10.9606 4.51752 11.1336 4.54741 11.2958 4.60986C11.458 4.67232 11.6064 4.76611 11.7324 4.8859C11.8583 5.00568 11.9595 5.1491 12.0301 5.30798C12.1006 5.46686 12.1392 5.63807 12.1436 5.81185C12.1479 5.98564 12.1181 6.15858 12.0556 6.32081C11.9931 6.48304 11.8993 6.63138 11.7796 6.75737Z" fill="url(#paint1_linear_1_14241)"/>
+                  <defs>
+                    <linearGradient id="paint0_linear_1_14241" x1="12.8043" y1="13.3043" x2="2.19574" y2="2.69573" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#13B601"/>
+                      <stop offset="0.52" stopColor="#13B601"/>
+                      <stop offset="1" stopColor="#CBF4B4"/>
+                    </linearGradient>
+                    <linearGradient id="paint1_linear_1_14241" x1="9.5578" y1="9.20457" x2="5.25898" y2="4.90531" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#CBF4B4"/>
+                      <stop offset="0.57" stopColor="white"/>
+                      <stop offset="1" stopColor="white"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-gray-800">Partner added successfully.</span>
+            </div>
+
+            {/* Hotel Name Row */}
+            <div 
+              className="flex items-center gap-3"
+              style={{
+                display: "flex",
+                padding: "10px 13px",
+                alignItems: "center",
+                gap: "10px",
+                alignSelf: "stretch",
+                borderRadius: "10px",
+                background: "#0B0F18"
+              }}
+            >
+              {/* Home Icon */}
+              <div 
+                style={{
+                  width: "24px",
+                  height: "24px"
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34" fill="none">
+                  <g filter="url(#filter0_d_1_14247)">
+                    <rect x="5" y="2" width="24" height="24" rx="12" fill="white"/>
+                  </g>
+                  <defs>
+                    <filter id="filter0_d_1_14247" x="0.470589" y="0.352942" width="33.0588" height="33.0588" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+                      <feFlood floodOpacity="0" result="BackgroundImageFix"/>
+                      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                      <feOffset dy="2.88235"/>
+                      <feGaussianBlur stdDeviation="2.26471"/>
+                      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.02 0"/>
+                      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_14247"/>
+                      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_14247" result="shape"/>
+                    </filter>
+                  </defs>
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-white">Hotel Name</span>
+              <div 
+                className="flex items-center justify-center rounded-full bg-red-500"
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  borderRadius: "10px"
+                }}
+              >
+                <span className="text-xs text-white font-medium">151</span>
+              </div>
             </div>
           </div>
         </div>
