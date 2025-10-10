@@ -14,6 +14,18 @@ import {
 import StatusBadge from "@/app/client/components/status-badge"
 import PriorityBadge from "@/app/client/components/priority-badge"
 import DropdownMenu from "@/app/client/components/dropdown-menu"
+import ViewTicketModal from "@/app/client/components/view-ticket-modal"
+import ChangeStatusModal from "@/app/client/components/change-status-modal"
+import AssignTicketModal from "@/app/client/components/assign-ticket-modal"
+import UnmarkTicketModal from "@/app/client/components/unmark-ticket-modal"
+import ContactPartnerModal from "@/app/client/components/contact-partner-modal"
+import DeleteTicketModal from "@/app/client/components/delete-ticket-modal"
+import { 
+  ChangeStatusIcon, 
+  AssignTicketIcon, 
+  AddReplyIcon, 
+  MarkAsTicketIcon 
+} from "@/app/client/components/icons"
 
 interface Ticket {
   id: string
@@ -27,6 +39,10 @@ interface Ticket {
   }
   dateCreated: string
   dateUpdate: string
+  hotelName: string
+  hotelEmail: string
+  description: string
+  isMarkedAsTicket: boolean
 }
 
 const mockTickets: Ticket[] = [
@@ -37,8 +53,12 @@ const mockTickets: Ticket[] = [
     status: "open",
     priority: "urgent",
     assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 10:30 AM",
-    dateUpdate: "Jan 15, 10:30 AM",
+    dateCreated: "Jan 15, 2024, 10:30 AM",
+    dateUpdate: "Jan 16, 2024, 02:22 PM",
+    hotelName: "Hotel name",
+    hotelEmail: "hotel@gmail.com",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
+    isMarkedAsTicket: true,
   },
   {
     id: "2",
@@ -47,8 +67,12 @@ const mockTickets: Ticket[] = [
     status: "open",
     priority: "medium",
     assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 10:30 AM",
-    dateUpdate: "Jan 15, 10:30 AM",
+    dateCreated: "Jan 15, 2024, 10:30 AM",
+    dateUpdate: "Jan 16, 2024, 02:22 PM",
+    hotelName: "Hotel name",
+    hotelEmail: "hotel@gmail.com",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
+    isMarkedAsTicket: false,
   },
   {
     id: "3",
@@ -57,8 +81,12 @@ const mockTickets: Ticket[] = [
     status: "reopened",
     priority: "medium",
     assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 10:30 AM",
-    dateUpdate: "Jan 15, 10:30 AM",
+    dateCreated: "Jan 15, 2024, 10:30 AM",
+    dateUpdate: "Jan 16, 2024, 02:22 PM",
+    hotelName: "Hotel name",
+    hotelEmail: "hotel@gmail.com",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
+    isMarkedAsTicket: false,
   },
   {
     id: "4",
@@ -67,8 +95,12 @@ const mockTickets: Ticket[] = [
     status: "pending",
     priority: "medium",
     assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 10:30 AM",
-    dateUpdate: "Jan 15, 10:30 AM",
+    dateCreated: "Jan 15, 2024, 10:30 AM",
+    dateUpdate: "Jan 16, 2024, 02:22 PM",
+    hotelName: "Hotel name",
+    hotelEmail: "hotel@gmail.com",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
+    isMarkedAsTicket: true,
   },
   {
     id: "5",
@@ -77,8 +109,12 @@ const mockTickets: Ticket[] = [
     status: "resolved",
     priority: "urgent",
     assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 10:30 AM",
-    dateUpdate: "Jan 15, 10:30 AM",
+    dateCreated: "Jan 15, 2024, 10:30 AM",
+    dateUpdate: "Jan 16, 2024, 02:22 PM",
+    hotelName: "Hotel name",
+    hotelEmail: "hotel@gmail.com",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
+    isMarkedAsTicket: true,
   },
   {
     id: "6",
@@ -87,8 +123,12 @@ const mockTickets: Ticket[] = [
     status: "canceled",
     priority: "urgent",
     assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 10:30 AM",
-    dateUpdate: "Jan 15, 10:30 AM",
+    dateCreated: "Jan 15, 2024, 10:30 AM",
+    dateUpdate: "Jan 16, 2024, 02:22 PM",
+    hotelName: "Hotel name",
+    hotelEmail: "hotel@gmail.com",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
+    isMarkedAsTicket: true,
   },
   {
     id: "7",
@@ -97,8 +137,12 @@ const mockTickets: Ticket[] = [
     status: "canceled",
     priority: "urgent",
     assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 10:30 AM",
-    dateUpdate: "Jan 15, 10:30 AM",
+    dateCreated: "Jan 15, 2024, 10:30 AM",
+    dateUpdate: "Jan 16, 2024, 02:22 PM",
+    hotelName: "Hotel name",
+    hotelEmail: "hotel@gmail.com",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
+    isMarkedAsTicket: true,
   },
   {
     id: "8",
@@ -107,8 +151,12 @@ const mockTickets: Ticket[] = [
     status: "resolved",
     priority: "low",
     assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 10:30 AM",
-    dateUpdate: "Jan 15, 10:30 AM",
+    dateCreated: "Jan 15, 2024, 10:30 AM",
+    dateUpdate: "Jan 16, 2024, 02:22 PM",
+    hotelName: "Hotel name",
+    hotelEmail: "hotel@gmail.com",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
+    isMarkedAsTicket: true,
   },
   {
     id: "9",
@@ -117,8 +165,12 @@ const mockTickets: Ticket[] = [
     status: "open",
     priority: "low",
     assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 10:30 AM",
-    dateUpdate: "Jan 15, 10:30 AM",
+    dateCreated: "Jan 15, 2024, 10:30 AM",
+    dateUpdate: "Jan 16, 2024, 02:22 PM",
+    hotelName: "Hotel name",
+    hotelEmail: "hotel@gmail.com",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
+    isMarkedAsTicket: true,
   },
   {
     id: "10",
@@ -127,8 +179,12 @@ const mockTickets: Ticket[] = [
     status: "open",
     priority: "low",
     assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 10:30 AM",
-    dateUpdate: "Jan 15, 10:30 AM",
+    dateCreated: "Jan 15, 2024, 10:30 AM",
+    dateUpdate: "Jan 16, 2024, 02:22 PM",
+    hotelName: "Hotel name",
+    hotelEmail: "hotel@gmail.com",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
+    isMarkedAsTicket: true,
   },
 ]
 
@@ -137,6 +193,18 @@ export default function SupportPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null)
+  const [showViewTicketModal, setShowViewTicketModal] = useState(false)
+  const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null)
+  const [showChangeStatusModal, setShowChangeStatusModal] = useState(false)
+  const [ticketToChangeStatus, setTicketToChangeStatus] = useState<Ticket | null>(null)
+  const [showAssignTicketModal, setShowAssignTicketModal] = useState(false)
+  const [ticketToAssign, setTicketToAssign] = useState<Ticket | null>(null)
+  const [showUnmarkTicketModal, setShowUnmarkTicketModal] = useState(false)
+  const [ticketToUnmark, setTicketToUnmark] = useState<Ticket | null>(null)
+  const [showContactPartnerModal, setShowContactPartnerModal] = useState(false)
+  const [ticketToContact, setTicketToContact] = useState<Ticket | null>(null)
+  const [showDeleteTicketModal, setShowDeleteTicketModal] = useState(false)
+  const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null)
 
   const totalPages = Math.ceil(tickets.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
@@ -145,6 +213,90 @@ export default function SupportPage() {
 
   const handleStatusChange = (ticketId: string, newStatus: Ticket["status"]) => {
     setTickets(tickets.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)))
+  }
+
+  const handleViewTicket = (ticket: Ticket) => {
+    setViewingTicket(ticket)
+    setShowViewTicketModal(true)
+  }
+
+  const closeViewTicketModal = () => {
+    setShowViewTicketModal(false)
+    setViewingTicket(null)
+  }
+
+  const handleChangeStatus = (ticket: Ticket) => {
+    setTicketToChangeStatus(ticket)
+    setShowChangeStatusModal(true)
+  }
+
+  const closeChangeStatusModal = () => {
+    setShowChangeStatusModal(false)
+    setTicketToChangeStatus(null)
+  }
+
+  const confirmStatusChange = (ticketId: string, newStatus: Ticket["status"]) => {
+    setTickets(tickets.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)))
+  }
+
+  const handleAssignTicket = (ticket: Ticket) => {
+    setTicketToAssign(ticket)
+    setShowAssignTicketModal(true)
+  }
+
+  const closeAssignTicketModal = () => {
+    setShowAssignTicketModal(false)
+    setTicketToAssign(null)
+  }
+
+  const confirmAssignTicket = (ticketId: string, newAssignee: string) => {
+    const assigneeName = newAssignee.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+    setTickets(tickets.map((t) => (t.id === ticketId ? { 
+      ...t, 
+      assignee: { 
+        name: assigneeName, 
+        avatar: assigneeName.split(' ').map(n => n[0]).join('').toUpperCase() 
+      } 
+    } : t)))
+  }
+
+  const handleDeleteTicket = (ticket: Ticket) => {
+    setTicketToDelete(ticket)
+    setShowDeleteTicketModal(true)
+  }
+
+  const closeDeleteTicketModal = () => {
+    setShowDeleteTicketModal(false)
+    setTicketToDelete(null)
+  }
+
+  const handleUnmarkTicket = (ticket: Ticket) => {
+    setTicketToUnmark(ticket)
+    setShowUnmarkTicketModal(true)
+  }
+
+  const closeUnmarkTicketModal = () => {
+    setShowUnmarkTicketModal(false)
+    setTicketToUnmark(null)
+  }
+
+  const confirmUnmarkTicket = (ticketId: string) => {
+    // Toggle the isMarkedAsTicket status
+    setTickets(tickets.map((t) => (t.id === ticketId ? { ...t, isMarkedAsTicket: !t.isMarkedAsTicket } : t)))
+  }
+
+  const handleContactPartner = (ticket: Ticket) => {
+    setTicketToContact(ticket)
+    setShowContactPartnerModal(true)
+  }
+
+  const closeContactPartnerModal = () => {
+    setShowContactPartnerModal(false)
+    setTicketToContact(null)
+  }
+
+  const confirmDeleteTicket = (ticketId: string) => {
+    setTickets(tickets.filter((t) => t.id !== ticketId))
   }
 
   return (
@@ -301,32 +453,32 @@ export default function SupportPage() {
                           {
                             label: "View ticket",
                             icon: <RiEyeLine className="w-4 h-4" />,
-                            onClick: () => setSelectedTicket(ticket.id),
+                            onClick: () => handleViewTicket(ticket),
                           },
                           {
                             label: "Change status",
-                            icon: <RiEditLine className="w-4 h-4" />,
-                            onClick: () => console.log("Change status", ticket.id),
+                            icon: <ChangeStatusIcon />,
+                            onClick: () => handleChangeStatus(ticket),
                           },
                           {
-                            label: "Assign ticket",
-                            icon: <RiUserAddLine className="w-4 h-4" />,
-                            onClick: () => console.log("Assign", ticket.id),
+                            label: "Change assignee",
+                            icon: <AssignTicketIcon />,
+                            onClick: () => handleAssignTicket(ticket),
                           },
                           {
-                            label: "Add a reply",
-                            icon: <RiReplyLine className="w-4 h-4" />,
-                            onClick: () => console.log("Reply", ticket.id),
+                            label: "View messages",
+                            icon: <AddReplyIcon />,
+                            onClick: () => handleContactPartner(ticket),
                           },
                           {
-                            label: "Mark it as a ticket",
-                            icon: <RiCheckboxCircleLine className="w-4 h-4" />,
-                            onClick: () => console.log("Mark", ticket.id),
+                            label: ticket.isMarkedAsTicket ? "Unmark ticket" : "Mark as a ticket",
+                            icon: <MarkAsTicketIcon />,
+                            onClick: () => handleUnmarkTicket(ticket),
                           },
                           {
                             label: "Supprimer",
                             icon: <RiDeleteBinLine className="w-4 h-4" />,
-                            onClick: () => console.log("Delete", ticket.id),
+                            onClick: () => handleDeleteTicket(ticket),
                             variant: "danger",
                           },
                         ]}
@@ -381,6 +533,52 @@ export default function SupportPage() {
           </div>
         )}
       </div>
+
+      {/* View Ticket Modal */}
+      <ViewTicketModal
+        ticket={viewingTicket}
+        isOpen={showViewTicketModal}
+        onClose={closeViewTicketModal}
+      />
+
+      {/* Change Status Modal */}
+      <ChangeStatusModal
+        ticket={ticketToChangeStatus}
+        isOpen={showChangeStatusModal}
+        onClose={closeChangeStatusModal}
+        onConfirm={confirmStatusChange}
+      />
+
+      {/* Assign Ticket Modal */}
+      <AssignTicketModal
+        ticket={ticketToAssign}
+        isOpen={showAssignTicketModal}
+        onClose={closeAssignTicketModal}
+        onConfirm={confirmAssignTicket}
+      />
+
+      {/* Unmark Ticket Modal */}
+      <UnmarkTicketModal
+        ticket={ticketToUnmark}
+        isOpen={showUnmarkTicketModal}
+        onClose={closeUnmarkTicketModal}
+        onConfirm={confirmUnmarkTicket}
+      />
+
+      {/* Contact Partner Modal */}
+      <ContactPartnerModal
+        ticket={ticketToContact}
+        isOpen={showContactPartnerModal}
+        onClose={closeContactPartnerModal}
+      />
+
+      {/* Delete Ticket Modal */}
+      <DeleteTicketModal
+        ticket={ticketToDelete}
+        isOpen={showDeleteTicketModal}
+        onClose={closeDeleteTicketModal}
+        onConfirm={confirmDeleteTicket}
+      />
     </div>
   )
 }

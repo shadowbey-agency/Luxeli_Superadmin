@@ -11,6 +11,7 @@ import {
 } from "react-icons/ri"
 import ToggleSwitch from "@/app/client/components/toggle-switch"
 import DropdownMenu from "@/app/client/components/dropdown-menu"
+import UserPermissionsModal from "@/app/client/components/user-permissions-modal"
 
 interface TeamMember {
   id: string
@@ -69,6 +70,8 @@ export default function TeamPage() {
   const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false)
+  const [memberForPermissions, setMemberForPermissions] = useState<TeamMember | null>(null)
 
   const handleToggleActive = (id: string) => {
     setTeamMembers(teamMembers.map((m) => (m.id === id ? { ...m, isActive: !m.isActive } : m)))
@@ -95,6 +98,21 @@ export default function TeamPage() {
   const handleEditMember = (member: TeamMember) => {
     setSelectedMember(member)
     setShowEditModal(true)
+  }
+
+  const handleUserPermissions = (member: TeamMember) => {
+    setMemberForPermissions(member)
+    setShowPermissionsModal(true)
+  }
+
+  const closePermissionsModal = () => {
+    setShowPermissionsModal(false)
+    setMemberForPermissions(null)
+  }
+
+  const handleEditFromPermissions = () => {
+    // This handler is no longer needed as the edit permissions modal
+    // is now handled directly within the UserPermissionsModal component
   }
 
   const handleSaveEdit = () => {
@@ -207,7 +225,7 @@ export default function TeamPage() {
                         {
                           label: "User Permissions",
                           icon: <RiUserSettingsLine className="w-4 h-4" />,
-                          onClick: () => console.log("Permissions", member.id),
+                          onClick: () => handleUserPermissions(member),
                         },
                         {
                           label: "Reset password",
@@ -455,7 +473,7 @@ export default function TeamPage() {
                 padding: "20px 16px",
                 justifyContent: "flex-end",
                 alignItems: "center",
-                gap: "72px",
+                gap: "10px",
                 alignSelf: "stretch",
                 borderRadius: "0 0 10px 10px",
                 borderTop: "1px solid rgba(0, 0, 0, 0.04)",
@@ -484,7 +502,7 @@ export default function TeamPage() {
                   background: "#1F2A44" 
                 }}
               >
-                Save
+                Add member
               </button>
             </div>
           </div>
@@ -534,22 +552,14 @@ export default function TeamPage() {
                 className="text-gray-600 text-lg leading-normal"
                 style={{
                   color: "#525866",
-                  fontSize: "18px",
+                  fontSize: "17px",
                   fontWeight: 400
                 }}
               >
                 Are you sure you want to remove {memberToDelete?.name} from the team?
-              </p>
-              <p 
-                className="text-gray-500 text-sm mt-2"
-                style={{
-                  color: "#525866",
-                  fontSize: "14px",
-                  fontWeight: 400
-                }}
-              >
                 Access will be revoked immediately. Existing tickets/tasks won't be deleted.
               </p>
+            
             </div>
 
             {/* Third Section - Footer */}
@@ -597,6 +607,14 @@ export default function TeamPage() {
           </div>
         </div>
       )}
+
+      {/* User Permissions Modal */}
+      <UserPermissionsModal
+        member={memberForPermissions}
+        isOpen={showPermissionsModal}
+        onClose={closePermissionsModal}
+        onEdit={handleEditFromPermissions}
+      />
     </div>
   )
 }

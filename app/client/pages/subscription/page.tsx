@@ -45,47 +45,76 @@ const subscriptionHistoryData: SubscriptionHistory[] = Array.from({ length: 6 },
 }))
 
 const SubscriptionCard = ({ history }: { history: SubscriptionHistory }) => (
-  <div className="rounded-2xl border bg-white flex flex-col" style={{ width: "324.997px", height: "224px", boxShadow: "5px 10px 40px 0 rgba(217, 222, 234, 0.14)" }}>
-    {/* Card Content */}
-    <div className="flex-1 p-4 flex flex-col gap-4">
+  <div 
+    className="rounded-2xl border bg-white flex flex-col"
+    style={{ 
+      width: "370px", 
+      
+      boxShadow: "5px 10px 40px 0 rgba(217, 222, 234, 0.14)",
+      borderRadius: "12px"
+    }}
+  >
+    {/* Main Content Section */}
+    <div className="flex-1 p-4 flex flex-col gap-3">
       <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-[#121212]">Plan</span>
-        <span className="text-sm font-light text-[#A2A09F]">{history.plan}</span>
+        <span className="text-sm font-medium" style={{ color: "#121212" }}>Plan</span>
+        <span className="text-sm font-light" style={{ color: "#A2A09F" }}>{history.plan}</span>
       </div>
       <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-[#121212]">Period</span>
-        <span className="text-sm font-light text-[#A2A09F]">{history.period}</span>
+        <span className="text-sm font-medium" style={{ color: "#121212" }}>Period</span>
+        <span className="text-sm font-light" style={{ color: "#A2A09F" }}>{history.period}</span>
       </div>
       <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-[#121212]">Amount</span>
-        <span className="text-sm font-light text-[#A2A09F]">{history.amount}</span>
+        <span className="text-sm font-medium" style={{ color: "#121212" }}>Amount</span>
+        <span className="text-sm font-light" style={{ color: "#A2A09F" }}>{history.amount}</span>
       </div>
       <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-[#121212]">Method</span>
-        <span className="text-sm font-light text-[#A2A09F]">{history.method}</span>
+        <span className="text-sm font-medium" style={{ color: "#121212" }}>Method</span>
+        <span className="text-sm font-light" style={{ color: "#A2A09F" }}>{history.method}</span>
       </div>
       <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-[#121212]">Transaction ID</span>
-        <span className="text-sm font-light text-[#A2A09F]">{history.transactionId}</span>
+        <span className="text-sm font-medium" style={{ color: "#121212" }}>Transaction ID</span>
+        <span className="text-sm font-light" style={{ color: "#A2A09F" }}>{history.transactionId}</span>
       </div>
       <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-[#121212]">Date</span>
-        <span className="text-sm font-light text-[#A2A09F]">{history.date}</span>
+        <span className="text-sm font-medium" style={{ color: "#121212" }}>Date</span>
+        <span className="text-sm font-light" style={{ color: "#A2A09F" }}>{history.date}</span>
       </div>
-    </div>
-    
-    {/* Footer with actions and status - positioned at bottom of card */}
-    <div className="flex justify-between items-center p-4 pt-2 border-t border-gray-100">
+    <div 
+      className="flex justify-between items-center "
+    >
+      {/* Left Side - Icons */}
       <div className="flex items-center gap-2">
         {/* Eye icon */}
-        <button className="flex items-center justify-center hover:bg-gray-50 transition-colors" style={{ width: "30px", height: "30px", padding: "4px 7.333px", borderRadius: "5px", border: "0.789px solid #F6F3F2", background: "#FBFAFA" }}>
+        <button 
+          className="flex items-center justify-center hover:bg-gray-50 transition-colors rounded"
+          style={{ 
+            width: "30px", 
+            height: "30px", 
+            padding: "4px 7.333px", 
+            borderRadius: "5px", 
+            border: "0.789px solid #F6F3F2", 
+            background: "#FBFAFA" 
+          }}
+        >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="12" viewBox="0 0 16 12" fill="none">
             <path d="M14.3623 5.21847C14.565 5.50268 14.6663 5.64479 14.6663 5.85514C14.6663 6.0655 14.565 6.20761 14.3623 6.49182C13.4516 7.76885 11.1258 10.5218 7.99968 10.5218C4.87353 10.5218 2.54774 7.76885 1.63704 6.49182C1.43435 6.20761 1.33301 6.0655 1.33301 5.85514C1.33301 5.64479 1.43435 5.50268 1.63703 5.21847C2.54774 3.94144 4.87353 1.18848 7.99968 1.18848C11.1258 1.18848 13.4516 3.94144 14.3623 5.21847Z" stroke="#141B34"/>
             <path d="M10 5.85547C10 4.7509 9.10457 3.85547 8 3.85547C6.89543 3.85547 6 4.7509 6 5.85547C6 6.96004 6.89543 7.85547 8 7.85547C9.10457 7.85547 10 6.96004 10 5.85547Z" stroke="#121212"/>
           </svg>
         </button>
+        
         {/* Download icon */}
-        <button className="flex items-center justify-center hover:bg-gray-50 transition-colors" style={{ width: "30px", height: "30px", padding: "4px 7.333px", borderRadius: "5px", border: "0.789px solid #F6F3F2", background: "#FBFAFA" }}>
+        <button 
+          className="flex items-center justify-center hover:bg-gray-50 transition-colors rounded"
+          style={{ 
+            width: "30px", 
+            height: "30px", 
+            padding: "4px 7.333px", 
+            borderRadius: "5px", 
+            border: "0.789px solid #F6F3F2", 
+            background: "#FBFAFA" 
+          }}
+        >
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path d="M6.00016 7.52214L6.00016 0.855469M6.00016 7.52214C5.53334 7.52214 4.66118 6.1926 4.3335 5.85547M6.00016 7.52214C6.46698 7.52214 7.33914 6.1926 7.66683 5.85547" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M11.3332 8.85547C11.3332 10.5101 10.9878 10.8555 9.33317 10.8555H2.6665C1.01184 10.8555 0.666504 10.5101 0.666504 8.85547" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
@@ -93,21 +122,26 @@ const SubscriptionCard = ({ history }: { history: SubscriptionHistory }) => (
         </button>
       </div>
       
-      {/* Status badge */}
+      {/* Right Side - Status Badge */}
       <div 
-        className="flex items-center justify-center px-3 py-2 rounded text-xs font-medium"
+        className="flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium"
         style={{
           height: "22px",
-          padding: "10px",
+          padding: "4px 12px",
           borderRadius: "4px",
           border: history.status === "Paid" ? "0.5px solid rgba(80, 190, 135, 0.25)" : "0.5px solid rgba(206, 148, 29, 0.25)",
           background: history.status === "Paid" ? "#EEF9F3" : "rgba(206, 148, 29, 0.05)",
-          color: history.status === "Paid" ? "#50BE87" : "#CE941D"
+          color: history.status === "Paid" ? "#50BE87" : "#CE941D",
+          fontSize: "12px",
+          fontWeight: "500"
         }}
       >
         {history.status}
       </div>
     </div>
+    </div>
+    
+    {/* Bottom Section - Icons and Status */}
   </div>
 )
 
@@ -147,13 +181,13 @@ export default function SubscriptionPage() {
   return (
     <div className="p-6 ">
       {/* Page Header */}
-      <div className="mb-6">
+      <div className="mb-5">
         <h1 className="text-2xl font-bold text-foreground">Subscription</h1>
         <p className="text-sm text-muted-foreground">Last updated on 09/15/2025, 12AM</p>
       </div>
 
        {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
               <StatCard
                 icon={<RiHotelBedLine className="w-6 h-6 text-primary" />}
                 label="Total Plane Revenue"
@@ -359,15 +393,6 @@ export default function SubscriptionPage() {
                         <path d="M1 1.5L6 6.5L11 1.5" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </div>
-                    {/* Dotted line below input */}
-                    <div 
-                      className="mt-1"
-                      style={{
-                        height: "1px",
-                        background: "repeating-linear-gradient(to right, #1F2A44 0, #1F2A44 4px, transparent 4px, transparent 8px)",
-                        width: "100%"
-                      }}
-                    />
                   </div>
                 </div>
 
@@ -400,15 +425,6 @@ export default function SubscriptionPage() {
                         <path d="M9 3L3 9M3 3L9 9" stroke="#666" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </div>
-                    {/* Dotted line below input */}
-                    <div 
-                      className="mt-1"
-                      style={{
-                        height: "1px",
-                        background: "repeating-linear-gradient(to right, #1F2A44 0, #1F2A44 4px, transparent 4px, transparent 8px)",
-                        width: "100%"
-                      }}
-                    />
                   </div>
                 </div>
               </div>
@@ -421,7 +437,7 @@ export default function SubscriptionPage() {
                 padding: "20px 16px",
                 justifyContent: "flex-end",
                 alignItems: "center",
-                gap: "72px",
+                gap: "10px",
                 alignSelf: "stretch",
                 borderRadius: "0 0 10px 10px",
                 borderTop: "1px solid rgba(0, 0, 0, 0.04)",
@@ -462,8 +478,7 @@ export default function SubscriptionPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-end z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
           <div className="bg-white w-[50vw] h-full flex flex-col">
             {/* Slide Header */}
-            <div className="p-6 border-b border-gray-200 flex-shrink-0">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between border-b py-5 px-6 w-full">
                 <h2 className="text-xl font-semibold text-black">Subscription History</h2>
                 <button 
                   onClick={() => setShowHistorySlide(false)}
@@ -474,9 +489,10 @@ export default function SubscriptionPage() {
                   </svg>
                 </button>
               </div>
+            <div className="p-5 border-b border-gray-200 flex-shrink-0">
               
               {/* Sub Header with Filter */}
-              <div className="mt-4 flex items-center justify-between">
+              <div className=" flex items-center justify-between">
                 <h3 
                   className="text-base font-medium"
                   style={{ 
@@ -518,7 +534,7 @@ export default function SubscriptionPage() {
             </div>
 
             {/* Fixed Pagination at Bottom */}
-            <div className="p-6 border-t border-gray-200 flex-shrink-0">
+            <div className="p-5 border-t border-gray-200 flex-shrink-0">
               <div className="flex items-center justify-end gap-2">
                 <button className="w-8 h-8 rounded-full text-sm font-medium bg-primary text-white">1</button>
                 <button className="w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">2</button>
