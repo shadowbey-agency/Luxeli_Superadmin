@@ -12,6 +12,9 @@ import {
 import ToggleSwitch from "@/app/client/components/toggle-switch"
 import DropdownMenu from "@/app/client/components/dropdown-menu"
 import UserPermissionsModal from "@/app/client/components/user-permissions-modal"
+import DropdownArrow from "@/app/client/components/dropdown-arrow"
+import SortArrows from "@/app/client/components/sort-arrows"
+import { LeftArrow, RightArrow } from "@/app/client/components/pagination-arrows"
 
 interface TeamMember {
   id: string
@@ -141,20 +144,46 @@ export default function TeamPage() {
         <div className="flex items-center justify-between pb-4  border-border">
           <h3 className="text-base font-semibold text-foreground">Members</h3>
           <div className="flex items-center gap-2">
-            <select
-              value={itemsPerPage}
-              onChange={(e) => setItemsPerPage(Number(e.target.value))}
-              className="px-3 py-2 border border-border  rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value={10}>Display 10</option>
-              <option value={20}>Display 20</option>
-              <option value={50}>Display 50</option>
-            </select>
+            <div className="relative">
+              <select
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="appearance-none"
+                style={{
+                  padding: "7.52px 12px",
+                  paddingRight: "32px",
+                  borderRadius: "4px",
+                  border: "1px solid #CED4DA",
+                  background: "#FFF",
+                  color: "rgba(33, 33, 33, 0.60)",
+                  fontSize: "13px",
+                  fontWeight: "400",
+                  lineHeight: "19.5px"
+                }}
+              >
+                <option value={10}>Display 10</option>
+                <option value={20}>Display 20</option>
+                <option value={50}>Display 50</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <DropdownArrow />
+              </div>
+            </div>
 
             <input
               type="text"
               placeholder="Search..."
-              className="px-4 py-2  border border-border  rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              style={{
+                padding: "7.52px 12px",
+                borderRadius: "4px",
+                border: "1px solid #CED4DA",
+                background: "#FFF",
+                color: "rgba(33, 33, 33, 0.60)",
+                fontSize: "13px",
+                fontWeight: "400",
+                lineHeight: "19.5px"
+              }}
+              className="focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
 
             <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-sm font-medium transition-colors">
@@ -172,17 +201,71 @@ export default function TeamPage() {
                 <th className="w-12 px-4 py-4">
                   <input type="checkbox" className="rounded" />
                 </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Member Name
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Member Name
+                    </span>
+                  </div>
                 </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Email</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Phone number
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Email
+                    </span>
+                  </div>
                 </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Date added
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Phone number
+                    </span>
+                  </div>
                 </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Complete</th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Date added
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Complete
+                    </span>
+                  </div>
+                </th>
                 <th className="w-12 px-4 py-4"></th>
               </tr>
             </thead>
@@ -197,17 +280,42 @@ export default function TeamPage() {
                       <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold">
                         {member.avatar}
                       </div>
-                      <span className="text-sm text-foreground">{member.name}</span>
+                      <span style={{
+                        color: "#525866",
+                        fontSize: "12px",
+                        fontWeight: "400",
+                        lineHeight: "19.5px"
+                      }}>
+                        {member.name}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-sm text-foreground">{member.email}</td>
-                  <td className="px-4 py-4 text-sm text-foreground">{member.phone}</td>
-                  <td className="px-4 py-4 text-sm text-foreground">{member.dateAdded}</td>
+                  <td className="px-4 py-4" style={{
+                    color: "#525866",
+                    fontSize: "12px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
+                  }}>
+                    {member.email}
+                  </td>
+                  <td className="px-4 py-4" style={{
+                    color: "#525866",
+                    fontSize: "12px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
+                  }}>
+                    {member.phone}
+                  </td>
+                  <td className="px-4 py-4" style={{
+                    color: "#525866",
+                    fontSize: "12px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
+                  }}>
+                    {member.dateAdded}
+                  </td>
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{member.isActive ? "Active" : "Disable"}</span>
-                      <ToggleSwitch checked={member.isActive} onChange={() => handleToggleActive(member.id)} />
-                    </div>
+                    <ToggleSwitch checked={member.isActive} onChange={() => handleToggleActive(member.id)} />
                   </td>
                   <td className="px-4 py-4">
                     <DropdownMenu
@@ -259,7 +367,7 @@ export default function TeamPage() {
               disabled={currentPage === 1}
               className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              &lt;
+              <LeftArrow />
             </button>
 
             {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
@@ -282,7 +390,7 @@ export default function TeamPage() {
               disabled={currentPage === totalPages}
               className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              &gt;
+              <RightArrow />
             </button>
           </div>
         </div>

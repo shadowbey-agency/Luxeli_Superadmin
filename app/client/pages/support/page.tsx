@@ -3,7 +3,6 @@
 import { useState } from "react"
 import {
   RiMoreLine,
-  RiDownloadLine,
   RiEyeLine,
   RiEditLine,
   RiUserAddLine,
@@ -14,6 +13,9 @@ import {
 import StatusBadge from "@/app/client/components/status-badge"
 import PriorityBadge from "@/app/client/components/priority-badge"
 import DropdownMenu from "@/app/client/components/dropdown-menu"
+import DropdownArrow from "@/app/client/components/dropdown-arrow"
+import SortArrows from "@/app/client/components/sort-arrows"
+import { LeftArrow, RightArrow } from "@/app/client/components/pagination-arrows"
 import ViewTicketModal from "@/app/client/components/view-ticket-modal"
 import ChangeStatusModal from "@/app/client/components/change-status-modal"
 import AssignTicketModal from "@/app/client/components/assign-ticket-modal"
@@ -313,43 +315,149 @@ export default function SupportPage() {
         <div className="flex items-center justify-between pb-4 ">
           <h3 className="text-base font-semibold text-foreground">Tickets list</h3>
           <div className="flex items-center gap-2">
-            <select
-              value={itemsPerPage}
-              onChange={(e) => setItemsPerPage(Number(e.target.value))}
-              className="px-3 py-2  border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value={10}>Display 10</option>
-              <option value={20}>Display 20</option>
-              <option value={50}>Display 50</option>
-            </select>
+            <div className="relative">
+              <select
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="appearance-none"
+                style={{
+                  padding: "7.52px 12px",
+                  paddingRight: "32px",
+                  borderRadius: "4px",
+                  border: "1px solid #CED4DA",
+                  background: "#FFF",
+                  color: "rgba(33, 33, 33, 0.60)",
+                  fontSize: "13px",
+                  fontWeight: "400",
+                  lineHeight: "19.5px"
+                }}
+              >
+                <option value={10}>Display 10</option>
+                <option value={20}>Display 20</option>
+                <option value={50}>Display 50</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <DropdownArrow />
+              </div>
+            </div>
 
             <input
               type="text"
               placeholder="Search..."
-              className="px-4 py-2  border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              style={{
+                padding: "7.52px 12px",
+                borderRadius: "4px",
+                border: "1px solid #CED4DA",
+                background: "#FFF",
+                color: "rgba(33, 33, 33, 0.60)",
+                fontSize: "13px",
+                fontWeight: "400",
+                lineHeight: "19.5px"
+              }}
+              className="focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
 
-            <select className="px-3 py-2 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-              <option>Status</option>
-              <option>Open</option>
-              <option>Pending</option>
-              <option>Resolved</option>
-            </select>
+            <div className="relative">
+              <select 
+                className="appearance-none"
+                style={{
+                  padding: "7.52px 12px",
+                  paddingRight: "32px",
+                  borderRadius: "4px",
+                  border: "1px solid #CED4DA",
+                  background: "#FFF",
+                  color: "rgba(33, 33, 33, 0.60)",
+                  fontSize: "13px",
+                  fontWeight: "400",
+                  lineHeight: "19.5px"
+                }}
+              >
+                <option>Status</option>
+                <option>Open</option>
+                <option>Pending</option>
+                <option>Resolved</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <DropdownArrow />
+              </div>
+            </div>
 
-            <select className="px-3 py-2 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-              <option>Priority</option>
-              <option>Low</option>
-              <option>Medium</option>
-              <option>Urgent</option>
-            </select>
+            <div className="relative">
+              <select 
+                className="appearance-none"
+                style={{
+                  padding: "7.52px 12px",
+                  paddingRight: "32px",
+                  borderRadius: "4px",
+                  border: "1px solid #CED4DA",
+                  background: "#FFF",
+                  color: "rgba(33, 33, 33, 0.60)",
+                  fontSize: "13px",
+                  fontWeight: "400",
+                  lineHeight: "19.5px"
+                }}
+              >
+                <option>Priority</option>
+                <option>Low</option>
+                <option>Medium</option>
+                <option>Urgent</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <DropdownArrow />
+              </div>
+            </div>
 
-            <select className="px-3 py-2 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-              <option>Assignee</option>
-            </select>
+            <div className="relative">
+              <select 
+                className="appearance-none"
+                style={{
+                  padding: "7.52px 12px",
+                  paddingRight: "32px",
+                  borderRadius: "4px",
+                  border: "1px solid #CED4DA",
+                  background: "#FFF",
+                  color: "rgba(33, 33, 33, 0.60)",
+                  fontSize: "13px",
+                  fontWeight: "400",
+                  lineHeight: "19.5px"
+                }}
+              >
+                <option>Assignee</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <DropdownArrow />
+              </div>
+            </div>
 
-            <button className="flex items-center gap-2 px-4 py-2 bg-muted border border-border hover:bg-muted/80 rounded-xl text-sm font-medium transition-colors">
-              <RiDownloadLine className="w-4 h-4" />
-              Export
+            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="16"
+                viewBox="0 0 14 16"
+                fill="none"
+                className="w-[14px] h-4"
+              >
+                <path
+                  d="M11.3333 10.6666C11.6705 10.9943 13 11.8665 13 12.3333M11.3333 14C11.6705 13.6723 13 12.8001 13 12.3333M13 12.3333L7.66667 12.3333"
+                  stroke="#1F2A44"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M6.33398 14.6666H6.15217C3.97803 14.6666 2.89096 14.6666 2.13603 14.1347C1.91973 13.9823 1.7277 13.8016 1.56578 13.598C1.00065 12.8875 1.00065 11.8644 1.00065 9.81814V8.12117C1.00065 6.14572 1.00065 5.158 1.31328 4.36913C1.81586 3.10091 2.87874 2.10055 4.22622 1.62753C5.0644 1.33329 6.11386 1.33329 8.21277 1.33329C9.41215 1.33329 10.0118 1.33329 10.4908 1.50143C11.2608 1.77172 11.8682 2.34336 12.1553 3.06805C12.334 3.51884 12.334 4.08325 12.334 5.21208V8.66663"
+                  stroke="#1F2A44"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M1.0013 8C1.0013 6.7727 1.99622 5.77778 3.22352 5.77778C3.66738 5.77778 4.19066 5.85555 4.62221 5.73992C5.00565 5.63718 5.30514 5.33768 5.40789 4.95424C5.52352 4.52269 5.44575 3.99941 5.44575 3.55556C5.44575 2.32826 6.44067 1.33333 7.66797 1.33333"
+                  stroke="#1F2A44"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="text-sm font-medium text-[#212121]">Export</span>
             </button>
           </div>
         </div>
@@ -362,16 +470,96 @@ export default function SupportPage() {
                 <th className="w-12 px-4 py-4">
                   <input type="checkbox" className="rounded" />
                 </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Title</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Ticket ID</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Status</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Priority</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Assignee</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Date Created
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Title
+                    </span>
+                  </div>
                 </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Date Update
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Ticket ID
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Status
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Priority
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Assignee
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Date Created
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Date Update
+                    </span>
+                  </div>
                 </th>
                 <th className="w-12 px-4 py-4"></th>
               </tr>
@@ -424,8 +612,22 @@ export default function SupportPage() {
                     <td className="px-4 py-4">
                       <input type="checkbox" className="rounded" />
                     </td>
-                    <td className="px-4 py-4 text-sm font-medium text-foreground">{ticket.ticketId}</td>
-                    <td className="px-4 py-4 text-sm text-foreground">{ticket.title}</td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {ticket.ticketId}
+                    </td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {ticket.title}
+                    </td>
                     <td className="px-4 py-4">
                       <StatusBadge status={ticket.status} />
                     </td>
@@ -437,11 +639,32 @@ export default function SupportPage() {
                         <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold">
                           {ticket.assignee.avatar}
                         </div>
-                        <span className="text-sm text-foreground">{ticket.assignee.name}</span>
+                        <span style={{
+                          color: "#525866",
+                          fontSize: "12px",
+                          fontWeight: "400",
+                          lineHeight: "19.5px"
+                        }}>
+                          {ticket.assignee.name}
+                        </span>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-sm text-foreground">{ticket.dateCreated}</td>
-                    <td className="px-4 py-4 text-sm text-foreground">{ticket.dateUpdate}</td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {ticket.dateCreated}
+                    </td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {ticket.dateUpdate}
+                    </td>
                     <td className="px-4 py-4">
                       <DropdownMenu
                         trigger={
@@ -504,7 +727,7 @@ export default function SupportPage() {
                 disabled={currentPage === 1}
                 className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                &lt;
+                <LeftArrow />
               </button>
 
               {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
@@ -527,7 +750,7 @@ export default function SupportPage() {
                 disabled={currentPage === totalPages}
                 className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                &gt;
+                <RightArrow />
               </button>
             </div>
           </div>

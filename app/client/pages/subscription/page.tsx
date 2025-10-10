@@ -1,10 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { RiArrowLeftLine, RiMoreLine, RiEditLine, RiEyeLine, RiDownloadLine,RiHotelBedLine,RiTeamLine,RiUserLine } from "react-icons/ri"
+import { RiArrowLeftLine, RiMoreLine, RiEditLine, RiEyeLine, RiHotelBedLine, RiTeamLine, RiUserLine } from "react-icons/ri"
 import Link from "next/link"
 import StatCard from "@/app/client/components/stat-card"
 import DropdownMenu from "@/app/client/components/dropdown-menu"
+import DropdownArrow from "@/app/client/components/dropdown-arrow"
+import SortArrows from "@/app/client/components/sort-arrows"
+import { LeftArrow, RightArrow } from "@/app/client/components/pagination-arrows"
+import PlanIcon from "@/app/client/components/plan-icon"
+import UsersPlanIcon from "@/app/client/components/users-plan-icon"
+import RevenueIcon from "@/app/client/components/revenue-icon"
+import StaffIcon from "@/app/client/components/staff-icon"
 
 interface Subscription {
   id: string
@@ -23,6 +30,14 @@ interface SubscriptionHistory {
   transactionId: string
   date: string
   status: "Paid" | "Pending"
+}
+
+interface Plan {
+  id: string
+  name: string
+  type: 'starter' | 'gold'
+  users: number
+  revenue: string
 }
 
 const mockSubscriptions: Subscription[] = Array.from({ length: 10 }, (_, i) => ({
@@ -44,11 +59,28 @@ const subscriptionHistoryData: SubscriptionHistory[] = Array.from({ length: 6 },
   status: i === 0 ? "Pending" : "Paid"
 }))
 
+const mockPlans: Plan[] = [
+  {
+    id: "1",
+    name: "Starter pack",
+    type: "starter",
+    users: 200,
+    revenue: "190.000 MAD"
+  },
+  {
+    id: "2", 
+    name: "Pack Gold",
+    type: "gold",
+    users: 200,
+    revenue: "1900.000 MAD"
+  }
+]
+
 const SubscriptionCard = ({ history }: { history: SubscriptionHistory }) => (
   <div 
     className="rounded-2xl border bg-white flex flex-col"
     style={{ 
-      width: "370px", 
+      width: "100%", 
       
       boxShadow: "5px 10px 40px 0 rgba(217, 222, 234, 0.14)",
       borderRadius: "12px"
@@ -147,14 +179,17 @@ const SubscriptionCard = ({ history }: { history: SubscriptionHistory }) => (
 
 export default function SubscriptionPage() {
   const [subscriptions] = useState<Subscription[]>(mockSubscriptions)
+  const [plans] = useState<Plan[]>(mockPlans)
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [itemsPerPage, setItemsPerPage] = useState(8)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null)
   const [plan, setPlan] = useState("Pack Gold")
   const [endDate, setEndDate] = useState("10/01/2026")
   const [showHistorySlide, setShowHistorySlide] = useState(false)
   const [selectedHistorySubscription, setSelectedHistorySubscription] = useState<Subscription | null>(null)
+  const [showUsersPlanView, setShowUsersPlanView] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
 
   const totalPages = Math.ceil(subscriptions.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
@@ -178,69 +213,114 @@ export default function SubscriptionPage() {
     setShowHistorySlide(true)
   }
 
+  const handleUsersPlanClick = (plan: Plan) => {
+    setSelectedPlan(plan)
+    setShowUsersPlanView(true)
+  }
+
+  const handleBackToPlans = () => {
+    setShowUsersPlanView(false)
+    setSelectedPlan(null)
+  }
+
   return (
     <div className="p-6 ">
       {/* Page Header */}
       <div className="mb-5">
         <h1 className="text-2xl font-bold text-foreground">Subscription</h1>
         <p className="text-sm text-muted-foreground">Last updated on 09/15/2025, 12AM</p>
+        
+        {/* Breadcrumb Navigation */}
+        {showUsersPlanView && selectedPlan && (
+          <div className="flex items-center gap-2 mt-4">
+            <button 
+              onClick={handleBackToPlans}
+              className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M10 12L6 8L10 4" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <span className="text-sm text-muted-foreground">Subscription</span>
+            <span className="text-sm text-muted-foreground">></span>
+            <span className="text-sm font-medium text-foreground">Users Plan</span>
+          </div>
+        )}
       </div>
 
-       {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
-              <StatCard
-                icon={<RiHotelBedLine className="w-6 h-6 text-primary" />}
-                label="Total Plane Revenue"
-                value="65"
-                change="+2%"
-                changeType="positive"
-                subtitle="vs last month"
-              />
-              <StatCard
-                icon={<RiTeamLine className="w-6 h-6 text-primary" />}
-                label="Total User"
-                value="42"
-                change="+2%"
-                changeType="positive"
-                subtitle="vs last month"
-              />
-              
-            </div>
+      {/* Show Stats Grid and Plans Table only when not in Users Plan view */}
+      {!showUsersPlanView && (
+        <>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
+            <StatCard
+              icon={<RevenueIcon />}
+              label="Total Plans Revenue"
+              value="1900.000 MAD"
+              change="+2% vs last mounth"
+              changeType="positive"
+            />
+            <StatCard
+              icon={<StaffIcon />}
+              label="Total Users"
+              value="42"
+              change="+2% vs last mounth"
+              changeType="positive"
+            />
+          </div>
 
-      {/* Pack Gold Section */}
-      <div className="bg-card rounded-lg p-4">
+          {/* Plans Table Section */}
+      <div className="bg-card rounded-lg p-4 mb-6">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4  ">
-          <h3 className="text-base font-semibold text-foreground">Pack Gold</h3>
+        <div className="flex items-center justify-between pb-4">
+          <h3 className="text-base font-semibold text-foreground">Plans</h3>
           <div className="flex items-center gap-2">
-            <select
-              value={itemsPerPage}
-              onChange={(e) => setItemsPerPage(Number(e.target.value))}
-              className="px-3 py-2  rounded-xl  border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value={10}>Display 10</option>
-              <option value={20}>Display 20</option>
-              <option value={50}>Display 50</option>
-            </select>
+            <div className="relative">
+              <select
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="appearance-none"
+                style={{
+                  padding: "7.52px 12px",
+                  paddingRight: "32px",
+                  borderRadius: "4px",
+                  border: "1px solid #CED4DA",
+                  background: "#FFF",
+                  color: "rgba(33, 33, 33, 0.60)",
+                  fontSize: "13px",
+                  fontWeight: "400",
+                  lineHeight: "19.5px"
+                }}
+              >
+                <option value={8}>Display 8</option>
+                <option value={10}>Display 10</option>
+                <option value={20}>Display 20</option>
+                <option value={50}>Display 50</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <DropdownArrow />
+              </div>
+            </div>
 
             <input
               type="text"
               placeholder="Search..."
-              className="px-4 py-2 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              style={{
+                padding: "7.52px 12px",
+                borderRadius: "4px",
+                border: "1px solid #CED4DA",
+                background: "#FFF",
+                color: "rgba(33, 33, 33, 0.60)",
+                fontSize: "13px",
+                fontWeight: "400",
+                lineHeight: "19.5px"
+              }}
+              className="focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
-
-            <input
-              type="date"
-              className="px-3 py-2 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-
-            <button className="p-2 bg-muted hover:bg-muted/80 rounded-xl border border-border transition-colors">
-              <RiDownloadLine className="w-5 h-5 text-foreground" />
-            </button>
           </div>
         </div>
 
-        {/* Table */}
+        {/* Plans Table */}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-muted/50">
@@ -248,52 +328,91 @@ export default function SubscriptionPage() {
                 <th className="w-12 px-4 py-3">
                   <input type="checkbox" className="rounded" />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Partner Name
+                <th className="px-4 py-3 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Plan Name
+                    </span>
+                  </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Start date
+                <th className="px-4 py-3 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="down" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Users
+                    </span>
+                  </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">End date</th>
+                <th className="px-4 py-3 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="down" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Revenue
+                    </span>
+                  </div>
+                </th>
                 <th className="w-12 px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {currentSubscriptions.map((subscription) => (
-                <tr key={subscription.id} className="hover:bg-muted/50 transition-colors">
+              {plans.map((plan) => (
+                <tr key={plan.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-4">
                     <input type="checkbox" className="rounded" />
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold">
-                        {subscription.avatar}
-                      </div>
-                      <span className="text-sm text-foreground">{subscription.partnerName}</span>
+                      <PlanIcon type={plan.type} />
+                      <span style={{
+                        color: "#525866",
+                        fontSize: "12px",
+                        fontWeight: "400",
+                        lineHeight: "19.5px"
+                      }}>
+                        {plan.name}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-sm text-foreground">{subscription.startDate}</td>
-                  <td className="px-4 py-4 text-sm text-foreground">{subscription.endDate}</td>
+                  <td className="px-4 py-4" style={{
+                    color: "#525866",
+                    fontSize: "12px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
+                  }}>
+                    {plan.users}
+                  </td>
+                  <td className="px-4 py-4" style={{
+                    color: "#525866",
+                    fontSize: "12px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
+                  }}>
+                    {plan.revenue}
+                  </td>
                   <td className="px-4 py-4">
-                    <DropdownMenu
-                      trigger={
-                        <button className="p-1 hover:bg-muted rounded transition-colors">
-                          <RiMoreLine className="w-5 h-5 text-muted-foreground" />
-                        </button>
-                      }
-                      items={[
-                        {
-                          label: "Edit and date",
-                          icon: <RiEditLine className="w-4 h-4" />,
-                          onClick: () => handleEditEndDate(subscription),
-                        },
-                        {
-                          label: "Subscription History",
-                          icon: <RiEyeLine className="w-4 h-4" />,
-                          onClick: () => handleViewHistory(subscription),
-                        },
-                      ]}
-                    />
+                    <button 
+                      onClick={() => handleUsersPlanClick(plan)}
+                      className="hover:opacity-80 transition-opacity"
+                      title="Users Plan"
+                    >
+                      <UsersPlanIcon />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -302,248 +421,243 @@ export default function SubscriptionPage() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between  py-3 border-t ">
+        <div className="flex items-center justify-between mt-4">
           <p className="text-sm text-muted-foreground">
-            Displaying {startIndex + 1}-{Math.min(endIndex, subscriptions.length)} results out of {subscriptions.length}
+            Displaying 8 results out of 03
           </p>
-
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            <button 
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              &lt;
+              <LeftArrow />
             </button>
-
-            {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-              const page = i + 1
-              return (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
-                    currentPage === page ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  {page}
-                </button>
-              )
-            })}
-
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            <button className="px-3 py-1 bg-primary text-white rounded text-sm font-medium">1</button>
+            <button className="px-3 py-1 text-muted-foreground hover:bg-muted rounded text-sm font-medium">2</button>
+            <button className="px-3 py-1 text-muted-foreground hover:bg-muted rounded text-sm font-medium">3</button>
+            <button 
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              &gt;
+              <RightArrow />
             </button>
           </div>
         </div>
       </div>
-
-      {/* Edit End Date Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
-          <div className="bg-white rounded-xl w-[50vw] mx-4 max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div 
-              className="flex justify-between items-center border-b"
-              style={{
-                padding: "20px 16px",
-                borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
-                borderRadius: "10px 10px 0 0",
-                background: "#FFF"
-              }}
-            >
-              <h2 className="text-lg font-semibold text-black">Edit end date</h2>
-              <button 
-                onClick={() => setShowEditModal(false)}
-                className="flex items-center justify-center"
-                style={{ width: "24px", height: "24px", aspectRatio: "1/1" }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
-                  <path d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244" stroke="#525866" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6">
-              {/* Form Fields in One Row */}
-              <div className="flex items-start gap-4">
-                {/* Plan Field */}
-                <div className="flex flex-col gap-2 flex-1">
-                  <label className="text-sm font-medium text-[#212121]">Plan</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={plan}
-                      onChange={(e) => setPlan(e.target.value)}
-                      className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                      style={{
-                        padding: "7.52px 12px",
-                        border: "1px solid #CED4DA",
-                        borderRadius: "4px",
-                        background: "#FFF"
-                      }}
-                    />
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
-                        <path d="M1 1.5L6 6.5L11 1.5" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                {/* End Date Field */}
-                <div className="flex flex-col gap-2 flex-1">
-                  <label className="text-sm font-medium text-[#212121]">End date</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                      style={{
-                        padding: "7.52px 12px",
-                        border: "1px solid #CED4DA",
-                        borderRadius: "4px",
-                        background: "#FFF"
-                      }}
-                    />
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-                      {/* Calendar icon */}
-                      <svg width="16" height="17" viewBox="0 0 16 17" fill="none">
-                        <path d="M7.25 9.65723H11M5 9.65723H5.00674M8.75 12.6572H5M11 12.6572H10.9933" stroke="#141B34" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M12.5 1.40723V2.90723M3.5 1.40723V2.90723" stroke="#141B34" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M0.875 9.08966C0.875 5.82168 0.875 4.18769 1.81409 3.17246C2.75318 2.15723 4.26462 2.15723 7.2875 2.15723H8.7125C11.7354 2.15723 13.2468 2.15723 14.1859 3.17246C15.125 4.18769 15.125 5.82168 15.125 9.08966V9.47479C15.125 12.7428 15.125 14.3768 14.1859 15.392C13.2468 16.4072 11.7354 16.4072 8.7125 16.4072H7.2875C4.26462 16.4072 2.75318 16.4072 1.81409 15.392C0.875 14.3768 0.875 12.7428 0.875 9.47479V9.08966Z" stroke="#141B34" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M1.25 5.90723H14.75" stroke="#141B34" strokeWidth="1.125" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      {/* X icon */}
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path d="M9 3L3 9M3 3L9 9" stroke="#666" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div 
-              className="flex justify-end items-center border-t"
-              style={{
-                padding: "20px 16px",
-                justifyContent: "flex-end",
-                alignItems: "center",
-                gap: "10px",
-                alignSelf: "stretch",
-                borderRadius: "0 0 10px 10px",
-                borderTop: "1px solid rgba(0, 0, 0, 0.04)",
-                background: "#FFF"
-              }}
-            >
-              <button 
-                onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                style={{ 
-                  padding: "8.52px 10px", 
-                  borderRadius: "6px", 
-                  background: "#FBFAFA",
-                  border: "1px solid #CED4DA",
-                  color: "#525866"
-                }}
-              >
-                Annuler
-              </button>
-              <button 
-                onClick={handleSave}
-                className="px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors"
-                style={{ 
-                  padding: "8.52px 20px", 
-                  borderRadius: "6px", 
-                  background: "#1F2A44" 
-                }}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
+        </>
       )}
 
-      {/* Subscription History Slide-out */}
-      {showHistorySlide && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-end z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
-          <div className="bg-white w-[50vw] h-full flex flex-col">
-            {/* Slide Header */}
-              <div className="flex items-center justify-between border-b py-5 px-6 w-full">
-                <h2 className="text-xl font-semibold text-black">Subscription History</h2>
-                <button 
-                  onClick={() => setShowHistorySlide(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
-                    <path d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244" stroke="#525866" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-              </div>
-            <div className="p-5 border-b border-gray-200 flex-shrink-0">
-              
-              {/* Sub Header with Filter */}
-              <div className=" flex items-center justify-between">
-                <h3 
-                  className="text-base font-medium"
-                  style={{ 
-                    color: "rgba(0, 0, 0, 0.50)",
-                    fontSize: "15px",
-                    fontWeight: "500",
-                    lineHeight: "21px"
-                  }}
-                >
-                  Subscription History
-                </h3>
-                <button 
-                  className="flex items-center justify-center gap-1.5 rounded border"
+      {/* Users Plan View */}
+      {showUsersPlanView && selectedPlan && (
+        <div className="bg-card rounded-lg p-4">
+          {/* Header */}
+          <div className="flex items-center justify-between pb-4">
+            <h3 className="text-base font-semibold text-foreground">{selectedPlan.name}</h3>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                  className="appearance-none"
                   style={{
-                    width: "33.04px",
-                    padding: "8.52px 20px",
-                    borderRadius: "6px",
+                    padding: "7.52px 12px",
+                    paddingRight: "32px",
+                    borderRadius: "4px",
                     border: "1px solid #CED4DA",
-                    background: "#FBFAFA"
+                    background: "#FFF",
+                    color: "rgba(33, 33, 33, 0.60)",
+                    fontSize: "13px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
                   }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 17 17" fill="none">
-                    <path d="M4.47949 8.52002H12.4795M2.47949 4.52002H14.4795M6.47949 12.52H10.4795" stroke="black" strokeWidth="1.11333" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
+                  <option value={10}>Display 10</option>
+                  <option value={20}>Display 20</option>
+                  <option value={50}>Display 50</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <DropdownArrow />
+                </div>
               </div>
-            </div>
 
-            {/* Subscription History Cards - Scrollable */}
-            <div className="flex-1 p-6 overflow-y-auto">
-              <div 
-                className="grid gap-4"
-                style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
-              >
-                {subscriptionHistoryData.map((history) => (
-                  <SubscriptionCard key={history.id} history={history} />
+              <input
+                type="text"
+                placeholder="Search..."
+                style={{
+                  padding: "7.52px 12px",
+                  borderRadius: "4px",
+                  border: "1px solid #CED4DA",
+                  background: "#FFF",
+                  color: "rgba(33, 33, 33, 0.60)",
+                  fontSize: "13px",
+                  fontWeight: "400",
+                  lineHeight: "19.5px"
+                }}
+                className="focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+
+              <input
+                type="date"
+                style={{
+                  padding: "7.52px 12px",
+                  borderRadius: "4px",
+                  border: "1px solid #CED4DA",
+                  background: "#FFF",
+                  color: "rgba(33, 33, 33, 0.60)",
+                  fontSize: "13px",
+                  fontWeight: "400",
+                  lineHeight: "19.5px"
+                }}
+                className="focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+          </div>
+
+          {/* Users Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="w-12 px-4 py-3">
+                    <input type="checkbox" className="rounded" />
+                  </th>
+                  <th className="px-4 py-3 text-left">
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                      <SortArrows sortDirection="none" />
+                      <span style={{ 
+                        color: "#000", 
+                        fontSize: "12px", 
+                        fontWeight: "500", 
+                        lineHeight: "19.5px" 
+                      }}>
+                        Partner Name
+                      </span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left">
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                      <SortArrows sortDirection="none" />
+                      <span style={{ 
+                        color: "#000", 
+                        fontSize: "12px", 
+                        fontWeight: "500", 
+                        lineHeight: "19.5px" 
+                      }}>
+                        Start date
+                      </span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left">
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                      <SortArrows sortDirection="none" />
+                      <span style={{ 
+                        color: "#000", 
+                        fontSize: "12px", 
+                        fontWeight: "500", 
+                        lineHeight: "19.5px" 
+                      }}>
+                        End date
+                      </span>
+                    </div>
+                  </th>
+                  <th className="w-12 px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {currentSubscriptions.map((subscription) => (
+                  <tr key={subscription.id} className="hover:bg-muted/50 transition-colors">
+                    <td className="px-4 py-4">
+                      <input type="checkbox" className="rounded" />
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold">
+                          {subscription.avatar}
+                        </div>
+                        <span style={{
+                          color: "#525866",
+                          fontSize: "12px",
+                          fontWeight: "400",
+                          lineHeight: "19.5px"
+                        }}>
+                          {subscription.partnerName}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {subscription.startDate}
+                    </td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {subscription.endDate}
+                    </td>
+                    <td className="px-4 py-4">
+                      <DropdownMenu
+                        trigger={
+                          <button className="p-1 hover:bg-muted rounded transition-colors">
+                            <RiMoreLine className="w-5 h-5 text-muted-foreground" />
+                          </button>
+                        }
+                        items={[
+                          {
+                            label: "Edit end date",
+                            icon: <RiEditLine className="w-4 h-4" />,
+                            onClick: () => handleEditEndDate(subscription),
+                          },
+                          {
+                            label: "Subscription History",
+                            icon: <RiEyeLine className="w-4 h-4" />,
+                            onClick: () => handleViewHistory(subscription),
+                          },
+                        ]}
+                      />
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            </div>
+              </tbody>
+            </table>
+          </div>
 
-            {/* Fixed Pagination at Bottom */}
-            <div className="p-5 border-t border-gray-200 flex-shrink-0">
-              <div className="flex items-center justify-end gap-2">
-                <button className="w-8 h-8 rounded-full text-sm font-medium bg-primary text-white">1</button>
-                <button className="w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">2</button>
-                <button className="w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">3</button>
-              </div>
+          {/* Pagination */}
+          <div className="flex items-center justify-between mt-4">
+            <p className="text-sm text-muted-foreground">
+              Displaying 8 results out of 03
+            </p>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="p-2 border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <LeftArrow />
+              </button>
+              <button className="px-3 py-1 bg-primary text-white rounded text-sm font-medium">1</button>
+              <button className="px-3 py-1 text-muted-foreground hover:bg-muted rounded text-sm font-medium">2</button>
+              <button className="px-3 py-1 text-muted-foreground hover:bg-muted rounded text-sm font-medium">3</button>
+              <button 
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <RightArrow />
+              </button>
             </div>
           </div>
         </div>
       )}
+
+
     </div>
   )
 }

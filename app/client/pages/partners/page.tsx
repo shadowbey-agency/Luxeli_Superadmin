@@ -6,8 +6,6 @@ import {
   RiTeamLine,
   RiUserLine,
   RiMoreLine,
-  RiFilterLine,
-  RiDownloadLine,
   RiAddLine,
   RiEyeLine,
   RiEditLine,
@@ -16,6 +14,12 @@ import {
 import StatCard from "@/app/client/components/stat-card"
 import ToggleSwitch from "@/app/client/components/toggle-switch"
 import DropdownMenu from "@/app/client/components/dropdown-menu"
+import DropdownArrow from "@/app/client/components/dropdown-arrow"
+import CarIcon from "@/app/client/components/car-icon"
+import StaffIcon from "@/app/client/components/staff-icon"
+import ActivePartnerIcon from "@/app/client/components/active-partner-icon"
+import SortArrows from "@/app/client/components/sort-arrows"
+import { LeftArrow, RightArrow } from "@/app/client/components/pagination-arrows"
 
 interface Partner {
   id: string
@@ -120,115 +124,105 @@ const subscriptionHistoryData: SubscriptionHistory[] = [
 ]
 
 // Reusable Subscription Card Component
-const SubscriptionCard = ({ subscription }: { subscription: SubscriptionHistory }) => {
-  const statusStyles = {
-    paid: {
-      border: "0.5px solid rgba(80, 190, 135, 0.25)",
-      background: "#EEF9F3",
-      textColor: "text-green-700"
-    },
-    pending: {
-      border: "0.5px solid rgba(206, 148, 29, 0.25)",
-      background: "rgba(206, 148, 29, 0.05)",
-      textColor: "text-yellow-700"
-    }
-  }
-
-  const currentStatusStyle = statusStyles[subscription.status]
-
-  return (
-    <div 
-      className="flex-shrink-0 rounded-2xl border bg-white flex flex-col justify-between"
-      style={{
-        height: "224px",
-        borderRadius: "16px",
-        border: "1px solid rgba(0, 0, 0, 0.06)",
-        background: "#FFF",
-        boxShadow: "5px 10px 40px 0 rgba(217, 222, 234, 0.14)"
-      }}
-    >
-      {/* Card Content */}
-      <div className="flex flex-col gap-4 p-4">
-        <div className="flex justify-between items-center self-stretch">
-          <span className="text-sm font-medium text-black">Plan</span>
-          <span className="text-sm font-light text-gray-500">{subscription.plan}</span>
-        </div>
-        <div className="flex justify-between items-center self-stretch">
-          <span className="text-sm font-medium text-black">Period</span>
-          <span className="text-sm font-light text-gray-500">{subscription.period}</span>
-        </div>
-        <div className="flex justify-between items-center self-stretch">
-          <span className="text-sm font-medium text-black">Amount</span>
-          <span className="text-sm font-light text-gray-500">{subscription.amount}</span>
-        </div>
-        <div className="flex justify-between items-center self-stretch">
-          <span className="text-sm font-medium text-black">Method</span>
-          <span className="text-sm font-light text-gray-500">{subscription.method}</span>
-        </div>
-        <div className="flex justify-between items-center self-stretch">
-          <span className="text-sm font-medium text-black">Transaction ID</span>
-          <span className="text-sm font-light text-gray-500">{subscription.transactionId}</span>
-        </div>
-        <div className="flex justify-between items-center self-stretch">
-          <span className="text-sm font-medium text-black">Date</span>
-          <span className="text-sm font-light text-gray-500">{subscription.date}</span>
-        </div>
+const SubscriptionCard = ({ subscription }: { subscription: SubscriptionHistory }) => (
+  <div 
+    className="rounded-2xl border bg-white flex flex-col"
+    style={{ 
+      width: "100%", 
+      boxShadow: "5px 10px 40px 0 rgba(217, 222, 234, 0.14)",
+      borderRadius: "12px"
+    }}
+  >
+    {/* Main Content Section */}
+    <div className="flex-1 p-4 flex flex-col gap-3">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium" style={{ color: "#121212" }}>Plan</span>
+        <span className="text-sm font-light" style={{ color: "#A2A09F" }}>{subscription.plan}</span>
       </div>
-
-      {/* Card Footer - Inside Card at Bottom */}
-      <div className="flex justify-between items-center self-stretch p-4 pt-0">
-        <div className="flex items-center gap-2">
-          <button 
-            className="flex w-7 h-7 justify-center items-center gap-1.5 rounded border"
-            style={{
-              width: "30px",
-              height: "30px",
-              padding: "4px 7.333px",
-              borderRadius: "5px",
-              border: "0.789px solid #F6F3F2",
-              background: "#FBFAFA"
-            }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="12" viewBox="0 0 16 12" fill="none">
-              <path d="M14.3623 5.21847C14.565 5.50268 14.6663 5.64479 14.6663 5.85514C14.6663 6.0655 14.565 6.20761 14.3623 6.49182C13.4516 7.76885 11.1258 10.5218 7.99968 10.5218C4.87353 10.5218 2.54774 7.76885 1.63704 6.49182C1.43435 6.20761 1.33301 6.0655 1.33301 5.85514C1.33301 5.64479 1.43435 5.50268 1.63703 5.21847C2.54774 3.94144 4.87353 1.18848 7.99968 1.18848C11.1258 1.18848 13.4516 3.94144 14.3623 5.21847Z" stroke="#141B34"/>
-              <path d="M10 5.85547C10 4.7509 9.10457 3.85547 8 3.85547C6.89543 3.85547 6 4.7509 6 5.85547C6 6.96004 6.89543 7.85547 8 7.85547C9.10457 7.85547 10 6.96004 10 5.85547Z" stroke="#121212"/>
-            </svg>
-          </button>
-          <button 
-            className="flex w-7 h-7 justify-center items-center gap-1.5 rounded border"
-            style={{
-              width: "30px",
-              height: "30px",
-              padding: "4px 7.333px",
-              borderRadius: "5px",
-              border: "0.789px solid #F6F3F2",
-              background: "#FBFAFA"
-            }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M6.00016 7.52214L6.00016 0.855469M6.00016 7.52214C5.53334 7.52214 4.66118 6.1926 4.3335 5.85547M6.00016 7.52214C6.46698 7.52214 7.33914 6.1926 7.66683 5.85547" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M11.3332 8.85547C11.3332 10.5101 10.9878 10.8555 9.33317 10.8555H2.6665C1.01184 10.8555 0.666504 10.5101 0.666504 8.85547" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-        </div>
-        <div 
-          className="flex h-5.5 justify-center items-center gap-1 rounded border"
-          style={{
-            height: "22px",
-            padding: "10px",
-            borderRadius: "4px",
-            border: currentStatusStyle.border,
-            background: currentStatusStyle.background
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium" style={{ color: "#121212" }}>Period</span>
+        <span className="text-sm font-light" style={{ color: "#A2A09F" }}>{subscription.period}</span>
+      </div>
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium" style={{ color: "#121212" }}>Amount</span>
+        <span className="text-sm font-light" style={{ color: "#A2A09F" }}>{subscription.amount}</span>
+      </div>
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium" style={{ color: "#121212" }}>Method</span>
+        <span className="text-sm font-light" style={{ color: "#A2A09F" }}>{subscription.method}</span>
+      </div>
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium" style={{ color: "#121212" }}>Transaction ID</span>
+        <span className="text-sm font-light" style={{ color: "#A2A09F" }}>{subscription.transactionId}</span>
+      </div>
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium" style={{ color: "#121212" }}>Date</span>
+        <span className="text-sm font-light" style={{ color: "#A2A09F" }}>{subscription.date}</span>
+      </div>
+    <div 
+      className="flex justify-between items-center "
+    >
+      {/* Left Side - Icons */}
+      <div className="flex items-center gap-2">
+        {/* Eye icon */}
+        <button 
+          className="flex items-center justify-center hover:bg-gray-50 transition-colors rounded"
+          style={{ 
+            width: "30px", 
+            height: "30px", 
+            padding: "4px 7.333px", 
+            borderRadius: "5px", 
+            border: "0.789px solid #F6F3F2", 
+            background: "#FBFAFA" 
           }}
         >
-          <span className={`text-xs font-medium ${currentStatusStyle.textColor}`}>
-            {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
-          </span>
-        </div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="12" viewBox="0 0 16 12" fill="none">
+            <path d="M14.3623 5.21847C14.565 5.50268 14.6663 5.64479 14.6663 5.85514C14.6663 6.0655 14.565 6.20761 14.3623 6.49182C13.4516 7.76885 11.1258 10.5218 7.99968 10.5218C4.87353 10.5218 2.54774 7.76885 1.63704 6.49182C1.43435 6.20761 1.33301 6.0655 1.33301 5.85514C1.33301 5.64479 1.43435 5.50268 1.63703 5.21847C2.54774 3.94144 4.87353 1.18848 7.99968 1.18848C11.1258 1.18848 13.4516 3.94144 14.3623 5.21847Z" stroke="#141B34"/>
+            <path d="M10 5.85547C10 4.7509 9.10457 3.85547 8 3.85547C6.89543 3.85547 6 4.7509 6 5.85547C6 6.96004 6.89543 7.85547 8 7.85547C9.10457 7.85547 10 6.96004 10 5.85547Z" stroke="#121212"/>
+          </svg>
+        </button>
+        
+        {/* Download icon */}
+        <button 
+          className="flex items-center justify-center hover:bg-gray-50 transition-colors rounded"
+          style={{ 
+            width: "30px", 
+            height: "30px", 
+            padding: "4px 7.333px", 
+            borderRadius: "5px", 
+            border: "0.789px solid #F6F3F2", 
+            background: "#FBFAFA" 
+          }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M6.00016 7.52214L6.00016 0.855469M6.00016 7.52214C5.53334 7.52214 4.66118 6.1926 4.3335 5.85547M6.00016 7.52214C6.46698 7.52214 7.33914 6.1926 7.66683 5.85547" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M11.3332 8.85547C11.3332 10.5101 10.9878 10.8555 9.33317 10.8555H2.6665C1.01184 10.8555 0.666504 10.5101 0.666504 8.85547" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      
+      {/* Right Side - Status Badge */}
+      <div 
+        className="flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium"
+        style={{
+          height: "22px",
+          padding: "4px 12px",
+          borderRadius: "4px",
+          border: subscription.status === "paid" ? "0.5px solid rgba(80, 190, 135, 0.25)" : "0.5px solid rgba(206, 148, 29, 0.25)",
+          background: subscription.status === "paid" ? "#EEF9F3" : "rgba(206, 148, 29, 0.05)",
+          color: subscription.status === "paid" ? "#50BE87" : "#CE941D",
+          fontSize: "12px",
+          fontWeight: "500"
+        }}
+      >
+        {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
       </div>
     </div>
-  )
-}
+    </div>
+    
+    {/* Bottom Section - Icons and Status */}
+  </div>
+)
 
 export default function PartnersPage() {
   const [partners, setPartners] = useState<Partner[]>(mockPartners)
@@ -308,7 +302,7 @@ export default function PartnersPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
-          icon={<RiHotelBedLine className="w-6 h-6 text-primary" />}
+          icon={<CarIcon />}
           label="Total Partners"
           value="65"
           change="+2%"
@@ -316,7 +310,7 @@ export default function PartnersPage() {
           subtitle="vs last week"
         />
         <StatCard
-          icon={<RiTeamLine className="w-6 h-6 text-primary" />}
+          icon={<StaffIcon />}
           label="Total Staff"
           value="42"
           change="+2%"
@@ -324,7 +318,7 @@ export default function PartnersPage() {
           subtitle="vs last week"
         />
         <StatCard
-          icon={<RiUserLine className="w-6 h-6 text-success" />}
+          icon={<ActivePartnerIcon />}
           label="Active Partners"
           value="23"
           change="+2%"
@@ -341,30 +335,97 @@ export default function PartnersPage() {
         <div className="flex items-center justify-between  pb-4  ">
           <h3 className="text-base font-semibold text-foreground">Partners list</h3>
           <div className="flex items-center gap-2">
-            <select
-              value={itemsPerPage}
-              onChange={(e) => setItemsPerPage(Number(e.target.value))}
-              className="px-3 py-2 bg-[#FFF] border border-[#CED4DA] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            >
-              <option value={8}>Display 8</option>
-              <option value={10}>Display 10</option>
-              <option value={20}>Display 20</option>
-            </select>
+            <div className="relative">
+              <select
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="appearance-none"
+                style={{
+                  padding: "7.52px 12px",
+                  paddingRight: "32px",
+                  borderRadius: "4px",
+                  border: "1px solid #CED4DA",
+                  background: "#FFF",
+                  color: "rgba(33, 33, 33, 0.60)",
+                  fontSize: "13px",
+                  fontWeight: "400",
+                  lineHeight: "19.5px"
+                }}
+              >
+                <option value={8}>Display 8</option>
+                <option value={10}>Display 10</option>
+                <option value={20}>Display 20</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <DropdownArrow />
+              </div>
+            </div>
 
             <input
               type="text"
               placeholder="Search..."
-              className="px-4 py-2 bg-[#FFF] border border-[#CED4DA] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              style={{
+                padding: "7.52px 12px",
+                borderRadius: "4px",
+                border: "1px solid #CED4DA",
+                background: "#FFF",
+                color: "rgba(33, 33, 33, 0.60)",
+                fontSize: "13px",
+                fontWeight: "400",
+                lineHeight: "19.5px"
+              }}
+              className="focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
 
-            <button className="flex items-center gap-2 px-4 py-2 bg-[#FBFAFA] border border-[#CED4DA] hover:bg-muted/80 rounded-xl text-sm font-medium transition-colors">
-              <RiFilterLine className="w-4 h-4" />
-              Filtre
+            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                className="w-4 h-4"
+              >
+                <path
+                  d="M4 8H12M2 4H14M6 12H10"
+                  stroke="black"
+                  strokeWidth="1.11333"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="text-sm font-medium text-[#212121]">Filtre</span>
             </button>
 
-            <button className="flex items-center gap-2 px-4 py-2 bg-[#FBFAFA] border border-[#CED4DA] hover:bg-muted/80 rounded-xl text-sm font-medium transition-colors">
-              <RiDownloadLine className="w-4 h-4" />
-              Export
+            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="16"
+                viewBox="0 0 14 16"
+                fill="none"
+                className="w-[14px] h-4"
+              >
+                <path
+                  d="M11.3333 10.6666C11.6705 10.9943 13 11.8665 13 12.3333M11.3333 14C11.6705 13.6723 13 12.8001 13 12.3333M13 12.3333L7.66667 12.3333"
+                  stroke="#1F2A44"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M6.33398 14.6666H6.15217C3.97803 14.6666 2.89096 14.6666 2.13603 14.1347C1.91973 13.9823 1.7277 13.8016 1.56578 13.598C1.00065 12.8875 1.00065 11.8644 1.00065 9.81814V8.12117C1.00065 6.14572 1.00065 5.158 1.31328 4.36913C1.81586 3.10091 2.87874 2.10055 4.22622 1.62753C5.0644 1.33329 6.11386 1.33329 8.21277 1.33329C9.41215 1.33329 10.0118 1.33329 10.4908 1.50143C11.2608 1.77172 11.8682 2.34336 12.1553 3.06805C12.334 3.51884 12.334 4.08325 12.334 5.21208V8.66663"
+                  stroke="#1F2A44"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M1.0013 8C1.0013 6.7727 1.99622 5.77778 3.22352 5.77778C3.66738 5.77778 4.19066 5.85555 4.62221 5.73992C5.00565 5.63718 5.30514 5.33768 5.40789 4.95424C5.52352 4.52269 5.44575 3.99941 5.44575 3.55556C5.44575 2.32826 6.44067 1.33333 7.66797 1.33333"
+                  stroke="#1F2A44"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="text-sm font-medium text-[#212121]">Export</span>
             </button>
 
             <button 
@@ -385,18 +446,110 @@ export default function PartnersPage() {
                 <th className="w-12 px-4 py-4">
                   <input type="checkbox" className="rounded" />
                 </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Hotel Name
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Hotel Name
+                    </span>
+                  </div>
                 </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Email</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Phone number
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Email
+                    </span>
+                  </div>
                 </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">City</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Services</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Plan</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Create at</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase">Account</th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Phone number
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      City
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Services
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Plan
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Create at
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Account
+                    </span>
+                  </div>
+                </th>
                 <th className="w-12 px-4 py-3"></th>
               </tr>
             </thead>
@@ -404,28 +557,30 @@ export default function PartnersPage() {
               {currentPartners.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-4 py-16">
-                    <div className="flex flex-col items-center justify-center text-center">
-                      <div className="w-32 h-32 mb-4 opacity-50">
-                        <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <rect
-                            x="40"
-                            y="60"
-                            width="120"
-                            height="80"
-                            rx="4"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            fill="none"
-                          />
-                          <path
-                            d="M60 100L100 130L140 100"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </div>
-                      <p className="text-muted-foreground">No data available</p>
+                    <div style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "12px",
+                      alignSelf: "stretch",
+                      width: "172px",
+                      height: "130px"
+                    }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="162" height="125" viewBox="0 0 162 125" fill="none">
+                        <path d="M154.721 53.3989V33.4383H143.617V20.4724H136.1V33.4383H124.996V53.3989H118.846V8.53018H106.375V4.26509H89.8034V0H73.4031V4.26509H57.857V8.53018H44.3609V53.2283H37.1858V33.2677H26.0814V20.3018H18.5646V33.2677H7.46028V53.2283H0.285156V124.029H16.6854V98.9501H27.9606V124.029H72.0364V94.8556H91.1701V124.029H117.821V124.199H134.221V99.1207H145.496V124.199H161.896V53.3989H154.721ZM6.17901 61.9291H12.6708V67.0472H6.17901V61.9291ZM6.26443 76.2598H12.7562V81.3779H6.26443V76.2598ZM12.8416 95.7087H6.34985V90.5905H12.8416V95.7087ZM29.8398 49.4751H14.8062V46.4042H29.8398V49.4751ZM29.8398 45.0394H14.8062V41.9685H29.8398V45.0394ZM29.8398 40.6037H14.8062V37.5328H29.8398V40.6037ZM31.9753 61.9291H38.4671V67.0472H31.9753V61.9291ZM32.0607 76.2598H38.5525V81.3779H32.0607V76.2598ZM38.6379 95.7087H32.1461V90.5905H38.6379V95.7087ZM65.203 87.1785H53.2444V81.8898H65.203V87.1785ZM65.203 71.9947H53.2444V66.706H65.203V71.9947ZM65.203 56.811H53.2444V51.5223H65.203V56.811ZM65.203 41.6273H53.2444V36.3386H65.203V41.6273ZM65.203 26.4436H53.2444V21.1549H65.203V26.4436ZM87.5825 87.1785H75.624V81.8898H87.5825V87.1785ZM87.5825 71.9947H75.624V66.706H87.5825V71.9947ZM87.5825 56.811H75.624V51.5223H87.5825V56.811ZM87.5825 41.6273H75.624V36.3386H87.5825V41.6273ZM87.5825 26.4436H75.624V21.1549H87.5825V26.4436ZM109.962 87.1785H98.0035V81.8898H109.962V87.1785ZM109.962 71.9947H98.0035V66.706H109.962V71.9947ZM109.962 56.811H98.0035V51.5223H109.962V56.811ZM109.962 41.6273H98.0035V36.3386H109.962V41.6273ZM109.962 26.4436H98.0035V21.1549H109.962V26.4436ZM123.714 62.0997H130.206V67.2178H123.714V62.0997ZM123.8 76.4304H130.292V81.5486H123.8V76.4304ZM130.377 95.8793H123.885V90.7611H130.377V95.8793ZM147.375 49.6457H132.342V46.5748H147.375V49.6457ZM147.375 45.21H132.342V42.1391H147.375V45.21ZM147.375 40.7743H132.342V37.7034H147.375V40.7743ZM149.511 62.0997H156.002V67.2178H149.511V62.0997ZM149.596 76.4304H156.088V81.5486H149.596V76.4304ZM156.173 95.8793H149.682V90.7611H156.173V95.8793Z" fill="#F2F2F2"/>
+                      </svg>
+                      <p style={{
+                        alignSelf: "stretch",
+                        color: "rgba(33, 33, 33, 0.60)",
+                        textAlign: "center",
+                        fontFamily: "Poppins",
+                        fontSize: "14px",
+                        fontStyle: "normal",
+                        fontWeight: "300",
+                        lineHeight: "normal"
+                      }}>
+                        No data available
+                      </p>
                     </div>
                   </td>
                 </tr>
@@ -440,12 +595,40 @@ export default function PartnersPage() {
                         <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold">
                           H
                         </div>
-                        <span className="text-sm text-foreground">{partner.hotelName}</span>
+                        <span style={{
+                          color: "#525866",
+                          fontSize: "12px",
+                          fontWeight: "400",
+                          lineHeight: "19.5px"
+                        }}>
+                          {partner.hotelName}
+                        </span>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-sm text-foreground">{partner.email}</td>
-                    <td className="px-4 py-4 text-sm text-foreground">{partner.phone}</td>
-                    <td className="px-4 py-4 text-sm text-foreground">{partner.city}</td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {partner.email}
+                    </td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {partner.phone}
+                    </td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {partner.city}
+                    </td>
                     <td className="px-4 py-4">
                       <div className="relative">
                         <button
@@ -469,13 +652,24 @@ export default function PartnersPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-sm text-foreground">{partner.plan}</td>
-                    <td className="px-4 py-4 text-sm text-foreground">{partner.createdAt}</td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {partner.plan}
+                    </td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {partner.createdAt}
+                    </td>
                     <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{partner.isActive ? "Active" : "Disable"}</span>
-                        <ToggleSwitch checked={partner.isActive} onChange={() => handleToggleActive(partner.id)} />
-                      </div>
+                      <ToggleSwitch checked={partner.isActive} onChange={() => handleToggleActive(partner.id)} />
                     </td>
                     <td className="px-4 py-4">
                       <DropdownMenu
@@ -511,7 +705,7 @@ export default function PartnersPage() {
                 disabled={currentPage === 1}
                 className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                &lt;
+                <LeftArrow />
               </button>
 
               {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
@@ -534,7 +728,7 @@ export default function PartnersPage() {
                 disabled={currentPage === totalPages}
                 className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                &gt;
+                <RightArrow />
               </button>
             </div>
           </div>

@@ -3,23 +3,23 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  RiDashboardLine,
-  RiTeamLine,
-  RiCustomerService2Line,
-  RiGroupLine,
-  RiFileList3Line,
   RiSettings4Line,
   RiMenuFoldLine,
   RiMenuUnfoldLine,
 } from "react-icons/ri"
 import { useState } from "react"
+import DashboardSidebarIcon from "./dashboard-sidebar-icon"
+import PartnersSidebarIcon from "./partners-sidebar-icon"
+import SupportSidebarIcon from "./support-sidebar-icon"
+import TeamSidebarIcon from "./team-sidebar-icon"
+import SubscriptionSidebarIcon from "./subscription-sidebar-icon"
 
 const menuItems = [
-  { icon: RiDashboardLine, label: "Dashboard", href: "/client/pages/dashboard" },
-  { icon: RiGroupLine, label: "Partners", href: "/client/pages/partners" },
-  { icon: RiCustomerService2Line, label: "Support", href: "/client/pages/support" },
-  { icon: RiTeamLine, label: "Team", href: "/client/pages/team" },
-  { icon: RiFileList3Line, label: "Subscription", href: "/client/pages/subscription" },
+  { icon: DashboardSidebarIcon, label: "Dashboard", href: "/client/pages/dashboard" },
+  { icon: PartnersSidebarIcon, label: "Partners", href: "/client/pages/partners" },
+  { icon: SupportSidebarIcon, label: "Support", href: "/client/pages/support" },
+  { icon: TeamSidebarIcon, label: "Team", href: "/client/pages/team" },
+  { icon: SubscriptionSidebarIcon, label: "Subscription", href: "/client/pages/subscription" },
   { icon: RiSettings4Line, label: "Settings", href: "/client/pages/settings" },
 ]
 
@@ -73,6 +73,7 @@ export default function Sidebar() {
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
+          const strokeColor = isActive ? "white" : "#141B34"
 
           return (
             <Link
@@ -82,7 +83,10 @@ export default function Sidebar() {
                 isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
-              <Icon className="w-5 h-5 flex-shrink-0" />
+              <Icon 
+                strokeColor={strokeColor} 
+                className="w-5 h-5 flex-shrink-0" 
+              />
               {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
             </Link>
           )
