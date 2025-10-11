@@ -98,17 +98,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="h-px flex-shrink-0 self-stretch">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="1180"
-          height="1"
-          viewBox="0 0 1180 1"
-          fill="none"
-          className="w-full"
-        >
-          <path fillRule="evenodd" clipRule="evenodd" d="M1180 1H0V0H1180V1Z" fill="#212121" fillOpacity="0.08" />
-        </svg>
+      <div className="h-px flex-shrink-0 self-stretch w-full">
+        <div className="w-full h-px bg-black/[0.08]"></div>
       </div>
 
       {/* Stats Grid */}
@@ -226,17 +217,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="h-px flex-shrink-0 self-stretch">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="1180"
-          height="1"
-          viewBox="0 0 1180 1"
-          fill="none"
-          className="w-full"
-        >
-          <path fillRule="evenodd" clipRule="evenodd" d="M1180 1H0V0H1180V1Z" fill="#212121" fillOpacity="0.08" />
-        </svg>
+      <div className="h-px flex-shrink-0 self-stretch w-full">
+        <div className="w-full h-px bg-black/[0.08]"></div>
       </div>
 
       {/* Stats Grid */}
@@ -563,17 +545,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="h-px flex-shrink-0 self-stretch">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="1180"
-          height="1"
-          viewBox="0 0 1180 1"
-          fill="none"
-          className="w-full"
-        >
-          <path fillRule="evenodd" clipRule="evenodd" d="M1180 1H0V0H1180V1Z" fill="#212121" fillOpacity="0.08" />
-        </svg>
+      <div className="h-px flex-shrink-0 self-stretch w-full">
+        <div className="w-full h-px bg-black/[0.08]"></div>
       </div>
 
       {/* Tickets Stats */}
@@ -623,8 +596,8 @@ export default function DashboardPage() {
   return (
     <div className="p-6">
       {/* Navigation Buttons (like original tabs but always visible) */}
-      <div className="w-full">
-        <div className="flex max-w-[1180px] p-5 justify-end items-center gap-4 border-b border-black/[0.06]">
+      <div className="w-full border-b border-black/[0.06]">
+        <div className="flex max-w-[1180px] p-5 justify-end items-center gap-4">
           <button 
             onClick={() => {
               setActiveSection("subscriptions")

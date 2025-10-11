@@ -1,11 +1,45 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { usePathname } from "next/navigation"
 import { RiSearchLine, RiNotification3Line } from "react-icons/ri"
 
 export default function Header() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const pathname = usePathname()
+
+  // Get page name and description based on pathname
+  const getPageInfo = () => {
+    const path = pathname?.split('/').filter(Boolean) || []
+    const currentPage = path[path.length - 1] || 'dashboard'
+    
+    // Capitalize first letter of page name
+    const pageName = currentPage.charAt(0).toUpperCase() + currentPage.slice(1)
+    
+    // Get current date and time for non-dashboard pages
+    const now = new Date()
+    const formattedDate = now.toLocaleDateString('en-GB', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    }).replace(/\//g, '/')
+    
+    const hours = now.getHours()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const formattedTime = `${hours % 12 || 12}${ampm}`
+    
+    const lastUpdated = `Last updated on ${formattedDate}, ${formattedTime}`
+    
+    return {
+      title: pageName,
+      description: currentPage === 'dashboard' 
+        ? `Welcome to ${pageName}` 
+        : lastUpdated
+    }
+  }
+
+  const pageInfo = getPageInfo()
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -20,6 +54,7 @@ export default function Header() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
+  
   return (
     <header
       className="flex items-center bg-white border-b border-border border-l"
@@ -30,8 +65,8 @@ export default function Header() {
       }}
     >
       <div>
-        <h1>Dashboard</h1>
-        <p className="text-xs text-muted-foreground">welcome to dashboard</p>
+        <h1>{pageInfo.title}</h1>
+        <p className="text-xs text-muted-foreground">{pageInfo.description}</p>
       </div>
      
 
