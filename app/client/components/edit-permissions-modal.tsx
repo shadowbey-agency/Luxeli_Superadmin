@@ -74,7 +74,7 @@ export default function EditPermissionsModal({ member, isOpen, onClose, onSave, 
     if (showBackButton && onBack) {
       onBack()
     } else {
-      onClose()
+    onClose()
     }
   }
 
@@ -120,18 +120,18 @@ export default function EditPermissionsModal({ member, isOpen, onClose, onSave, 
                 </svg>
               </button>
             )} */}
-            <h2 
-              className="text-xl font-semibold"
-              style={{
-                color: "#000",
-                fontSize: "20px",
-                fontStyle: "normal",
-                fontWeight: 600,
-                lineHeight: "normal"
-              }}
-            >
-              Edit permissions
-            </h2>
+          <h2 
+            className="text-xl font-semibold"
+            style={{
+              color: "#000",
+              fontSize: "20px",
+              fontStyle: "normal",
+              fontWeight: 600,
+              lineHeight: "normal"
+            }}
+          >
+            Edit permissions
+          </h2>
           </div>
           <button
             onClick={onClose}

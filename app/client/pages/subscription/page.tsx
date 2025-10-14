@@ -251,21 +251,21 @@ export default function SubscriptionPage() {
       {/* Show Stats Grid and Plans Table only when not in Users Plan view */}
       {!showUsersPlanView && (
         <>
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
-            <StatCard
+       {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
+              <StatCard
               icon={<RevenueIcon />}
               label="Total Plans Revenue"
               value="1900.000 MAD"
               change="+2% vs last mounth"
-              changeType="positive"
-            />
-            <StatCard
+                changeType="positive"
+              />
+              <StatCard
               icon={<StaffIcon />}
               label="Total Users"
-              value="42"
+                value="42"
               change="+2% vs last mounth"
-              changeType="positive"
+                changeType="positive"
             />
           </div>
 
@@ -418,7 +418,7 @@ export default function SubscriptionPage() {
               ))}
             </tbody>
           </table>
-        </div>
+            </div>
 
         {/* Pagination */}
         <div className="flex items-center justify-between mt-4">
@@ -451,15 +451,15 @@ export default function SubscriptionPage() {
 
       {/* Users Plan View */}
       {showUsersPlanView && selectedPlan && (
-        <div className="bg-card rounded-lg p-4">
-          {/* Header */}
+      <div className="bg-card rounded-lg p-4">
+        {/* Header */}
           <div className="flex items-center justify-between pb-4">
             <h3 className="text-base font-semibold text-foreground">{selectedPlan.name}</h3>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
               <div className="relative">
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
                   className="appearance-none"
                   style={{
                     padding: "7.52px 12px",
@@ -472,19 +472,19 @@ export default function SubscriptionPage() {
                     fontWeight: "400",
                     lineHeight: "19.5px"
                   }}
-                >
-                  <option value={10}>Display 10</option>
-                  <option value={20}>Display 20</option>
-                  <option value={50}>Display 50</option>
-                </select>
+            >
+              <option value={10}>Display 10</option>
+              <option value={20}>Display 20</option>
+              <option value={50}>Display 50</option>
+            </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <DropdownArrow />
                 </div>
               </div>
 
-              <input
-                type="text"
-                placeholder="Search..."
+            <input
+              type="text"
+              placeholder="Search..."
                 style={{
                   padding: "7.52px 12px",
                   borderRadius: "4px",
@@ -496,10 +496,10 @@ export default function SubscriptionPage() {
                   lineHeight: "19.5px"
                 }}
                 className="focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
+            />
 
-              <input
-                type="date"
+            <input
+              type="date"
                 style={{
                   padding: "7.52px 12px",
                   borderRadius: "4px",
@@ -512,17 +512,17 @@ export default function SubscriptionPage() {
                 }}
                 className="focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
-            </div>
           </div>
+        </div>
 
           {/* Users Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="w-12 px-4 py-3">
-                    <input type="checkbox" className="rounded" />
-                  </th>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="w-12 px-4 py-3">
+                  <input type="checkbox" className="rounded" />
+                </th>
                   <th className="px-4 py-3 text-left">
                     <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
                       <SortArrows sortDirection="none" />
@@ -532,10 +532,10 @@ export default function SubscriptionPage() {
                         fontWeight: "500", 
                         lineHeight: "19.5px" 
                       }}>
-                        Partner Name
+                  Partner Name
                       </span>
                     </div>
-                  </th>
+                </th>
                   <th className="px-4 py-3 text-left">
                     <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
                       <SortArrows sortDirection="none" />
@@ -545,7 +545,7 @@ export default function SubscriptionPage() {
                         fontWeight: "500", 
                         lineHeight: "19.5px" 
                       }}>
-                        Start date
+                  Start date
                       </span>
                     </div>
                   </th>
@@ -561,21 +561,21 @@ export default function SubscriptionPage() {
                         End date
                       </span>
                     </div>
-                  </th>
-                  <th className="w-12 px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {currentSubscriptions.map((subscription) => (
-                  <tr key={subscription.id} className="hover:bg-muted/50 transition-colors">
-                    <td className="px-4 py-4">
-                      <input type="checkbox" className="rounded" />
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold">
-                          {subscription.avatar}
-                        </div>
+                </th>
+                <th className="w-12 px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {currentSubscriptions.map((subscription) => (
+                <tr key={subscription.id} className="hover:bg-muted/50 transition-colors">
+                  <td className="px-4 py-4">
+                    <input type="checkbox" className="rounded" />
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold">
+                        {subscription.avatar}
+                      </div>
                         <span style={{
                           color: "#525866",
                           fontSize: "12px",
@@ -584,8 +584,8 @@ export default function SubscriptionPage() {
                         }}>
                           {subscription.partnerName}
                         </span>
-                      </div>
-                    </td>
+                    </div>
+                  </td>
                     <td className="px-4 py-4" style={{
                       color: "#525866",
                       fontSize: "12px",
@@ -602,52 +602,52 @@ export default function SubscriptionPage() {
                     }}>
                       {subscription.endDate}
                     </td>
-                    <td className="px-4 py-4">
-                      <DropdownMenu
-                        trigger={
-                          <button className="p-1 hover:bg-muted rounded transition-colors">
-                            <RiMoreLine className="w-5 h-5 text-muted-foreground" />
-                          </button>
-                        }
-                        items={[
-                          {
+                  <td className="px-4 py-4">
+                    <DropdownMenu
+                      trigger={
+                        <button className="p-1 hover:bg-muted rounded transition-colors">
+                          <RiMoreLine className="w-5 h-5 text-muted-foreground" />
+                        </button>
+                      }
+                      items={[
+                        {
                             label: "Edit end date",
-                            icon: <RiEditLine className="w-4 h-4" />,
-                            onClick: () => handleEditEndDate(subscription),
-                          },
-                          {
-                            label: "Subscription History",
-                            icon: <RiEyeLine className="w-4 h-4" />,
-                            onClick: () => handleViewHistory(subscription),
-                          },
-                        ]}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                          icon: <RiEditLine className="w-4 h-4" />,
+                          onClick: () => handleEditEndDate(subscription),
+                        },
+                        {
+                          label: "Subscription History",
+                          icon: <RiEyeLine className="w-4 h-4" />,
+                          onClick: () => handleViewHistory(subscription),
+                        },
+                      ]}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-          {/* Pagination */}
+        {/* Pagination */}
           <div className="flex items-center justify-between mt-4">
-            <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
               Displaying 8 results out of 03
-            </p>
-            <div className="flex items-center gap-2">
-              <button 
+          </p>
+          <div className="flex items-center gap-2">
+            <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
+              disabled={currentPage === 1}
                 className="p-2 border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
+            >
                 <LeftArrow />
-              </button>
+            </button>
               <button className="px-3 py-1 bg-primary text-white rounded text-sm font-medium">1</button>
               <button className="px-3 py-1 text-muted-foreground hover:bg-muted rounded text-sm font-medium">2</button>
               <button className="px-3 py-1 text-muted-foreground hover:bg-muted rounded text-sm font-medium">3</button>
-              <button 
+                <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
+              disabled={currentPage === totalPages}
                 className="p-2 border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <RightArrow />

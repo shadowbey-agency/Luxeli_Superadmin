@@ -9,6 +9,7 @@ import {
 } from "react-icons/ri"
 import { useState } from "react"
 import DashboardSidebarIcon from "./dashboard-sidebar-icon"
+import RoomSidebarIcon from "./room-sidebar-icon"
 import PartnersSidebarIcon from "./partners-sidebar-icon"
 import SupportSidebarIcon from "./support-sidebar-icon"
 import TeamSidebarIcon from "./team-sidebar-icon"
@@ -16,6 +17,7 @@ import SubscriptionSidebarIcon from "./subscription-sidebar-icon"
 
 const menuItems = [
   { icon: DashboardSidebarIcon, label: "Dashboard", href: "/client/pages/dashboard" },
+  { icon: RoomSidebarIcon, label: "Rooms", href: "/client/pages/room" },
   { icon: PartnersSidebarIcon, label: "Partners", href: "/client/pages/partners" },
   { icon: SupportSidebarIcon, label: "Support", href: "/client/pages/support" },
   { icon: TeamSidebarIcon, label: "Team", href: "/client/pages/team" },
@@ -85,7 +87,7 @@ export default function Sidebar() {
             >
               <Icon 
                 strokeColor={strokeColor} 
-                className="w-5 h-5 flex-shrink-0" 
+                className="w-6 h-6 flex-shrink-0" 
               />
               {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
             </Link>

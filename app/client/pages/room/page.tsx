@@ -1,0 +1,1619 @@
+"use client"
+
+import { useState } from "react"
+import {
+  RiMoreLine,
+  RiEditLine,
+  RiDeleteBinLine,
+  RiAddLine,
+  RiHotelBedLine,
+  RiUserLine,
+  RiDownloadLine,
+  RiQrCodeLine,
+  RiUserAddLine,
+  RiHistoryLine,
+} from "react-icons/ri"
+import DropdownMenu from "@/app/client/components/dropdown-menu"
+import StatCard from "@/app/client/components/stat-card"
+
+interface Room {
+  id: string
+  roomNumber: string
+  hotelName: string
+  roomType: string
+  capacity: string
+  status: "Available" | "Occupied"
+  price: string
+  dateAdded: string
+  avatar: string
+}
+
+const mockRooms: Room[] = Array.from({ length: 15 }, (_, i) => ({
+  id: `${i + 1}`,
+  roomNumber: `${100 + i}`,
+  hotelName: "Hotel Name",
+  roomType: i % 3 === 0 ? "Deluxe" : i % 3 === 1 ? "Suite" : "Standard",
+  capacity: `${2 + (i % 3)}`,
+  status: i % 2 === 0 ? "Available" : "Occupied",
+  price: `${500 + i * 50} MAD`,
+  dateAdded: "15 juin 2025",
+  avatar: `R${i + 1}`,
+}))
+
+interface RoomHistoryEntry {
+  id: string
+  name: string
+  checkIn: string
+  checkOut: string
+}
+
+const mockRoomHistory: RoomHistoryEntry[] = Array.from({ length: 105 }, (_, i) => ({
+  id: `${i + 1}`,
+  name: i % 3 === 0 ? "Lindsey Stroud" : i % 3 === 1 ? "John Smith" : "Sarah Johnson",
+  checkIn: `Jan ${15 + (i % 10)}, ${10 + (i % 12)}:${30 + (i % 30)} AM`,
+  checkOut: `Jan ${15 + (i % 10)}, ${10 + (i % 12)}:${30 + (i % 30)} AM`,
+}))
+
+export default function RoomPage() {
+  const [rooms, setRooms] = useState<Room[]>(mockRooms)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [roomToDelete, setRoomToDelete] = useState<Room | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
+  const [showQRModal, setShowQRModal] = useState(false)
+  const [roomForQR, setRoomForQR] = useState<Room | null>(null)
+  const [showAssignModal, setShowAssignModal] = useState(false)
+  const [roomToAssign, setRoomToAssign] = useState<Room | null>(null)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [roomForHistory, setRoomForHistory] = useState<Room | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
+
+  const handleDeleteRoom = (room: Room) => {
+    setRoomToDelete(room)
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = () => {
+    if (roomToDelete) {
+      setRooms(rooms.filter((r) => r.id !== roomToDelete.id))
+      setShowDeleteModal(false)
+      setRoomToDelete(null)
+    }
+  }
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false)
+    setRoomToDelete(null)
+  }
+
+  const handleEditRoom = (room: Room) => {
+    setSelectedRoom(room)
+    setShowEditModal(true)
+  }
+
+  const handleSaveEdit = () => {
+    // Handle save logic here
+    console.log("Saving changes for:", selectedRoom?.id)
+    setShowEditModal(false)
+    setSelectedRoom(null)
+  }
+
+  const handleRoomQRCode = (room: Room) => {
+    setRoomForQR(room)
+    setShowQRModal(true)
+  }
+
+  const closeQRModal = () => {
+    setShowQRModal(false)
+    setRoomForQR(null)
+  }
+
+  const handleDownloadQR = () => {
+    // Handle QR code download logic here
+    console.log("Download QR code for room:", roomForQR?.roomNumber)
+    // You can implement actual download functionality here
+  }
+
+  const handleAssignRoom = (room: Room) => {
+    setRoomToAssign(room)
+    setShowAssignModal(true)
+  }
+
+  const closeAssignModal = () => {
+    setShowAssignModal(false)
+    setRoomToAssign(null)
+  }
+
+  const handleSaveAssignment = () => {
+    // Handle room assignment save logic here
+    console.log("Saving room assignment for:", roomToAssign?.roomNumber)
+    setShowAssignModal(false)
+    setRoomToAssign(null)
+  }
+
+  const handleRoomHistory = (room: Room) => {
+    setRoomForHistory(room)
+    setShowHistoryModal(true)
+  }
+
+  const closeHistoryModal = () => {
+    setShowHistoryModal(false)
+    setRoomForHistory(null)
+  }
+
+  const handleAddRoom = () => {
+    setShowAddModal(true)
+  }
+
+  const closeAddModal = () => {
+    setShowAddModal(false)
+  }
+
+  const handleSaveAddRoom = () => {
+    console.log("Adding new room")
+    setShowAddModal(false)
+  }
+
+  const totalPages = Math.ceil(rooms.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentRooms = rooms.slice(startIndex, endIndex)
+
+  const getStatusStyle = (status: Room["status"]) => {
+    switch (status) {
+      case "Available":
+        return {
+          border: "0.5px solid rgba(80, 190, 135, 0.25)",
+          background: "#EEF9F3",
+          color: "#50BE87",
+        }
+      case "Occupied":
+        return {
+          border: "0.5px solid rgba(255, 13, 13, 0.25)",
+          background: "rgba(255, 13, 13, 0.05)",
+          color: "#FF0D0D",
+        }
+    }
+  }
+
+  const getNewStatusStyle = (status: Room["status"]) => {
+    if (status === "Occupied") {
+      return {
+        background: "rgba(100, 87, 211, 0.05)", // #6457D3 with 5% opacity
+        border: "0.5px solid rgba(100, 87, 211, 0.25)", // #6457D3 with 25% opacity
+        color: "#6457D3",
+      }
+    } else if (status === "Available") {
+      return {
+        background: "rgba(23, 178, 106, 0.05)", // #17B26A with 5% opacity
+        border: "0.5px solid rgba(23, 178, 106, 0.25)", // #17B26A with 25% opacity
+        color: "#17B26A",
+      }
+    }
+    return {
+      background: "rgba(206, 148, 29, 0.05)",
+      border: "0.5px solid rgba(206, 148, 29, 0.25)",
+      color: "#CE941D",
+    }
+  }
+
+  // Reusable modal component
+  const RoomModal = ({ 
+    isOpen, 
+    title, 
+    onClose, 
+    onSave, 
+    children 
+  }: { 
+    isOpen: boolean
+    title: string
+    onClose: () => void
+    onSave: () => void
+    children: React.ReactNode
+  }) => {
+    if (!isOpen) return null
+
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+        <div className="bg-white rounded-xl w-[50vw] mx-4 max-h-[90vh] overflow-y-auto">
+          {/* Header */}
+          <div className="flex justify-between items-center border-b p-5 rounded-t-xl bg-white">
+            <div className="flex flex-col gap-2">
+              <h2 className="text-lg font-semibold text-black">{title}</h2>
+              <p className="text-sm text-gray-500">
+                {title === "Add Room" ? "Add a new room to the system" : "Borem ipsum dolor sit amet, consectetur adipiscing elit."}
+              </p>
+            </div>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
+                <path d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244" stroke="#525866" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            <div className="grid grid-cols-2 gap-4">{children}</div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex justify-end items-center border-t p-5 gap-4">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onSave}
+              className="px-5 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors bg-primary"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-6">
+      {/* Page Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground">Rooms</h1>
+        <p className="text-sm text-muted-foreground">Last updated on 09/15/2025, 12AM</p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <StatCard
+          icon={<RiHotelBedLine className="w-6 h-6 text-primary" />}
+          label="Total Rooms"
+          value="150"
+          change="+5%"
+          changeType="positive"
+          subtitle="vs last month"
+        />
+        <StatCard
+          icon={<RiUserLine className="w-6 h-6 text-primary" />}
+          label="Occupied Rooms"
+          value="98"
+          change="+12%"
+          changeType="positive"
+          subtitle="vs last month"
+        />
+        <StatCard
+          icon={<RiHotelBedLine className="w-6 h-6 text-primary" />}
+          label="Available Rooms"
+          value="52"
+          change="-8%"
+          changeType="negative"
+          subtitle="vs last month"
+        />
+      </div>
+
+       {/* Rooms Section */}
+       <div className="bg-card rounded-[4px] p-4">
+         {/* Table Header */}
+         <div className="flex items-center justify-between pb-4">
+           <h3 className="text-base font-semibold text-foreground">Rooms list</h3>
+           <div className="flex items-center gap-2">
+             <div className="relative">
+               <select
+                 value={itemsPerPage}
+                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                 className="appearance-none"
+                 style={{
+                   padding: "7.52px 12px",
+                   paddingRight: "32px",
+                   borderRadius: "4px",
+                   border: "1px solid #CED4DA",
+                   background: "#FFF",
+                   color: "rgba(33, 33, 33, 0.60)",
+                   fontSize: "13px",
+                   fontWeight: "400",
+                   lineHeight: "19.5px"
+                 }}
+               >
+                 <option value={8}>Display 8</option>
+                 <option value={10}>Display 10</option>
+                 <option value={20}>Display 20</option>
+               </select>
+               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" fill="none">
+                   <path d="M1 1L6 6L11 1" stroke="rgba(33, 33, 33, 0.60)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                 </svg>
+               </div>
+             </div>
+
+             <input
+               type="text"
+               placeholder="Search..."
+               style={{
+                 padding: "7.52px 12px",
+                 borderRadius: "4px",
+                 border: "1px solid #CED4DA",
+                 background: "#FFF",
+                 color: "rgba(33, 33, 33, 0.60)",
+                 fontSize: "13px",
+                 fontWeight: "400",
+                 lineHeight: "19.5px"
+               }}
+               className="focus:outline-none focus:ring-2 focus:ring-primary/30"
+             />
+
+             <div className="relative">
+               <select
+                 className="appearance-none"
+                 style={{
+                   padding: "7.52px 12px",
+                   paddingRight: "32px",
+                   borderRadius: "4px",
+                   border: "1px solid #CED4DA",
+                   background: "#FFF",
+                   color: "rgba(33, 33, 33, 0.60)",
+                   fontSize: "13px",
+                   fontWeight: "400",
+                   lineHeight: "19.5px",
+                   minWidth: "100px"
+                 }}
+               >
+                 <option value="">Status</option>
+                 <option value="all">All</option>
+                 <option value="full">Full</option>
+                 <option value="empty">Empty</option>
+               </select>
+               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" fill="none">
+                   <path d="M1 1L6 6L11 1" stroke="rgba(33, 33, 33, 0.60)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                 </svg>
+               </div>
+             </div>
+
+             <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors">
+               <svg
+                 xmlns="http://www.w3.org/2000/svg"
+                 width="14"
+                 height="16"
+                 viewBox="0 0 14 16"
+                 fill="none"
+                 className="w-[14px] h-4"
+               >
+                 <path
+                   d="M11.3333 10.6666C11.6705 10.9943 13 11.8665 13 12.3333M11.3333 14C11.6705 13.6723 13 12.8001 13 12.3333M13 12.3333L7.66667 12.3333"
+                   stroke="#1F2A44"
+                   strokeLinecap="round"
+                   strokeLinejoin="round"
+                 />
+                 <path
+                   d="M6.33398 14.6666H6.15217C3.97803 14.6666 2.89096 14.6666 2.13603 14.1347C1.91973 13.9823 1.7277 13.8016 1.56578 13.598C1.00065 12.8875 1.00065 11.8644 1.00065 9.81814V8.12117C1.00065 6.14572 1.00065 5.158 1.31328 4.36913C1.81586 3.10091 2.87874 2.10055 4.22622 1.62753C5.0644 1.33329 6.11386 1.33329 8.21277 1.33329C9.41215 1.33329 10.0118 1.33329 10.4908 1.50143C11.2608 1.77172 11.8682 2.34336 12.1553 3.06805C12.334 3.51884 12.334 4.08325 12.334 5.21208V8.66663"
+                   stroke="#1F2A44"
+                   strokeLinecap="round"
+                   strokeLinejoin="round"
+                 />
+                 <path
+                   d="M1.0013 8C1.0013 6.7727 1.99622 5.77778 3.22352 5.77778C3.66738 5.77778 4.19066 5.85555 4.62221 5.73992C5.00565 5.63718 5.30514 5.33768 5.40789 4.95424C5.52352 4.52269 5.44575 3.99941 5.44575 3.55556C5.44575 2.32826 6.44067 1.33333 7.66797 1.33333"
+                   stroke="#1F2A44"
+                   strokeLinecap="round"
+                   strokeLinejoin="round"
+                 />
+               </svg>
+               <span className="text-sm font-medium text-[#212121]">Export</span>
+             </button>
+
+             <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors">
+               <svg
+                 xmlns="http://www.w3.org/2000/svg"
+                 width="14"
+                 height="16"
+                 viewBox="0 0 14 16"
+                 fill="none"
+                 className="w-[14px] h-4"
+               >
+                 <path
+                   d="M11.3333 10.6666C11.6705 10.9943 13 11.8665 13 12.3333M11.3333 14C11.6705 13.6723 13 12.8001 13 12.3333M13 12.3333L7.66667 12.3333"
+                   stroke="#1F2A44"
+                   strokeLinecap="round"
+                   strokeLinejoin="round"
+                 />
+                 <path
+                   d="M6.33398 14.6666H6.15217C3.97803 14.6666 2.89096 14.6666 2.13603 14.1347C1.91973 13.9823 1.7277 13.8016 1.56578 13.598C1.00065 12.8875 1.00065 11.8644 1.00065 9.81814V8.12117C1.00065 6.14572 1.00065 5.158 1.31328 4.36913C1.81586 3.10091 2.87874 2.10055 4.22622 1.62753C5.0644 1.33329 6.11386 1.33329 8.21277 1.33329C9.41215 1.33329 10.0118 1.33329 10.4908 1.50143C11.2608 1.77172 11.8682 2.34336 12.1553 3.06805C12.334 3.51884 12.334 4.08325 12.334 5.21208V8.66663"
+                   stroke="#1F2A44"
+                   strokeLinecap="round"
+                   strokeLinejoin="round"
+                 />
+                 <path
+                   d="M1.0013 8C1.0013 6.7727 1.99622 5.77778 3.22352 5.77778C3.66738 5.77778 4.19066 5.85555 4.62221 5.73992C5.00565 5.63718 5.30514 5.33768 5.40789 4.95424C5.52352 4.52269 5.44575 3.99941 5.44575 3.55556C5.44575 2.32826 6.44067 1.33333 7.66797 1.33333"
+                   stroke="#1F2A44"
+                   strokeLinecap="round"
+                   strokeLinejoin="round"
+                 />
+               </svg>
+               <span className="text-sm font-medium text-[#212121]">Export room data</span>
+             </button>
+
+             <button 
+               onClick={handleAddRoom}
+               className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-sm font-medium transition-colors"
+             >
+               <RiAddLine className="w-5 h-5" />
+               Add Room
+             </button>
+           </div>
+         </div>
+
+         {/* Table */}
+         <div className="overflow-x-auto rounded-[4px]">
+           <table className="w-full">
+             <thead className="bg-muted/50">
+               <tr>
+                 <th className="w-12 px-4 py-4">
+                   <input type="checkbox" className="rounded" />
+                 </th>
+                 <th className="px-4 py-4 text-left text-xs font-semibold uppercase" style={{ color: "#000000" }}>
+                   Room name
+                 </th>
+                 <th className="px-4 py-4 text-left text-xs font-semibold uppercase" style={{ color: "#000000" }}>
+                   Status
+                 </th>
+                 <th className="px-4 py-4 text-left text-xs font-semibold uppercase" style={{ color: "#000000" }}>
+                   The resident
+                 </th>
+                 <th className="px-4 py-4 text-left text-xs font-semibold uppercase" style={{ color: "#000000" }}>
+                   Check in
+                 </th>
+                 <th className="px-4 py-4 text-left text-xs font-semibold uppercase" style={{ color: "#000000" }}>
+                   Check out
+                 </th>
+                 <th className="w-12 px-4 py-4"></th>
+               </tr>
+             </thead>
+             <tbody className="divide-y divide-border">
+               {currentRooms.map((room) => (
+                 <tr key={room.id} className="hover:bg-muted/50 transition-colors">
+                   <td className="px-4 py-4">
+                     <input type="checkbox" className="rounded" />
+                   </td>
+                   <td className="px-4 py-4">
+                     <span className="text-sm text-foreground">{room.roomNumber}</span>
+                   </td>
+                   <td className="px-4 py-4">
+                     <div
+                       className="flex items-center justify-center rounded text-xs font-medium"
+                       style={{
+                         width: "80px",
+                         height: "22px",
+                         borderRadius: "4px",
+                         borderWidth: "0.5px",
+                         padding: "10px",
+                         gap: "4px",
+                         ...getNewStatusStyle(room.status),
+                       }}
+                     >
+                       {room.status === "Available" ? "Empty" : "Full"}
+                     </div>
+                   </td>
+                   <td className="px-4 py-4 text-sm text-foreground">Lindsey Stroud</td>
+                   <td className="px-4 py-4 text-sm text-foreground">Jan 15, 10:30 AM</td>
+                   <td className="px-4 py-4 text-sm text-foreground">Jan 15, 10:30 AM</td>
+                   <td className="px-4 py-4">
+                    <DropdownMenu
+                      trigger={
+                        <button className="p-1 hover:bg-muted rounded transition-colors">
+                          <RiMoreLine className="w-5 h-5 text-muted-foreground" />
+                        </button>
+                      }
+                      items={[
+                        {
+                          label: "Edit",
+                          icon: <RiEditLine className="w-4 h-4" />,
+                          onClick: () => handleEditRoom(room),
+                        },
+                        {
+                          label: "Room QR code",
+                          icon: <RiQrCodeLine className="w-4 h-4" />,
+                          onClick: () => handleRoomQRCode(room),
+                        },
+                        {
+                          label: "Assign room",
+                          icon: <RiUserAddLine className="w-4 h-4" />,
+                          onClick: () => handleAssignRoom(room),
+                        },
+                        {
+                          label: "Room history",
+                          icon: <RiHistoryLine className="w-4 h-4" />,
+                          onClick: () => handleRoomHistory(room),
+                        },
+                        {
+                          label: "Delete",
+                          icon: <RiDeleteBinLine className="w-4 h-4" />,
+                          onClick: () => handleDeleteRoom(room),
+                          variant: "danger",
+                        },
+                      ]}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between py-3 border-t">
+          <p className="text-sm text-muted-foreground">
+            Displaying {startIndex + 1}-{Math.min(endIndex, rooms.length)} results out of {rooms.length}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              &lt;
+            </button>
+
+            {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+              const page = i + 1
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
+                    currentPage === page ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {page}
+                </button>
+              )
+            })}
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              &gt;
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Edit Room Modal */}
+      {showEditModal && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
+        >
+          <div className="bg-white rounded-xl w-[50vw] mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div
+              className="flex justify-between items-center border-b"
+              style={{
+                padding: "20px 16px",
+                borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
+                borderRadius: "10px 10px 0 0",
+                background: "#FFF",
+              }}
+            >
+              <h2 className="text-lg font-semibold text-black">Edit Room</h2>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="flex items-center justify-center"
+                style={{ width: "24px", height: "24px", aspectRatio: "1/1" }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
+                  <path
+                    d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244"
+                    stroke="#525866"
+                    strokeWidth="1.67"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-[#212121]">Room Number</label>
+                  <input
+                    type="text"
+                    defaultValue={selectedRoom?.roomNumber}
+                    className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-[#212121]">Room Type</label>
+                  <input
+                    type="text"
+                    defaultValue={selectedRoom?.roomType}
+                    className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-[#212121]">Capacity</label>
+                  <input
+                    type="text"
+                    defaultValue={selectedRoom?.capacity}
+                    className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-[#212121]">Price</label>
+                  <input
+                    type="text"
+                    defaultValue={selectedRoom?.price}
+                    className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              className="flex justify-end items-center border-t"
+              style={{
+                padding: "20px 16px",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                gap: "72px",
+                alignSelf: "stretch",
+                borderRadius: "0 0 10px 10px",
+                borderTop: "1px solid rgba(0, 0, 0, 0.04)",
+                background: "#FFF",
+              }}
+            >
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                style={{
+                  padding: "8.52px 10px",
+                  borderRadius: "6px",
+                  background: "#FBFAFA",
+                  border: "1px solid #CED4DA",
+                  color: "#525866",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className="px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors"
+                style={{
+                  padding: "8.52px 20px",
+                  borderRadius: "6px",
+                  background: "#1F2A44",
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+       {/* Delete Room Modal */}
+       {showDeleteModal && (
+         <div className="fixed inset-0 bg-black/40 bg-opacity-80 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+           <div className="bg-white rounded-[10px] w-full max-w-md mx-4">
+             {/* First Section - Header */}
+             <div 
+               className="flex justify-between items-center px-4 py-5 rounded-t-[10px] border-b border-black/4"
+               style={{
+                 borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
+                 background: "#FFF"
+               }}
+             >
+               <h2 
+                 className="text-black font-bold text-xl leading-normal"
+                 style={{
+                   fontSize: "20px",
+                   fontWeight: 700
+                 }}
+               >
+                 Delete Room
+               </h2>
+               <button
+                 onClick={cancelDelete}
+                 className="text-gray-500 hover:text-gray-700 transition-colors"
+               >
+                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                 </svg>
+               </button>
+             </div>
+
+             {/* Second Section - Content */}
+             <div 
+               className="px-4 py-5 border-b border-black/6"
+               style={{
+                 borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
+                 background: "#FFF"
+               }}
+             >
+               <p 
+                 className="text-gray-600 text-lg leading-normal"
+                 style={{
+                   color: "#525866",
+                   fontSize: "18px",
+                   fontWeight: 400
+                 }}
+               >
+                 Are you sure you want to delete room {roomToDelete?.roomNumber} permanently?
+               </p>
+             </div>
+
+             {/* Third Section - Footer */}
+             <div 
+               className="flex justify-end items-center gap-18 px-4 py-5 rounded-b-[10px] border-t border-black/4"
+               style={{
+                 borderTop: "1px solid rgba(0, 0, 0, 0.04)",
+                 background: "#FFF",
+                 gap: "72px"
+               }}
+             >
+               <div className="flex gap-[16px] flex-end">
+                 <button
+                   onClick={cancelDelete}
+                   className="flex flex-col justify-center items-center px-2.5 py-2 rounded-md text-center font-medium text-sm leading-5 transition-colors"
+                   style={{
+                     padding: "8.52px 10px",
+                     borderRadius: "6px",
+                     background: "#FBFAFA",
+                     color: "#000",
+                     fontSize: "14px",
+                     fontWeight: 500,
+                     lineHeight: "19.5px"
+                   }}
+                 >
+                   Cancel
+                 </button>
+                 <button
+                   onClick={confirmDelete}
+                   className="flex flex-col justify-center items-center px-2.5 py-2 rounded-md text-center font-medium text-sm leading-5 transition-colors"
+                   style={{
+                     padding: "8.52px 10px",
+                     borderRadius: "6px",
+                     background: "#EB1D1D",
+                     color: "#FFF",
+                     fontSize: "14px",
+                     fontWeight: 500,
+                     lineHeight: "19.5px"
+                   }}
+                 >
+                   Delete
+                 </button>
+               </div>
+             </div>
+           </div>
+         </div>
+       )}
+
+      {/* Room QR Code Modal */}
+      {showQRModal && roomForQR && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
+        >
+          <div
+            className="bg-white flex flex-col items-center"
+            style={{
+              width: "500px",
+              height: "451.0395202636719px",
+              top: "286px",
+              left: "470px",
+              borderRadius: "10px",
+              paddingTop: "30px",
+              paddingBottom: "30px",
+              gap: "30px",
+              opacity: 1,
+            }}
+          >
+            {/* Heading Section */}
+            <div
+              className="flex items-center justify-center"
+              style={{
+                width: "500px",
+                height: "32px",
+                paddingRight: "20px",
+                paddingLeft: "20px",
+                gap: "10px",
+                opacity: 1,
+              }}
+            >
+              <h2 className="text-lg font-semibold text-black">Room QR code</h2>
+            </div>
+
+            {/* QR Code Section */}
+            <div
+              className="flex items-center justify-center"
+              style={{
+                width: "231.99978637695312px",
+                height: "231.99951171875px",
+                opacity: 1,
+              }}
+            >
+              {/* QR Code Pattern */}
+              <div
+                className="bg-black"
+                style={{
+                  width: "189.7466583251953px",
+                  height: "189.7452850341797px",
+                  marginTop: "20.82px",
+                  marginLeft: "21.14px",
+                  opacity: 1,
+                  // Simple QR code pattern representation
+                  backgroundImage: `
+                    linear-gradient(90deg, transparent 0%, transparent 10%, black 10%, black 20%, transparent 20%, transparent 30%, black 30%, black 40%, transparent 40%, transparent 50%, black 50%, black 60%, transparent 60%, transparent 70%, black 70%, black 80%, transparent 80%, transparent 90%, black 90%, black 100%),
+                    linear-gradient(0deg, transparent 0%, transparent 10%, black 10%, black 20%, transparent 20%, transparent 30%, black 30%, black 40%, transparent 40%, transparent 50%, black 50%, black 60%, transparent 60%, transparent 70%, black 70%, black 80%, transparent 80%, transparent 90%, black 90%, black 100%)
+                  `,
+                  backgroundSize: "20px 20px",
+                }}
+              />
+            </div>
+
+            {/* Border */}
+            <div
+              style={{
+                width: "500px",
+                height: "0px",
+                borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
+                opacity: 1,
+              }}
+            />
+
+            {/* Buttons Row */}
+            <div
+              className="flex items-center justify-end gap-3"
+              style={{
+                width: "500px",
+                height: "37.040000915527344px",
+                paddingRight: "20px",
+                paddingLeft: "20px",
+                gap: "10px",
+                opacity: 1,
+              }}
+            >
+              {/* Download Button */}
+              <button
+                onClick={handleDownloadQR}
+                className="flex items-center gap-4 text-white rounded"
+                style={{
+                  width: "107px",
+                  height: "37.040000915527344px",
+                  gap: "16px",
+                  background: "#1F2A44",
+                  borderRadius: "6px",
+                  padding: "8.52px 10px",
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  className="w-4 h-4"
+                >
+                  <path
+                    d="M8 1V11M8 11L4 7M8 11L12 7M1 15H15"
+                    stroke="white"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="text-sm font-medium">Download</span>
+              </button>
+
+              {/* Cancel Button */}
+              <button
+                onClick={closeQRModal}
+                className="flex items-center justify-center border rounded"
+                style={{
+                  width: "66px",
+                  height: "37.040000915527344px",
+                  borderRadius: "6px",
+                  paddingTop: "8.52px",
+                  paddingRight: "10px",
+                  paddingBottom: "8.52px",
+                  paddingLeft: "10px",
+                  gap: "6px",
+                  background: "#FBFAFA",
+                  border: "1px solid #CED4DA",
+                  color: "#000",
+                }}
+              >
+                <span className="text-sm font-medium">Cancel</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Room Modal */}
+      {showAssignModal && roomToAssign && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
+        >
+          <div
+            className="bg-white flex flex-col"
+            style={{
+              width: "704px",
+              height: "443.1300048828125px",
+              top: "290.5px",
+              left: "368px",
+              opacity: 1,
+              borderRadius: "10px",
+            }}
+          >
+            {/* Header Section */}
+            <div
+              className="flex justify-between items-center border-b"
+              style={{
+                width: "704px",
+                height: "94px",
+                justifyContent: "space-between",
+                opacity: 1,
+                borderTopLeftRadius: "10px",
+                borderTopRightRadius: "10px",
+                borderBottomWidth: "1px",
+                paddingTop: "20px",
+                paddingRight: "16px",
+                paddingBottom: "20px",
+                paddingLeft: "16px",
+              }}
+            >
+              <div className="flex flex-col">
+                <h2 
+                  className="font-semibold text-black mb-1"
+                  style={{
+                    fontWeight: 600,
+                    fontSize: "20px",
+                    lineHeight: "100%",
+                    width: "128px",
+                   
+                    opacity: 1,
+                  }}
+                >
+                  Assign room
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Borem ipsum dolor sit amet, consectetur adipiscing elit.
+                </p>
+              </div>
+              <button
+                onClick={closeAssignModal}
+                className="flex items-center justify-center"
+                style={{ width: "24px", height: "24px", aspectRatio: "1/1" }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
+                  <path
+                    d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244"
+                    stroke="#525866"
+                    strokeWidth="1.67"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Input Section */}
+            <div
+              className="flex flex-col border-b"
+              style={{
+                width: "704px",
+                height: "272.0899963378906px",
+                gap: "20px",
+                opacity: 1,
+                borderBottomWidth: "1px",
+                paddingTop: "20px",
+                paddingRight: "16px",
+                paddingBottom: "20px",
+                paddingLeft: "16px",
+              }}
+            >
+              <div
+                className="flex flex-col"
+                style={{
+                  width: "672px",
+                  height: "232.08999633789062px",
+                  gap: "20px",
+                  opacity: 1,
+                }}
+              >
+                {/* First Row */}
+                <div
+                  className="flex justify-between"
+                  style={{
+                    width: "672px",
+                    height: "64.02999877929688px",
+                    justifyContent: "space-between",
+                    opacity: 1,
+                  }}
+                >
+                  {/* Room name */}
+                  <div
+                    className="flex flex-col"
+                    style={{
+                      width: "328px",
+                      height: "64.02999877929688px",
+                      opacity: 1,
+                    }}
+                  >
+                    <label
+                      className="text-sm font-medium mb-1"
+                      style={{
+                        
+                        height: "20px",
+                        fontWeight: 500,
+                        fontSize: "13px",
+                        lineHeight: "19.5px",
+                        color: "#212121",
+                      }}
+                    >
+                      Room name
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue={roomToAssign?.roomNumber}
+                      className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                      style={{
+                        width: "326px",
+                        height: "35.040000915527344px",
+                        paddingTop: "7.52px",
+                        paddingRight: "12px",
+                        paddingBottom: "7.52px",
+                        paddingLeft: "12px",
+                        borderRadius: "4px",
+                        borderWidth: "1px",
+                        border: "1px solid #CED4DA",
+                        opacity: 1,
+                      }}
+                    />
+                  </div>
+
+                  {/* The resident */}
+                  <div
+                    className="flex flex-col"
+                    style={{
+                      width: "328px",
+                      height: "64.02999877929688px",
+                      opacity: 1,
+                    }}
+                  >
+                    <label
+                      className="text-sm font-medium mb-1"
+                      style={{
+                        height: "20px",
+                        fontWeight: 500,
+                        fontSize: "13px",
+                        lineHeight: "19.5px",
+                        color: "#212121",
+                      }}
+                    >
+                      The resident
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Write Here..."
+                      className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                      style={{
+                        width: "326px",
+                        height: "35.040000915527344px",
+                        paddingTop: "7.52px",
+                        paddingRight: "12px",
+                        paddingBottom: "7.52px",
+                        paddingLeft: "12px",
+                        borderRadius: "4px",
+                        borderWidth: "1px",
+                        border: "1px solid #CED4DA",
+                        opacity: 1,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Second Row */}
+                <div
+                  className="flex justify-between"
+                  style={{
+                    width: "672px",
+                    height: "64.02999877929688px",
+                    justifyContent: "space-between",
+                    opacity: 1,
+                  }}
+                >
+                  {/* Check in Date */}
+                  <div
+                    className="flex flex-col"
+                    style={{
+                      width: "328px",
+                      height: "64.02999877929688px",
+                      opacity: 1,
+                    }}
+                  >
+                    <label
+                      className="text-sm font-medium mb-1"
+                      style={{
+                        width: "72px",
+                        height: "20px",
+                        fontWeight: 500,
+                        fontSize: "13px",
+                        lineHeight: "19.5px",
+                        color: "#212121",
+                      }}
+                    >
+                      Check in
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="mm/dd/yyyy"
+                      className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                      style={{
+                        width: "326px",
+                        height: "35.040000915527344px",
+                        paddingTop: "7.52px",
+                        paddingRight: "12px",
+                        paddingBottom: "7.52px",
+                        paddingLeft: "12px",
+                        borderRadius: "4px",
+                        borderWidth: "1px",
+                        border: "1px solid #CED4DA",
+                        opacity: 1,
+                      }}
+                    />
+                  </div>
+
+                  {/* Check in Time */}
+                  <div
+                    className="flex flex-col"
+                    style={{
+                      width: "328px",
+                      height: "64.02999877929688px",
+                      opacity: 1,
+                    }}
+                  >
+                    <label
+                      className="text-sm font-medium mb-1"
+                      style={{
+                        width: "72px",
+                        height: "20px",
+                        fontWeight: 500,
+                        fontSize: "13px",
+                        lineHeight: "19.5px",
+                        color: "#212121",
+                      }}
+                    >
+                      Check in
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue="00:00 AM"
+                      className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                      style={{
+                        width: "326px",
+                        height: "35.040000915527344px",
+                        paddingTop: "7.52px",
+                        paddingRight: "12px",
+                        paddingBottom: "7.52px",
+                        paddingLeft: "12px",
+                        borderRadius: "4px",
+                        borderWidth: "1px",
+                        border: "1px solid #CED4DA",
+                        opacity: 1,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Third Row */}
+                <div
+                  className="flex justify-between"
+                  style={{
+                    width: "672px",
+                    height: "64.02999877929688px",
+                    justifyContent: "space-between",
+                    opacity: 1,
+                  }}
+                >
+                  {/* Check out Date */}
+                  <div
+                    className="flex flex-col"
+                    style={{
+                      width: "328px",
+                      height: "64.02999877929688px",
+                      opacity: 1,
+                    }}
+                  >
+                    <label
+                      className="text-sm font-medium mb-1"
+                      style={{
+                        width: "72px",
+                        height: "20px",
+                        fontWeight: 500,
+                        fontSize: "13px",
+                        lineHeight: "19.5px",
+                        color: "#212121",
+                      }}
+                    >
+                      Check out
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="mm/dd/yyyy"
+                      className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                      style={{
+                        width: "326px",
+                        height: "35.040000915527344px",
+                        paddingTop: "7.52px",
+                        paddingRight: "12px",
+                        paddingBottom: "7.52px",
+                        paddingLeft: "12px",
+                        borderRadius: "4px",
+                        borderWidth: "1px",
+                        border: "1px solid #CED4DA",
+                        opacity: 1,
+                      }}
+                    />
+                  </div>
+
+                  {/* Check out Time */}
+                  <div
+                    className="flex flex-col"
+                    style={{
+                      width: "328px",
+                      height: "64.02999877929688px",
+                      opacity: 1,
+                    }}
+                  >
+                    <label
+                      className="text-sm font-medium mb-1"
+                      style={{
+                        width: "72px",
+                        height: "20px",
+                        fontWeight: 500,
+                        fontSize: "13px",
+                        lineHeight: "19.5px",
+                        color: "#212121",
+                      }}
+                    >
+                      Check out
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue="00:00 AM"
+                      className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                      style={{
+                        width: "326px",
+                        height: "35.040000915527344px",
+                        paddingTop: "7.52px",
+                        paddingRight: "12px",
+                        paddingBottom: "7.52px",
+                        paddingLeft: "12px",
+                        borderRadius: "4px",
+                        borderWidth: "1px",
+                        border: "1px solid #CED4DA",
+                        opacity: 1,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Section */}
+            <div
+              className="flex justify-end items-center border-t"
+              style={{
+                width: "704px",
+                height: "77.04000091552734px",
+                gap: "72px",
+                opacity: 1,
+                borderBottomRightRadius: "10px",
+                borderBottomLeftRadius: "10px",
+                borderTopWidth: "1px",
+                paddingTop: "20px",
+                paddingRight: "16px",
+                paddingBottom: "20px",
+                paddingLeft: "16px",
+              }}
+            >
+              <div
+                className="flex gap-4"
+                style={{
+                  width: "158px",
+                  height: "37.040000915527344px",
+                  gap: "16px",
+                  opacity: 1,
+                }}
+              >
+                {/* Cancel Button */}
+                <button
+                  onClick={closeAssignModal}
+                  className="flex items-center justify-center border rounded text-black"
+                  style={{
+                    width: "70px",
+                    height: "37.040000915527344px",
+                    paddingTop: "8.52px",
+                    paddingRight: "10px",
+                    paddingBottom: "8.52px",
+                    paddingLeft: "10px",
+                    borderRadius: "6px",
+                    background: "#FBFAFA",
+                    border: "1px solid #CED4DA",
+                    fontWeight: 400,
+                    fontSize: "14px",
+                    lineHeight: "19.5px",
+                    textAlign: "center",
+                    opacity: 1,
+                  }}
+                >
+                  Cancel
+                </button>
+
+                {/* Save Button */}
+                <button
+                  onClick={handleSaveAssignment}
+                  className="flex items-center justify-center text-white rounded"
+                  style={{
+                    width: "72px",
+                    height: "37.040000915527344px",
+                    gap: "6px",
+                    paddingTop: "8.52px",
+                    paddingRight: "20px",
+                    paddingBottom: "8.52px",
+                    paddingLeft: "20px",
+                    borderRadius: "6px",
+                    background: "#1F2A44",
+                    opacity: 1,
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Room History Modal - Right Slide Popup */}
+      {showHistoryModal && roomForHistory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-end z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+          <div className=" bg-white w-[50vw] h-full flex flex-col">
+            {/* Header */}
+            <div className=" border-gray-200 flex-shrink-0">
+              <div className="pt-5 pb-5 pr-6 pl-6 flex items-center justify-between border-b">
+                <h2 className="text-xl font-semibold text-black">Room History</h2>
+                <button 
+                  onClick={closeHistoryModal}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
+                    <path d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244" stroke="#525866" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Search Row */}
+              <div 
+                className="p-6 flex justify-between items-center mt-4"
+                style={{
+                  width: "100%",
+                  height: "33.040000915527344px",
+                  justifyContent: "space-between",
+                  opacity: 1,
+                }}
+              >
+                <p className="text-sm text-gray-600">
+                  Found {mockRoomHistory.length} resident
+                </p>
+                
+                {/* Search Bar and Icon */}
+                <div 
+                  className="flex items-center gap-4"
+                  style={{
+                    width: "275.0400085449219px",
+                    height: "33.040000915527344px",
+                    gap: "16px",
+                    opacity: 1,
+                  }}
+                >
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    className="border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                    style={{
+                      width: "226px",
+                      height: "33px",
+                      borderWidth: "1px",
+                      borderRadius: "4px",
+                      paddingTop: "7.52px",
+                      paddingRight: "12px",
+                      paddingBottom: "7.52px",
+                      paddingLeft: "12px",
+                      border: "1px solid #CED4DA",
+                      opacity: 1,
+                    }}
+                  />
+                  <button className="p-2 bg-muted hover:bg-muted/80 rounded border border-border transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M2 4H14M2 8H14M2 12H14" stroke="#666" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Room History Cards - Scrollable */}
+            <div className="flex-1 p-6 overflow-y-auto">
+              <div 
+                className="grid gap-4"
+                style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
+              >
+                {mockRoomHistory.slice(0, 20).map((history) => (
+                  <div
+                    key={history.id}
+                    className="bg-white rounded-lg border flex flex-col"
+                    style={{
+                      width: "100%",
+                      height: "111px",
+                      gap: "10px",
+                      padding: "20px",
+                    //   background: "#0000000F",
+                      opacity: 1,
+                    }}
+                  >
+                    {/* Card Content */}
+                    <div
+                      className="flex flex-col"
+                      style={{
+                        width: "99%",
+                        height: "71px",
+                        gap: "10px",
+                        justifyContent: "space-between",
+                        opacity: 1,
+                      }}
+                    >
+                      {/* Name Row */}
+                      <div
+                        className="flex justify-between items-center"
+                        style={{
+                          width: "100%",
+                          height: "21px",
+                          justifyContent: "space-between",
+                          opacity: 1,
+                        }}
+                      >
+                        <span className="text-sm font-medium text-black">Name</span>
+                        <span className="text-sm text-gray-600">{history.name}</span>
+                      </div>
+
+                      {/* Check In Row */}
+                      <div
+                        className="flex justify-between items-center"
+                        style={{
+                          width: "100%",
+                          height: "21px",
+                          justifyContent: "space-between",
+                          opacity: 1,
+                        }}
+                      >
+                        <span className="text-sm font-medium text-black">Check in</span>
+                        <span className="text-sm text-gray-600">{history.checkIn}</span>
+                      </div>
+
+                      {/* Check Out Row */}
+                      <div
+                        className="flex justify-between items-center"
+                        style={{
+                          width: "100%",
+                          height: "21px",
+                          justifyContent: "space-between",
+                          opacity: 1,
+                        }}
+                      >
+                        <span className="text-sm font-medium text-black">Check out</span>
+                        <span className="text-sm text-gray-600">{history.checkOut}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Fixed Pagination at Bottom */}
+            <div className="p-6 border-t border-gray-200 flex-shrink-0">
+              <div className="flex items-center justify-end gap-2">
+                <button className="w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">‹</button>
+                <button className="w-8 h-8 rounded-full text-sm font-medium bg-primary text-white">1</button>
+                <button className="w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">2</button>
+                <button className="w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">3</button>
+                <button className="w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">›</button>
+              </div>
+            </div>
+           </div>
+         </div>
+       )}
+
+       {/* Add Room Modal */}
+       <RoomModal
+         isOpen={showAddModal}
+         title="Add Room"
+         onClose={closeAddModal}
+         onSave={handleSaveAddRoom}
+         
+       >
+         {/* First Row - Room name and Status */}
+         <div className="flex flex-col gap-2">
+           <label className="text-sm font-medium text-gray-700">Room name</label>
+           <input
+             type="text"
+             placeholder="Write Here..."
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+           />
+         </div>
+         <div className="flex flex-col gap-2">
+           <label className="text-sm font-medium text-gray-700">Status</label>
+           <select className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+             <option value="Full">Full</option>
+             <option value="Empty">Empty</option>
+           </select>
+         </div>
+
+         {/* Second Row - The resident (full width) */}
+         <div className="col-span-2 flex flex-col gap-2">
+           <label className="text-sm font-medium text-gray-700">The resident</label>
+           <input
+             type="text"
+             placeholder="Write Here..."
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+           />
+         </div>
+
+         {/* Third Row - Check in Date and Time */}
+         <div className="flex flex-col gap-2">
+           <label className="text-sm font-medium text-gray-700">Check in</label>
+           <input
+             type="date"
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+           />
+         </div>
+         <div className="flex flex-col gap-2">
+           <label className="text-sm font-medium text-gray-700">Check in</label>
+           <input
+             type="time"
+             defaultValue="00:00"
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+           />
+         </div>
+
+         {/* Fourth Row - Check out Date and Time */}
+         <div className="flex flex-col gap-2">
+           <label className="text-sm font-medium text-gray-700">Check out</label>
+           <input
+             type="date"
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+           />
+         </div>
+         <div className="flex flex-col gap-2">
+           <label className="text-sm font-medium text-gray-700">Check out</label>
+           <input
+             type="time"
+             defaultValue="00:00"
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+           />
+         </div>
+       </RoomModal>
+     </div>
+   )
+ }
+
