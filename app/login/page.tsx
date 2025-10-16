@@ -12,12 +12,18 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [userType, setUserType] = useState<"superadmin" | "partner">("superadmin")
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("[v0] Login attempt:", { email, password: "***" })
-    // Navigate to dashboard after login
-    router.push("/client/pages/dashboard")
+    console.log("[v0] Login attempt:", { email, password: "***", userType })
+    
+    // Navigate to dashboard based on user type
+    if (userType === "superadmin") {
+      router.push("/superadmin/pages/dashboard")
+    } else {
+      router.push("/partner/pages/dashboard")
+    }
   }
 
   return (
@@ -68,6 +74,26 @@ export default function LoginPage() {
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6 items-center">
+                {/* User Type Selection */}
+                <div className="flex flex-col gap-2 w-full max-w-[470px]">
+                  <label htmlFor="userType" className="text-[#212121] text-sm font-medium">
+                    User Type
+                  </label>
+                  <select
+                    id="userType"
+                    value={userType}
+                    onChange={(e) => setUserType(e.target.value as "superadmin" | "partner")}
+                    className="flex w-full max-w-[470px] px-3 flex-col items-start border border-[#CED4DA] bg-white rounded"
+                    style={{
+                      padding: "7.52px 12px",
+                    }}
+                    required
+                  >
+                    <option value="superadmin">Super Admin</option>
+                    <option value="partner">Partner</option>
+                  </select>
+                </div>
+
                 {/* Email Field */}
                 <div className="flex flex-col gap-2 w-full max-w-[470px]">
                   <label htmlFor="email" className="text-[#212121] text-sm font-medium">
