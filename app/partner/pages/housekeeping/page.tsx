@@ -1,14 +1,35 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { RiFileList3Line, RiHome4Line, RiSettings3Line, RiArrowDownSLine } from "react-icons/ri"
+import { useSearchParams } from "next/navigation"
+import { RiFileList3Line, RiHome4Line, RiSettings3Line, RiArrowDownSLine, RiCalendarLine } from "react-icons/ri"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
+import ViewRequestModal from "@/app/partner/components/view-request-modal"
+import AssignStaffModal from "@/app/partner/components/assign-staff-modal"
 
 export default function HousekeepingPage() {
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<"requests" | "house-cleaning" | "requests-management">("requests")
   const [showDropdown, setShowDropdown] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const totalPages = 3
+  const [showViewRequest, setShowViewRequest] = useState(false)
+  const [selectedRequest, setSelectedRequest] = useState<any>(null)
+  const [showAssignStaffModal, setShowAssignStaffModal] = useState(false)
+  const [requestToAssign, setRequestToAssign] = useState<any>(null)
+
+  // Set active tab based on URL query parameter
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab === 'requests' || tab === 'house-cleaning' || tab === 'requests-management') {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
+
+  const handleAssignStaff = (staffId: string) => {
+    console.log("Assigned staff:", staffId, "to request:", requestToAssign)
+    // Handle the assignment logic here
+  }
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -186,6 +207,20 @@ export default function HousekeepingPage() {
               </div>
             </div>
             
+            {/* Icon Box Button */}
+            <button 
+              className="flex justify-center items-center hover:bg-muted/50 transition-colors"
+              style={{
+                width: "35px",
+                height: "35.04px",
+                borderRadius: "6px",
+                border: "1px solid #CED4DA",
+                gap: "6px"
+              }}
+            >
+              <RiCalendarLine className="w-4 h-4 text-[#1F2A44]" />
+            </button>
+            
             {/* Export button */}
             <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors">
               <svg
@@ -290,88 +325,104 @@ export default function HousekeepingPage() {
             {[
               {
                 id: "#22232",
+                requestId: "#22232",
                 room: "R1 E3 A3",
                 guest: "Lindsey Stroud",
                 type: "Custom cleaning",
                 created: "Jan 15, 10:30 AM",
-                status: "New",
+                status: "new",
                 statusBg: "#D1924F0D",
                 statusBorder: "#D1924F40",
                 statusColor: "#D1924F",
-                priority: "Urgent",
+                priority: "urgent",
                 priorityBg: "#FF0D0D0D",
                 priorityBorder: "#FF0D0D40",
                 priorityColor: "#FF0D0D",
                 assignee: "Full Name",
-                hasAssignee: true
+                hasAssignee: true,
+                requestedFor: "Today 14:00-16:00",
+                cleaningType: "Full clean",
+                note: "Please pay special attention to the bathroom area."
               },
               {
                 id: "#22233",
+                requestId: "#22233",
                 room: "R2 E3 A3",
                 guest: "Lindsey Stroud",
                 type: "Request needed",
                 created: "Jan 15, 10:30 AM",
-                status: "Accepted",
+                status: "accepted",
                 statusBg: "#6457D30D",
                 statusBorder: "#6457D340",
                 statusColor: "#6457D3",
-                priority: "Medium",
+                priority: "medium",
                 priorityBg: "#D1924F0D",
                 priorityBorder: "#D1924F40",
                 priorityColor: "#D1924F",
                 assignee: "",
-                hasAssignee: false
+                hasAssignee: false,
+                requestedFor: "Today 14:00-16:00",
+                cleaningType: "Full clean"
               },
               {
                 id: "#22234",
+                requestId: "#22234",
                 room: "R3 E3 A3",
                 guest: "Lindsey Stroud",
                 type: "Custom cleaning",
                 created: "Jan 15, 10:30 AM",
-                status: "Completed",
+                status: "completed",
                 statusBg: "#17B26A0D",
                 statusBorder: "#17B26A40",
                 statusColor: "#17B26A",
-                priority: "Low",
+                priority: "low",
                 priorityBg: "#56C6FF0D",
                 priorityBorder: "#56C6FF40",
                 priorityColor: "#56C6FF",
                 assignee: "Full Name",
-                hasAssignee: true
+                hasAssignee: true,
+                requestedFor: "Today 14:00-16:00",
+                cleaningType: "Full clean"
               },
               {
                 id: "#22235",
+                requestId: "#22235",
                 room: "R4 E3 A3",
                 guest: "Lindsey Stroud",
                 type: "Request needed",
                 created: "Jan 15, 10:30 AM",
-                status: "No-show",
+                status: "no-show",
                 statusBg: "#1F2A440D",
                 statusBorder: "#1F2A4440",
                 statusColor: "#1F2A44",
-                priority: "Medium",
+                priority: "medium",
                 priorityBg: "#D1924F0D",
                 priorityBorder: "#D1924F40",
                 priorityColor: "#D1924F",
                 assignee: "",
-                hasAssignee: false
+                hasAssignee: false,
+                requestedFor: "Today 14:00-16:00",
+                cleaningType: "Full clean"
               },
               {
                 id: "#22236",
+                requestId: "#22236",
                 room: "R5 E3 A3",
                 guest: "Lindsey Stroud",
                 type: "Custom cleaning",
                 created: "Jan 15, 10:30 AM",
-                status: "Canceled",
+                status: "canceled",
                 statusBg: "#FF0D0D0D",
                 statusBorder: "#FF0D0D40",
                 statusColor: "#FF0D0D",
-                priority: "Low",
+                priority: "low",
                 priorityBg: "#56C6FF0D",
                 priorityBorder: "#56C6FF40",
                 priorityColor: "#56C6FF",
                 assignee: "Full Name",
-                hasAssignee: true
+                hasAssignee: true,
+                requestedFor: "Today 14:00-16:00",
+                cleaningType: "Full clean"
               }
             ].map((row, index) => (
               <tr key={index} className="hover:bg-muted/50 transition-colors">
@@ -410,7 +461,7 @@ export default function HousekeepingPage() {
                 }}>{row.created}</td>
                 <td className="px-4 py-4">
                   <span 
-                    className="inline-flex items-center justify-center text-xs font-medium"
+                    className="inline-flex items-center justify-center text-xs font-medium capitalize"
                     style={{
                       width: "80px",
                       height: "22px",
@@ -428,7 +479,7 @@ export default function HousekeepingPage() {
                 </td>
                 <td className="px-4 py-4">
                   <span 
-                    className="inline-flex items-center justify-center text-xs font-medium"
+                    className="inline-flex items-center justify-center text-xs font-medium capitalize"
                     style={{
                       width: "80px",
                       height: "22px",
@@ -474,7 +525,14 @@ export default function HousekeepingPage() {
                     {showDropdown === index && (
                       <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
                         <div className="py-1">
-                          <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                          <button 
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                            onClick={() => {
+                              setSelectedRequest(row)
+                              setShowViewRequest(true)
+                              setShowDropdown(null)
+                            }}
+                          >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -487,7 +545,14 @@ export default function HousekeepingPage() {
                             </svg>
                             Change status
                           </button>
-                          <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                          <button 
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                            onClick={() => {
+                              setRequestToAssign(row)
+                              setShowAssignStaffModal(true)
+                              setShowDropdown(null)
+                            }}
+                          >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                             </svg>
@@ -553,12 +618,318 @@ export default function HousekeepingPage() {
     </div>
   )
 
-  const HouseCleaningContent = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl font-bold text-foreground">House cleaning content</h2>
-      <p>House cleaning page content will be implemented here.</p>
-    </div>
-  )
+  const HouseCleaningContent = () => {
+    const [calendarView, setCalendarView] = useState<'month' | 'week' | 'day'>('week')
+    const [currentDate, setCurrentDate] = useState(new Date())
+
+    const getMonthName = (date: Date) => {
+      return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    }
+
+    const getDateRange = (date: Date) => {
+      const startOfWeek = new Date(date)
+      startOfWeek.setDate(date.getDate() - date.getDay())
+      const endOfWeek = new Date(startOfWeek)
+      endOfWeek.setDate(startOfWeek.getDate() + 6)
+      
+      return `${startOfWeek.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} - ${endOfWeek.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+    }
+
+    const navigateDate = (direction: 'prev' | 'next') => {
+      const newDate = new Date(currentDate)
+      if (calendarView === 'month') {
+        newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1))
+      } else if (calendarView === 'week') {
+        newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7))
+      } else {
+        newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1))
+      }
+      setCurrentDate(newDate)
+    }
+
+    const timeSlots = ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM', '7 PM']
+    
+    const getWeekDays = () => {
+      const startOfWeek = new Date(currentDate)
+      const dayOfWeek = currentDate.getDay()
+      // Adjust so Monday is the first day (0=Sunday becomes 6, 1=Monday becomes 0, etc.)
+      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      startOfWeek.setDate(currentDate.getDate() - daysToMonday)
+      
+      return Array.from({ length: 7 }, (_, i) => {
+        const day = new Date(startOfWeek)
+        day.setDate(startOfWeek.getDate() + i)
+        return day
+      })
+    }
+
+    const getMonthDays = () => {
+      const year = currentDate.getFullYear()
+      const month = currentDate.getMonth()
+      const firstDay = new Date(year, month, 1)
+      const lastDay = new Date(year, month + 1, 0)
+      const daysInMonth = lastDay.getDate()
+      const startingDayOfWeek = firstDay.getDay()
+      
+      const days = []
+      // Previous month days
+      const prevMonthLastDay = new Date(year, month, 0).getDate()
+      for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+        days.push({ date: prevMonthLastDay - i, isCurrentMonth: false })
+      }
+      // Current month days
+      for (let i = 1; i <= daysInMonth; i++) {
+        days.push({ date: i, isCurrentMonth: true })
+      }
+      // Next month days
+      const remaining = 42 - days.length
+      for (let i = 1; i <= remaining; i++) {
+        days.push({ date: i, isCurrentMonth: false })
+      }
+      
+      return days
+    }
+
+    return (
+      <div 
+        className="bg-white border border-[#E7E7E7] flex flex-col"
+        style={{ 
+          borderRadius: "10px",
+          padding: "20px",
+          gap: "20px"
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-4" style={{ height: "69px" }}>
+          {/* Month/Date Box */}
+          <div 
+            className="flex flex-col items-center justify-center bg-[#FBFAFA] border border-gray-200"
+            style={{ width: "70px", height: "69px", borderRadius: "8px" }}
+          >
+            <span className="text-xs text-gray-500 uppercase">
+              {currentDate.toLocaleDateString('en-US', { month: 'short' })}
+            </span>
+            <span className="text-2xl font-bold text-black">
+              {currentDate.getDate()}
+            </span>
+          </div>
+
+          {/* Month/Date Range Heading */}
+          <div className="flex flex-col gap-1 flex-1">
+            <h2 className="text-xl font-bold text-black">
+              {getMonthName(currentDate)}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {calendarView === 'week' ? getDateRange(currentDate) : getMonthName(currentDate)}
+            </p>
+          </div>
+
+          {/* Right Controls */}
+          <div className="flex items-center gap-4" style={{ height: "42px" }}>
+            {/* Navigation Arrows */}
+            <div className="flex items-center" style={{ height: "42px" }}>
+              <button
+                onClick={() => navigateDate('prev')}
+                className="flex items-center justify-center w-14 h-full border border-gray-300 hover:bg-gray-50"
+                style={{ borderRadius: "7px" }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={() => navigateDate('next')}
+                className="flex items-center justify-center w-14 h-full border border-gray-300 hover:bg-gray-50"
+                style={{ borderRadius: "7px" }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+
+            {/* View Toggle */}
+            <div 
+              className="flex items-center p-1 bg-[#EEF0F3]"
+              style={{ height: "42px", borderRadius: "10px" }}
+            >
+              <button
+                onClick={() => setCalendarView('month')}
+                className={`px-5 py-2 text-sm font-medium transition-all ${
+                  calendarView === 'month'
+                    ? 'bg-white text-black rounded-lg shadow-sm'
+                    : 'text-[#5C5C5C]'
+                }`}
+                style={{ height: "36px", borderRadius: "8px" }}
+              >
+                Month
+              </button>
+              <button
+                onClick={() => setCalendarView('week')}
+                className={`px-5 py-2 text-sm font-medium transition-all ${
+                  calendarView === 'week'
+                    ? 'bg-white text-black rounded-lg shadow-sm'
+                    : 'text-[#5C5C5C]'
+                }`}
+                style={{ height: "36px", borderRadius: "8px" }}
+              >
+                Week
+              </button>
+              <button
+                onClick={() => setCalendarView('day')}
+                className={`px-5 py-2 text-sm font-medium transition-all ${
+                  calendarView === 'day'
+                    ? 'bg-white text-black rounded-lg shadow-sm'
+                    : 'text-[#5C5C5C]'
+                }`}
+                style={{ height: "36px", borderRadius: "8px" }}
+              >
+                Day
+              </button>
+            </div>
+
+            {/* Save Changes Button */}
+            <button className="px-5 py-2 bg-[#1F2A44] text-white text-sm font-semibold rounded-lg hover:bg-[#1F2A44]/90">
+              Save Changes
+            </button>
+          </div>
+        </div>
+
+        {/* Calendar Grid */}
+        {calendarView === 'week' && (
+          <div className="rounded-lg border border-[#E7E7E7] overflow-auto flex-1">
+            <div className="grid h-full" style={{ gridTemplateColumns: "80px repeat(7, 1fr)" }}>
+              {/* Time Column Header */}
+              <div className="border-b border-r border-[#E7E7E7]" style={{ background: "#F4F6F8", borderLeft: "1px solid #E7E7E7" }}></div>
+              
+              {/* Day Headers */}
+              {getWeekDays().map((day, index) => (
+                <div
+                  key={index}
+                  className="border-b border-r border-[#E7E7E7] p-2 text-center last:border-r-0"
+                >
+                  <div className="text-xs text-gray-500">
+                    {day.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}, {day.getDate()}
+                  </div>
+                </div>
+              ))}
+
+              {/* Time Slots and Grid */}
+              {timeSlots.map((time, timeIndex) => (
+                <div key={timeIndex} className="contents">
+                  {/* Time Label */}
+                  <div
+                    className="border-r border-[#E7E7E7] p-2 text-xs text-gray-500"
+                    style={{ height: "64px", background: "#F4F6F8", borderLeft: "1px solid #E7E7E7" }}
+                  >
+                    {time}
+                  </div>
+                  
+                  {/* Day Cells */}
+                  {getWeekDays().map((day, dayIndex) => {
+                    const showOff = timeIndex >= timeSlots.length - 2 || dayIndex === 6
+                    return (
+                      <div
+                        key={dayIndex}
+                        className="border-r border-b border-[#E7E7E7] p-2 hover:bg-gray-50 cursor-pointer last:border-r-0 flex items-center justify-center"
+                        style={{ height: "64px", background: showOff ? "#F9F9F9" : "#FFFFFF" }}
+                      >
+                        {showOff && <div className="text-xs text-center" style={{ color: "#0A0A0A" }}>OFF</div>}
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {calendarView === 'month' && (
+          <div className="flex-1">
+            <div className="grid grid-cols-7">
+              {/* Day Headers */}
+              {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day, index) => (
+                <div 
+                  key={day} 
+                  className="text-center text-xs font-semibold text-gray-700 py-2 px-5"
+                  style={{ 
+                    height: "38px",
+                    borderTop: "1px solid #E7E7E7",
+                    borderBottom: "1px solid #E7E7E7",
+                    borderLeft: "1px solid #E7E7E7",
+                    borderRight: index === 6 ? "1px solid #E7E7E7" : "none",
+                    borderTopLeftRadius: index === 0 ? "10px" : "0",
+                    borderTopRightRadius: index === 6 ? "10px" : "0"
+                  }}
+                >
+                  {day}
+                </div>
+              ))}
+
+              {/* Calendar Days */}
+              {getMonthDays().map((day, index) => {
+                const isLastRow = index >= 35
+                const isLastCol = (index + 1) % 7 === 0
+                const isFirstCol = index % 7 === 0
+                
+                return (
+                  <div
+                    key={index}
+                    className={`p-2 ${
+                      !day.isCurrentMonth ? 'bg-gray-50' : 'hover:bg-gray-50 cursor-pointer'
+                    }`}
+                    style={{ 
+                      minHeight: "90px",
+                      borderLeft: "1px solid #E7E7E7",
+                      borderRight: isLastCol ? "1px solid #E7E7E7" : "none",
+                      borderBottom: "1px solid #E7E7E7",
+                      borderBottomLeftRadius: isLastRow && isFirstCol ? "10px" : "0",
+                      borderBottomRightRadius: isLastRow && isLastCol ? "10px" : "0"
+                    }}
+                  >
+                    <div className={`text-sm ${day.isCurrentMonth ? 'text-black' : 'text-gray-400'}`}>
+                      {day.date}
+                    </div>
+                    {day.isCurrentMonth && (
+                      <div className="text-xs text-gray-400 mt-2">OFF</div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {calendarView === 'day' && (
+          <div className="rounded-lg border border-[#E7E7E7] overflow-auto flex-1">
+            <div className="grid grid-cols-[80px_1fr] h-full">
+              {/* Time Column Header */}
+              <div className="border-b border-r border-[#E7E7E7]"></div>
+              
+              {/* Day Header */}
+              <div className="border-b border-r border-[#E7E7E7] p-2 text-center">
+                <div className="text-xs text-gray-500">
+                  {currentDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
+                </div>
+              </div>
+
+              {/* Time Slots */}
+              {timeSlots.map((time, index) => (
+                <div key={index} className="contents">
+                  <div className="border-r border-b border-[#E7E7E7] p-2 text-xs text-gray-500" style={{ height: "64px" }}>
+                    {time}
+                  </div>
+                  <div className="border-r border-b border-[#E7E7E7] p-2 hover:bg-gray-50 cursor-pointer" style={{ height: "64px" }}>
+                    <div className="text-xs text-gray-400 text-center">OFF</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const RequestsManagementContent = () => (
     <div className="space-y-6">
@@ -854,6 +1225,26 @@ export default function HousekeepingPage() {
         {activeTab === "house-cleaning" && <HouseCleaningContent />}
         {activeTab === "requests-management" && <RequestsManagementContent />}
       </div>
+
+      {/* View Request Modal */}
+      <ViewRequestModal
+        request={selectedRequest}
+        isOpen={showViewRequest}
+        onClose={() => {
+          setShowViewRequest(false)
+          setSelectedRequest(null)
+        }}
+      />
+
+      {/* Assign Staff Modal */}
+      <AssignStaffModal
+        isOpen={showAssignStaffModal}
+        onClose={() => {
+          setShowAssignStaffModal(false)
+          setRequestToAssign(null)
+        }}
+        onAssign={handleAssignStaff}
+      />
     </div>
   )
 }

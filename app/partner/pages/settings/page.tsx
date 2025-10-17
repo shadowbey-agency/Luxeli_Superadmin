@@ -129,25 +129,25 @@ export default function SettingsPage() {
     {
       id: "1",
       number: 1,
-      image: "/placeholder.svg?height=270&width=492",
+      image: "https://img.freepik.com/premium-vector/creative-social-food-banner-template-design_1119344-107.jpg",
       active: true
     },
     {
       id: "2", 
       number: 2,
-      image: "/placeholder.svg?height=270&width=492",
+      image: "https://img.freepik.com/premium-vector/creative-social-food-banner-template-design_1119344-107.jpg",
       active: true
     },
     {
       id: "3",
       number: 3, 
-      image: "/placeholder.svg?height=270&width=492",
+      image: "https://img.freepik.com/premium-vector/creative-social-food-banner-template-design_1119344-107.jpg",
       active: true
     },
     {
       id: "4",
       number: 4,
-      image: "/placeholder.svg?height=270&width=492", 
+      image: "https://img.freepik.com/premium-vector/creative-social-food-banner-template-design_1119344-107.jpg", 
       active: true
     }
   ])
@@ -627,16 +627,15 @@ export default function SettingsPage() {
             <div className="p-4 bg-white rounded-b-lg">
               {/* Banners Section */}
               <div className="mb-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-base font-semibold text-foreground">Banners</h3>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
-                    <RiAddLine className="w-4 h-4" />
-                    Add new banner
-                  </button>
-                </div>
-
                 {/* Dashed Border Container */}
                 <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 w-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base font-semibold text-foreground">Banners</h3>
+                    <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+                      <RiAddLine className="w-4 h-4" />
+                      Add new banner
+                    </button>
+                  </div>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {banners.map((banner) => (
                       <div
@@ -659,9 +658,10 @@ export default function SettingsPage() {
                         {/* Image */}
                         <div className="flex-1 mb-2">
                           <div 
-                            className="w-full bg-gray-200 rounded-md border border-[#00000014] flex items-center justify-center shadow-lg"
+                            className="w-full bg-gray-200 border border-[#00000014] flex items-center justify-center shadow-lg"
                             style={{ 
                               height: "270px",
+                              borderRadius: "6px",
                               boxShadow: "0px 12px 24px 0px #12263F08"
                             }}
                           >
@@ -670,7 +670,8 @@ export default function SettingsPage() {
                               alt={`Banner ${banner.number}`}
                               width={492}
                               height={270}
-                              className="w-full h-full object-cover rounded-md"
+                              className="w-full h-full object-cover"
+                              style={{ borderRadius: "6px" }}
                             />
                           </div>
                         </div>

@@ -16,7 +16,7 @@ import {
   RiShirtLine,
   RiTruckLine,
 } from "react-icons/ri"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import DashboardSidebarIcon from "./dashboard-sidebar-icon"
 import RoomSidebarIcon from "./room-sidebar-icon"
 import PartnersSidebarIcon from "./partners-sidebar-icon"
@@ -40,9 +40,9 @@ const servicesItems = [
     icon: RiHome4Line,
     href: "/partner/pages/housekeeping",
     subItems: [
-      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/housekeeping?tab=requests" },
-      { label: "House cleaning", icon: RiHome4Line, href: "/partner/pages/housekeeping?tab=house-cleaning" },
-      { label: "Requests management", icon: RiSettings3Line, href: "/partner/pages/housekeeping?tab=requests-management" },
+      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/housekeeping/requests" },
+      { label: "House cleaning", icon: RiHome4Line, href: "/partner/pages/housekeeping/house-cleaning" },
+      { label: "Requests management", icon: RiSettings3Line, href: "/partner/pages/housekeeping/requests-management" },
     ]
   },
   {
@@ -81,6 +81,29 @@ export default function Sidebar() {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [expandedServices, setExpandedServices] = useState<string[]>([])
+  
+  // Get current URL with search params (if any)
+  const [currentFullPath, setCurrentFullPath] = useState("")
+  
+  useEffect(() => {
+    setCurrentFullPath(window.location.pathname + window.location.search)
+  }, [pathname])
+
+  // Auto-expand service if on one of its sub-pages
+  useEffect(() => {
+    if (currentFullPath || pathname) {
+      servicesItems.forEach((service) => {
+        const hasActiveSubItem = service.subItems.some(subItem => {
+          // Check exact match with query params or if pathname starts with the subItem href
+          return currentFullPath === subItem.href || pathname.startsWith(subItem.href.split('?')[0])
+        })
+        if (hasActiveSubItem && !expandedServices.includes(service.label)) {
+          setExpandedServices(prev => [...prev, service.label])
+        }
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFullPath, pathname])
 
   return (
     <aside
@@ -134,9 +157,10 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all ${
+              className={`flex items-center gap-3 w-full px-4 py-3 transition-all ${
                 isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
+              style={{ borderRadius: "8px" }}
             >
               <Icon 
                 strokeColor={strokeColor} 
@@ -158,8 +182,8 @@ export default function Sidebar() {
           {servicesItems.map((service) => {
             const Icon = service.icon
             const isExpanded = expandedServices.includes(service.label)
-            const hasActiveSubItem = service.subItems.some(subItem => pathname.includes(subItem.href.split('?')[0]))
-            const isActive = pathname === service.href || hasActiveSubItem
+            const hasActiveSubItem = service.subItems.some(subItem => currentFullPath === subItem.href)
+            const isActive = pathname === service.href
             const strokeColor = isActive ? "white" : "#141B34"
 
             const toggleExpanded = () => {
@@ -176,9 +200,10 @@ export default function Sidebar() {
               <div key={service.label} className="w-full">
                 {/* Main Service Item */}
                 <div
-                  className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all cursor-pointer ${
+                  className={`flex items-center gap-3 w-full px-4 py-3 transition-all cursor-pointer ${
                     isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
+                  style={{ borderRadius: "8px" }}
                   onClick={toggleExpanded}
                 >
                   <Icon 
@@ -204,16 +229,18 @@ export default function Sidebar() {
                   <div className="ml-4 mt-1 space-y-1">
                     {service.subItems.map((subItem) => {
                       const SubIcon = subItem.icon
-                      const isSubActive = pathname.includes(subItem.href.split('?')[0])
+                      // Check both exact match and pathname match for direct page routes
+                      const isSubActive = currentFullPath === subItem.href || pathname === subItem.href.split('?')[0]
                       const subStrokeColor = isSubActive ? "white" : "#141B34"
 
                       return (
                         <Link
                           key={subItem.href}
                           href={subItem.href}
-                          className={`flex items-center gap-3 w-full px-4 py-2 rounded-lg transition-all text-sm ${
+                          className={`flex items-center gap-3 w-full px-4 py-2 transition-all text-sm ${
                             isSubActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                           }`}
+                          style={{ borderRadius: "8px" }}
                         >
                           <SubIcon 
                             strokeColor={subStrokeColor} 

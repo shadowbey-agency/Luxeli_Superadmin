@@ -10,8 +10,6 @@ import {
   RiCheckboxCircleLine,
   RiDeleteBinLine,
 } from "react-icons/ri"
-import StatusBadge from "@/app/superadmin/components/status-badge"
-import PriorityBadge from "@/app/superadmin/components/priority-badge"
 import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 import DropdownArrow from "@/app/superadmin/components/dropdown-arrow"
 import SortArrows from "@/app/superadmin/components/sort-arrows"
@@ -190,7 +188,30 @@ const mockTickets: Ticket[] = [
   },
 ]
 
+// Helper functions to get status and priority styles matching the requests page
+const getStatusStyle = (status: string) => {
+  const styles = {
+    open: { bg: "#56C6FF0D", border: "#56C6FF40", color: "#56C6FF" },
+    reopened: { bg: "#6457D30D", border: "#6457D340", color: "#6457D3" },
+    pending: { bg: "#D1924F0D", border: "#D1924F40", color: "#D1924F" },
+    resolved: { bg: "#17B26A0D", border: "#17B26A40", color: "#17B26A" },
+    canceled: { bg: "#FF0D0D0D", border: "#FF0D0D40", color: "#FF0D0D" },
+    sent: { bg: "#D1924F0D", border: "#D1924F40", color: "#D1924F" },
+  }
+  return styles[status as keyof typeof styles] || styles.open
+}
+
+const getPriorityStyle = (priority: string) => {
+  const styles = {
+    low: { bg: "#56C6FF0D", border: "#56C6FF40", color: "#56C6FF" },
+    medium: { bg: "#D1924F0D", border: "#D1924F40", color: "#D1924F" },
+    urgent: { bg: "#FF0D0D0D", border: "#FF0D0D40", color: "#FF0D0D" },
+  }
+  return styles[priority as keyof typeof styles] || styles.low
+}
+
 export default function SupportPage() {
+  const [activeTab, setActiveTab] = useState<'my-tickets' | 'tickets-saved'>('my-tickets')
   const [tickets, setTickets] = useState<Ticket[]>(mockTickets)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
@@ -303,14 +324,36 @@ export default function SupportPage() {
 
   return (
     <div className="p-6">
-      {/* Page Header */}
+      {/* Tab Navigation */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Support</h1>
-        <p className="text-sm text-muted-foreground">Last updated on 09/15/2025, 12AM</p>
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('my-tickets')}
+            className={`px-4 py-3 text-sm font-medium transition-colors relative ${
+              activeTab === 'my-tickets'
+                ? 'text-foreground border-b-2 border-[#1F2A44] -mb-[2px]'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            My Tickets
+          </button>
+          <button
+            onClick={() => setActiveTab('tickets-saved')}
+            className={`px-4 py-3 text-sm font-medium transition-colors relative ${
+              activeTab === 'tickets-saved'
+                ? 'text-foreground border-b-2 border-[#1F2A44] -mb-[2px]'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Tickets saved
+          </button>
+        </div>
       </div>
 
       {/* Tickets List */}
       <div className="bg-card rounded-xl p-4">
+        {activeTab === 'my-tickets' ? (
+          <>
         {/* Table Header */}
         <div className="flex items-center justify-between pb-4 ">
           <h3 className="text-base font-semibold text-foreground">Tickets list</h3>
@@ -407,57 +450,11 @@ export default function SupportPage() {
               </div>
             </div>
 
-            <div className="relative">
-              <select 
-                className="appearance-none"
-                style={{
-                  padding: "7.52px 12px",
-                  paddingRight: "32px",
-                  borderRadius: "4px",
-                  border: "1px solid #CED4DA",
-                  background: "#FFF",
-                  color: "rgba(33, 33, 33, 0.60)",
-                  fontSize: "13px",
-                  fontWeight: "400",
-                  lineHeight: "19.5px"
-                }}
-              >
-                <option>Assignee</option>
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <DropdownArrow />
-              </div>
-            </div>
-
-            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="16"
-                viewBox="0 0 14 16"
-                fill="none"
-                className="w-[14px] h-4"
-              >
-                <path
-                  d="M11.3333 10.6666C11.6705 10.9943 13 11.8665 13 12.3333M11.3333 14C11.6705 13.6723 13 12.8001 13 12.3333M13 12.3333L7.66667 12.3333"
-                  stroke="#1F2A44"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M6.33398 14.6666H6.15217C3.97803 14.6666 2.89096 14.6666 2.13603 14.1347C1.91973 13.9823 1.7277 13.8016 1.56578 13.598C1.00065 12.8875 1.00065 11.8644 1.00065 9.81814V8.12117C1.00065 6.14572 1.00065 5.158 1.31328 4.36913C1.81586 3.10091 2.87874 2.10055 4.22622 1.62753C5.0644 1.33329 6.11386 1.33329 8.21277 1.33329C9.41215 1.33329 10.0118 1.33329 10.4908 1.50143C11.2608 1.77172 11.8682 2.34336 12.1553 3.06805C12.334 3.51884 12.334 4.08325 12.334 5.21208V8.66663"
-                  stroke="#1F2A44"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M1.0013 8C1.0013 6.7727 1.99622 5.77778 3.22352 5.77778C3.66738 5.77778 4.19066 5.85555 4.62221 5.73992C5.00565 5.63718 5.30514 5.33768 5.40789 4.95424C5.52352 4.52269 5.44575 3.99941 5.44575 3.55556C5.44575 2.32826 6.44067 1.33333 7.66797 1.33333"
-                  stroke="#1F2A44"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90 transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              <span className="text-sm font-medium text-[#212121]">Export</span>
+              <span className="text-sm font-medium">Add new ticket</span>
             </button>
           </div>
         </div>
@@ -479,7 +476,7 @@ export default function SupportPage() {
                       fontWeight: "500", 
                       lineHeight: "19.5px" 
                     }}>
-                      Title
+                      Ticket ID
                     </span>
                   </div>
                 </th>
@@ -492,7 +489,7 @@ export default function SupportPage() {
                       fontWeight: "500", 
                       lineHeight: "19.5px" 
                     }}>
-                      Ticket ID
+                      Title
                     </span>
                   </div>
                 </th>
@@ -531,19 +528,6 @@ export default function SupportPage() {
                       fontWeight: "500", 
                       lineHeight: "19.5px" 
                     }}>
-                      Assignee
-                    </span>
-                  </div>
-                </th>
-                <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
                       Date Created
                     </span>
                   </div>
@@ -567,7 +551,7 @@ export default function SupportPage() {
             <tbody className="divide-y divide-border">
               {currentTickets.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-16">
+                  <td colSpan={8} className="px-4 py-16">
                     <div className="flex flex-col items-center justify-center text-center">
                       <div className="w-32 h-32 mb-4 opacity-50">
                         <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -629,25 +613,40 @@ export default function SupportPage() {
                       {ticket.title}
                     </td>
                     <td className="px-4 py-4">
-                      <StatusBadge status={ticket.status} />
+                      <span 
+                        className="inline-flex items-center justify-center text-xs font-medium capitalize"
+                        style={{
+                          width: "80px",
+                          height: "22px",
+                          gap: "4px",
+                          borderRadius: "4px",
+                          borderWidth: "0.5px",
+                          padding: "10px",
+                          background: getStatusStyle(ticket.status).bg,
+                          border: `0.5px solid ${getStatusStyle(ticket.status).border}`,
+                          color: getStatusStyle(ticket.status).color
+                        }}
+                      >
+                        {ticket.status}
+                      </span>
                     </td>
                     <td className="px-4 py-4">
-                      <PriorityBadge priority={ticket.priority} />
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold">
-                          {ticket.assignee.avatar}
-                        </div>
-                        <span style={{
-                          color: "#525866",
-                          fontSize: "12px",
-                          fontWeight: "400",
-                          lineHeight: "19.5px"
-                        }}>
-                          {ticket.assignee.name}
-                        </span>
-                      </div>
+                      <span 
+                        className="inline-flex items-center justify-center text-xs font-medium capitalize"
+                        style={{
+                          width: "80px",
+                          height: "22px",
+                          gap: "4px",
+                          borderRadius: "4px",
+                          borderWidth: "0.5px",
+                          padding: "10px",
+                          background: getPriorityStyle(ticket.priority).bg,
+                          border: `0.5px solid ${getPriorityStyle(ticket.priority).border}`,
+                          color: getPriorityStyle(ticket.priority).color
+                        }}
+                      >
+                        {ticket.priority}
+                      </span>
                     </td>
                     <td className="px-4 py-4" style={{
                       color: "#525866",
@@ -754,6 +753,383 @@ export default function SupportPage() {
               </button>
             </div>
           </div>
+        )}
+          </>
+        ) : (
+          <>
+        {/* Table Header */}
+        <div className="flex items-center justify-between pb-4 ">
+          <h3 className="text-base font-semibold text-foreground">Tickets list</h3>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <select
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="appearance-none"
+                style={{
+                  padding: "7.52px 12px",
+                  paddingRight: "32px",
+                  borderRadius: "4px",
+                  border: "1px solid #CED4DA",
+                  background: "#FFF",
+                  color: "rgba(33, 33, 33, 0.60)",
+                  fontSize: "13px",
+                  fontWeight: "400",
+                  lineHeight: "19.5px"
+                }}
+              >
+                <option value={10}>Display 10</option>
+                <option value={20}>Display 20</option>
+                <option value={50}>Display 50</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <DropdownArrow />
+              </div>
+            </div>
+
+            <input
+              type="text"
+              placeholder="Search..."
+              style={{
+                padding: "7.52px 12px",
+                borderRadius: "4px",
+                border: "1px solid #CED4DA",
+                background: "#FFF",
+                color: "rgba(33, 33, 33, 0.60)",
+                fontSize: "13px",
+                fontWeight: "400",
+                lineHeight: "19.5px"
+              }}
+              className="focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+
+            <div className="relative">
+              <select 
+                className="appearance-none"
+                style={{
+                  padding: "7.52px 12px",
+                  paddingRight: "32px",
+                  borderRadius: "4px",
+                  border: "1px solid #CED4DA",
+                  background: "#FFF",
+                  color: "rgba(33, 33, 33, 0.60)",
+                  fontSize: "13px",
+                  fontWeight: "400",
+                  lineHeight: "19.5px"
+                }}
+              >
+                <option>Status</option>
+                <option>Open</option>
+                <option>Pending</option>
+                <option>Resolved</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <DropdownArrow />
+              </div>
+            </div>
+
+            <div className="relative">
+              <select 
+                className="appearance-none"
+                style={{
+                  padding: "7.52px 12px",
+                  paddingRight: "32px",
+                  borderRadius: "4px",
+                  border: "1px solid #CED4DA",
+                  background: "#FFF",
+                  color: "rgba(33, 33, 33, 0.60)",
+                  fontSize: "13px",
+                  fontWeight: "400",
+                  lineHeight: "19.5px"
+                }}
+              >
+                <option>Priority</option>
+                <option>Low</option>
+                <option>Medium</option>
+                <option>Urgent</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <DropdownArrow />
+              </div>
+            </div>
+
+            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90 transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="text-sm font-medium">Add new ticket</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto rounded-lg">
+          <table className="w-full">
+            <thead className="bg-muted/50 border-b">
+              <tr>
+                <th className="w-12 px-4 py-4">
+                  <input type="checkbox" className="rounded" />
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Ticket ID
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Title
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Status
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Priority
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Date Created
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <SortArrows sortDirection="none" />
+                    <span style={{ 
+                      color: "#000", 
+                      fontSize: "12px", 
+                      fontWeight: "500", 
+                      lineHeight: "19.5px" 
+                    }}>
+                      Date Update
+                    </span>
+                  </div>
+                </th>
+                <th className="w-12 px-4 py-4"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {currentTickets.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-16">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <div className="w-32 h-32 mb-4 opacity-50">
+                        <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <rect
+                            x="40"
+                            y="60"
+                            width="120"
+                            height="80"
+                            rx="4"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            fill="none"
+                          />
+                          <path
+                            d="M60 100L100 130L140 100"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                          <circle cx="100" cy="90" r="20" fill="currentColor" opacity="0.2" />
+                          <path
+                            d="M90 85L95 90L105 80"
+                            stroke="white"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-medium text-muted-foreground mb-2">No tickets found</h3>
+                      <p className="text-sm text-muted-foreground">Create your first ticket to get started.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                currentTickets.map((ticket) => (
+                  <tr
+                    key={ticket.id}
+                    className={`hover:bg-muted/50 transition-colors ${
+                      selectedTicket === ticket.id ? "bg-muted/30" : ""
+                    }`}
+                  >
+                    <td className="px-4 py-4">
+                      <input type="checkbox" className="rounded" />
+                    </td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {ticket.ticketId}
+                    </td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {ticket.title}
+                    </td>
+                    <td className="px-4 py-4">
+                      <span 
+                        className="inline-flex items-center justify-center text-xs font-medium capitalize"
+                        style={{
+                          width: "80px",
+                          height: "22px",
+                          gap: "4px",
+                          borderRadius: "4px",
+                          borderWidth: "0.5px",
+                          padding: "10px",
+                          background: getStatusStyle(ticket.status).bg,
+                          border: `0.5px solid ${getStatusStyle(ticket.status).border}`,
+                          color: getStatusStyle(ticket.status).color
+                        }}
+                      >
+                        {ticket.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span 
+                        className="inline-flex items-center justify-center text-xs font-medium capitalize"
+                        style={{
+                          width: "80px",
+                          height: "22px",
+                          gap: "4px",
+                          borderRadius: "4px",
+                          borderWidth: "0.5px",
+                          padding: "10px",
+                          background: getPriorityStyle(ticket.priority).bg,
+                          border: `0.5px solid ${getPriorityStyle(ticket.priority).border}`,
+                          color: getPriorityStyle(ticket.priority).color
+                        }}
+                      >
+                        {ticket.priority}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {ticket.dateCreated}
+                    </td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {ticket.dateUpdate}
+                    </td>
+                    <td className="px-4 py-4">
+                      <DropdownMenu
+                        trigger={
+                          <button className="p-1 hover:bg-muted rounded-xl transition-colors">
+                            <RiMoreLine className="w-5 h-5 text-muted-foreground" />
+                          </button>
+                        }
+                        items={[
+                          { label: "View ticket", icon: <RiEyeLine className="w-4 h-4" />, onClick: () => handleViewTicket(ticket) },
+                          { label: "View reply", icon: <RiReplyLine className="w-4 h-4" />, onClick: () => console.log("View reply", ticket.id) },
+                        ]}
+                      />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {tickets.length > 0 && (
+          <div className="flex items-center justify-between pt-4 border-t">
+            <p className="text-sm text-muted-foreground">
+              Displaying {startIndex + 1}-{Math.min(endIndex, tickets.length)} results out of {tickets.length}
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <LeftArrow />
+              </button>
+
+              {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+                const page = i + 1
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
+                      currentPage === page ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              })}
+
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RightArrow />
+              </button>
+            </div>
+          </div>
+        )}
+          </>
         )}
       </div>
 

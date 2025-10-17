@@ -1,0 +1,208 @@
+"use client"
+
+import { useState } from "react"
+import { ChangeStatusIcon, AssignTicketIcon } from "./icons"
+import AssignStaffModal from "./assign-staff-modal"
+
+interface Request {
+  id: string
+  requestId: string
+  room: string
+  guest: string
+  type: string
+  created: string
+  status: "new" | "accepted" | "completed" | "no-show" | "canceled"
+  priority: "urgent" | "medium" | "low"
+  assignee: string
+  requestedFor: string
+  cleaningType: string
+  note?: string
+}
+
+interface ViewRequestModalProps {
+  request: Request | null
+  isOpen: boolean
+  onClose: () => void
+}
+
+export default function ViewRequestModal({ request, isOpen, onClose }: ViewRequestModalProps) {
+  const [showAssignStaffModal, setShowAssignStaffModal] = useState(false)
+
+  if (!isOpen || !request) return null
+
+  const handleAssignStaff = (staffId: string) => {
+    console.log("Assigned staff:", staffId)
+    // Handle the assignment logic here
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "new":
+        return { bg: "#D1924F0D", border: "#D1924F40", text: "#D1924F" }
+      case "accepted":
+        return { bg: "#6457D30D", border: "#6457D340", text: "#6457D3" }
+      case "completed":
+        return { bg: "#17B26A0D", border: "#17B26A40", text: "#17B26A" }
+      case "no-show":
+        return { bg: "#1F2A440D", border: "#1F2A4440", text: "#1F2A44" }
+      case "canceled":
+        return { bg: "#FF0D0D0D", border: "#FF0D0D40", text: "#FF0D0D" }
+      default:
+        return { bg: "#1F2A440D", border: "#1F2A4440", text: "#1F2A44" }
+    }
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "urgent":
+        return { bg: "#FF0D0D0D", border: "#FF0D0D40", text: "#FF0D0D" }
+      case "medium":
+        return { bg: "#D1924F0D", border: "#D1924F40", text: "#D1924F" }
+      case "low":
+        return { bg: "#56C6FF0D", border: "#56C6FF40", text: "#56C6FF" }
+      default:
+        return { bg: "#1F2A440D", border: "#1F2A4440", text: "#1F2A44" }
+    }
+  }
+
+  const statusColor = getStatusColor(request.status)
+  const priorityColor = getPriorityColor(request.priority)
+
+  const InfoRow = ({ label, value }: { label: string; value: string | React.ReactNode }) => (
+    <div className="flex items-center h-5 gap-52">
+      <span className="text-sm font-medium text-[#212121] w-28">{label}</span>
+      <span className="text-sm text-[#525866]">{value}</span>
+    </div>
+  )
+
+  return (
+    <div className="fixed inset-0 z-50">
+      {/* Background overlay */}
+      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+      
+      {/* Slide-out panel */}
+      <div className="fixed right-0 top-0 h-full w-[50vw] bg-white flex flex-col">
+        {/* Header */}
+        <div className="flex justify-between items-center p-5 border-b border-black/8">
+          <h2 className="text-lg font-semibold text-black">View request</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 p-5 overflow-y-auto">
+          <div className="flex flex-col gap-3">
+            {/* General Info Section */}
+            <div>
+              <h3 className="text-[15px] font-medium text-black/50 mb-4 leading-[21px]">
+                General info
+              </h3>
+              
+              <div className="w-full rounded-lg border p-4 bg-[#FBFAFA]" style={{ borderColor: "#21212114" }}>
+                <div className="flex flex-col gap-2.5">
+                  <InfoRow label="ID" value={request.requestId} />
+                  <InfoRow label="Room" value={request.room} />
+                  <InfoRow label="Guest" value={request.guest} />
+                  <InfoRow label="Type" value={request.type} />
+                  <InfoRow label="Created" value={request.created} />
+                  <InfoRow 
+                    label="Status" 
+                    value={
+                      <span 
+                        className="px-3 py-1 rounded text-xs font-medium capitalize"
+                        style={{
+                          background: statusColor.bg,
+                          border: `0.5px solid ${statusColor.border}`,
+                          color: statusColor.text
+                        }}
+                      >
+                        {request.status}
+                      </span>
+                    } 
+                  />
+                  <InfoRow 
+                    label="Priority" 
+                    value={
+                      <span 
+                        className="px-3 py-1 rounded text-xs font-medium capitalize"
+                        style={{
+                          background: priorityColor.bg,
+                          border: `0.5px solid ${priorityColor.border}`,
+                          color: priorityColor.text
+                        }}
+                      >
+                        {request.priority}
+                      </span>
+                    } 
+                  />
+                  <InfoRow label="Assignee" value={request.assignee && request.assignee.trim() !== '' ? request.assignee : '-'} />
+                </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-black/8" />
+
+            {/* Request Details Section */}
+            <div>
+              <h3 className="text-[15px] font-medium text-black/50 mb-4 leading-[21px]">
+                Request details
+              </h3>
+              
+              <div className="w-full rounded-lg border p-4 bg-[#FBFAFA]" style={{ borderColor: "#21212114" }}>
+                <div className="flex flex-col gap-2.5">
+                  <InfoRow label="Requested for" value={request.requestedFor} />
+                  <InfoRow label="Cleaning type" value={request.cleaningType} />
+                </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-black/8" />
+
+            {/* Note Section */}
+            <div>
+              <h3 className="text-[15px] font-medium text-black/50 mb-4 leading-[21px]">
+                Note
+              </h3>
+              
+              <div className="p-4 rounded-lg border border-black/8 bg-[#FBFAFA]">
+                <p className="text-sm text-black">
+                  {request.note || "Norem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis."}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Buttons */}
+        <div className="flex gap-2 p-5 border-t border-black/8 justify-end">
+          <button
+            className="flex items-center gap-1.5 px-5 py-2 rounded-md border border-[#CED4DA] bg-[#FBFAFA] text-black text-sm font-semibold hover:bg-gray-50 transition-colors"
+          >
+            <ChangeStatusIcon />
+            Change status
+          </button>
+
+          <button
+            onClick={() => setShowAssignStaffModal(true)}
+            className="flex items-center gap-1.5 px-5 py-2 rounded-md border border-[#CED4DA] bg-[#FBFAFA] text-black text-sm font-semibold hover:bg-gray-50 transition-colors"
+          >
+            <AssignTicketIcon />
+            Assign to staff
+          </button>
+        </div>
+      </div>
+
+      {/* Assign Staff Modal */}
+      <AssignStaffModal
+        isOpen={showAssignStaffModal}
+        onClose={() => setShowAssignStaffModal(false)}
+        onAssign={handleAssignStaff}
+      />
+    </div>
+  )
+}
