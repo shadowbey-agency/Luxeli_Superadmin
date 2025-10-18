@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { RiFileList3Line, RiHome4Line, RiSettings3Line, RiArrowDownSLine, RiCalendarLine } from "react-icons/ri"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
 import ViewRequestModal from "@/app/partner/components/view-request-modal"
 import AssignStaffModal from "@/app/partner/components/assign-staff-modal"
 
-export default function HousekeepingPage() {
+function HousekeepingContent() {
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<"requests" | "house-cleaning" | "requests-management">("requests")
   const [showDropdown, setShowDropdown] = useState<number | null>(null)
@@ -1246,5 +1246,13 @@ export default function HousekeepingPage() {
         onAssign={handleAssignStaff}
       />
     </div>
+  )
+}
+
+export default function HousekeepingPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <HousekeepingContent />
+    </Suspense>
   )
 }
