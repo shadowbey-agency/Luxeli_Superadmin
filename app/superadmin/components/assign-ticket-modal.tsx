@@ -7,7 +7,7 @@ interface Ticket {
   id: string
   ticketId: string
   title: string
-  status: "open" | "reopened" | "pending" | "resolved" | "canceled"
+  status: "open" | "reopened" | "pending" | "resolved" | "canceled" | "sent"
   priority: "low" | "medium" | "urgent"
   assignee: {
     name: string

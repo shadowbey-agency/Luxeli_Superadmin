@@ -8,12 +8,13 @@ import {
   AddReplyIcon, 
   MarkAsTicketIcon 
 } from "./icons"
+import SupportSidebarIcon from "@/app/partner/components/support-sidebar-icon"
 
 interface Ticket {
   id: string
   ticketId: string
   title: string
-  status: "open" | "reopened" | "pending" | "resolved" | "canceled"
+  status: "open" | "reopened" | "pending" | "resolved" | "canceled" | "sent"
   priority: "low" | "medium" | "urgent"
   assignee: {
     name: string
@@ -112,71 +113,67 @@ export default function ViewTicketModal({ ticket, isOpen, onClose }: ViewTicketM
                       lineHeight: "32px"
                     }}
                   >
-                    {ticket.hotelName}
+                    Luxeli support
                   </h3>
-                  <p className="text-sm text-gray-600">{ticket.hotelEmail}</p>
+                  <p className="text-sm text-gray-600">Support</p>
                 </div>
 
                 {/* Status Buttons */}
                 <div className="flex items-center gap-2 ml-auto">
-                  {/* Open Button */}
-                  <button
-                    className="flex items-center justify-center gap-1 border rounded"
+                  {/* Status Badge */}
+                  <span 
+                    className="inline-flex items-center justify-center text-xs font-medium capitalize"
                     style={{
-                      display: "flex",
                       width: "80px",
-                      height: "24px",
-                      padding: "10px",
-                      justifyContent: "center",
-                      alignItems: "center",
+                      height: "22px",
                       gap: "4px",
                       borderRadius: "4px",
-                      border: "0.5px solid rgba(31, 42, 68, 0.25)",
-                      background: "rgba(31, 42, 68, 0.05)",
-                      color: "#1F2A44",
+                      borderWidth: "0.5px",
+                      padding: "10px",
+                      background: ticket.status === "reopened" ? "#6457D30D" : "#56C6FF0D",
+                      border: `0.5px solid ${ticket.status === "reopened" ? "#6457D340" : "#56C6FF40"}`,
+                      color: ticket.status === "reopened" ? "#6457D3" : "#56C6FF",
                       fontSize: "11px",
                       fontWeight: 400,
                       lineHeight: "normal"
                     }}
                   >
-                    Open
-                  </button>
+                    {ticket.status}
+                  </span>
                   
-                  {/* Urgent Button */}
-                  <button
-                    className="flex items-center justify-center gap-1 border rounded"
+                  {/* Priority Badge */}
+                  <span 
+                    className="inline-flex items-center justify-center text-xs font-medium capitalize"
                     style={{
-                      display: "flex",
                       width: "80px",
-                      height: "24px",
-                      padding: "10px",
-                      justifyContent: "center",
-                      alignItems: "center",
+                      height: "22px",
                       gap: "4px",
                       borderRadius: "4px",
-                      border: "0.5px solid rgba(255, 13, 13, 0.25)",
-                      background: "rgba(255, 13, 13, 0.05)",
-                      color: "#FF0D0D",
+                      borderWidth: "0.5px",
+                      padding: "10px",
+                      background: ticket.priority === "urgent" ? "#FF0D0D0D" : ticket.priority === "medium" ? "#D1924F0D" : "#56C6FF0D",
+                      border: `0.5px solid ${ticket.priority === "urgent" ? "#FF0D0D40" : ticket.priority === "medium" ? "#D1924F40" : "#56C6FF40"}`,
+                      color: ticket.priority === "urgent" ? "#FF0D0D" : ticket.priority === "medium" ? "#D1924F" : "#56C6FF",
                       fontSize: "11px",
                       fontWeight: 400,
                       lineHeight: "normal"
                     }}
                   >
-                    Urgent
-                  </button>
+                    {ticket.priority}
+                  </span>
                 </div>
               </div>
 
               {/* Date Information Box */}
               <div 
-                className="flex flex-col gap-6 p-4 border rounded-lg"
+                className="flex flex-col gap-3 p-4 border rounded-lg"
                 style={{
                   display: "flex",
                   padding: "16px",
                   flexDirection: "column",
                   justifyContent: "center",
                   alignItems: "flex-start",
-                  gap: "24px",
+                  gap: "12px",
                   alignSelf: "stretch",
                   borderRadius: "8px",
                   border: "1px solid rgba(33, 33, 33, 0.08)",
@@ -195,9 +192,29 @@ export default function ViewTicketModal({ ticket, isOpen, onClose }: ViewTicketM
                 >
                   <div className="flex items-center gap-3">
                     <ClockIcon />
-                    <span className="text-sm text-gray-700">Created at</span>
+                    <span 
+                      className="text-sm"
+                      style={{
+                        color: "#212121",
+                        fontSize: "14px",
+                        fontWeight: 400,
+                        lineHeight: "19.5px"
+                      }}
+                    >
+                      Created at
+                    </span>
                   </div>
-                  <span className="text-sm text-black">{ticket.dateCreated}</span>
+                  <span 
+                    className="text-sm"
+                    style={{
+                      color: "#525866",
+                      fontSize: "14px",
+                      fontWeight: 400,
+                      lineHeight: "19.5px"
+                    }}
+                  >
+                    {ticket.dateCreated}
+                  </span>
                 </div>
 
                 {/* Updated Date Row */}
@@ -212,9 +229,29 @@ export default function ViewTicketModal({ ticket, isOpen, onClose }: ViewTicketM
                 >
                   <div className="flex items-center gap-3">
                     <ClockIcon />
-                    <span className="text-sm text-gray-700">Updated at</span>
+                    <span 
+                      className="text-sm"
+                      style={{
+                        color: "#212121",
+                        fontSize: "14px",
+                        fontWeight: 400,
+                        lineHeight: "19.5px"
+                      }}
+                    >
+                      Updated at
+                    </span>
                   </div>
-                  <span className="text-sm text-black">{ticket.dateUpdate}</span>
+                  <span 
+                    className="text-sm"
+                    style={{
+                      color: "#525866",
+                      fontSize: "14px",
+                      fontWeight: 400,
+                      lineHeight: "19.5px"
+                    }}
+                  >
+                    {ticket.dateUpdate}
+                  </span>
                 </div>
               </div>
 
@@ -247,24 +284,75 @@ export default function ViewTicketModal({ ticket, isOpen, onClose }: ViewTicketM
                     background: "#FBFAFA"
                   }}
                 >
-                  <p className="text-sm text-black">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.
+                  <p 
+                    className="text-sm"
+                    style={{
+                      color: "#000000CC",
+                      fontSize: "14px",
+                      fontWeight: 400,
+                      lineHeight: "19.5px"
+                    }}
+                  >
+                    {ticket.description}
                   </p>
                 </div>
+              </div>
+
+            </div>
+
+            {/* Image Uploaded Section */}
+            <div className="space-y-2">
+              <h4 
+                className="text-gray-500 font-medium"
+                style={{
+                  color: "rgba(0, 0, 0, 0.50)",
+                  fontSize: "15px",
+                  fontWeight: 500,
+                  lineHeight: "21px",
+                }}
+              >
+                Image uploaded
+              </h4>
+              <div 
+                className="flex flex-col gap-6 p-4 border rounded-lg"
+                style={{
+                  display: "flex",
+                  padding: "16px",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "flex-start",
+                  gap: "24px",
+                  alignSelf: "stretch",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(33, 33, 33, 0.08)",
+                  background: "#FBFAFA"
+                }}
+              >
+                <img 
+                  src="/assets/images/hotel-pool.jpg" 
+                  alt="Uploaded image"
+                  className="w-full h-48 object-cover rounded"
+                  style={{
+                    width: "100%",
+                    height: "192px",
+                    objectFit: "cover",
+                    borderRadius: "4px"
+                  }}
+                />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer Buttons */}
+        {/* Footer Button */}
         <div 
-          className="flex gap-2 p-5 border-t border-black/8 flex justify-between"
+          className="flex justify-end p-5 border-t border-black/8"
           style={{
             padding: "20px",
             borderTop: "1px solid rgba(0, 0, 0, 0.08)"
           }}
         >
-          {/* Change Status Button */}
+          {/* View Reply Button */}
           <button
             className="flex items-center gap-1.5 border rounded transition-colors hover:bg-gray-50"
             style={{
@@ -282,74 +370,8 @@ export default function ViewTicketModal({ ticket, isOpen, onClose }: ViewTicketM
               lineHeight: "19.5px"
             }}
           >
-            <ChangeStatusIcon />
-            Change status
-          </button>
-
-          {/* Assign Ticket Button */}
-          <button
-            className="flex items-center gap-1.5 border rounded transition-colors hover:bg-gray-50"
-            style={{
-              display: "flex",
-              padding: "8.52px 20px",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "6px",
-              borderRadius: "6px",
-              border: "1px solid #CED4DA",
-              background: "#FBFAFA",
-              color: "#000",
-              fontSize: "14px",
-              fontWeight: 600,
-              lineHeight: "19.5px"
-            }}
-          >
-            <AssignTicketIcon />
-            Assign ticket
-          </button>
-
-          {/* Add Reply Button */}
-          <button
-            className="flex items-center gap-1.5 border rounded transition-colors hover:bg-gray-50"
-            style={{
-              display: "flex",
-              padding: "8.52px 20px",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "6px",
-              borderRadius: "6px",
-              border: "1px solid #CED4DA",
-              background: "#FBFAFA",
-              color: "#000",
-              fontSize: "14px",
-              fontWeight: 600,
-              lineHeight: "19.5px"
-            }}
-          >
-            <AddReplyIcon />
-            Add a reply
-          </button>
-
-          {/* Mark as Ticket Button */}
-          <button
-            className="flex items-center gap-1.5 border rounded transition-colors hover:bg-gray-50"
-            style={{
-              display: "flex",
-              padding: "8.52px 20px",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "6px",
-              borderRadius: "6px",
-              border: "1px solid #CED4DA",
-              background: "#FBFAFA",
-              color: "#000",
-              fontSize: "14px",
-              fontWeight: 600,
-              lineHeight: "19.5px"
-            }}
-          >
-            <MarkAsTicketIcon />
-            Mark it as a ticket
+            <SupportSidebarIcon size={16} strokeColor="#141B34" />
+            View reply
           </button>
         </div>
       </div>

@@ -26,12 +26,14 @@ import {
   AddReplyIcon, 
   MarkAsTicketIcon 
 } from "@/app/superadmin/components/icons"
+import SupportSidebarIcon from "@/app/partner/components/support-sidebar-icon"
+import AddTicketModal from "@/app/partner/components/add-ticket-modal"
 
 interface Ticket {
   id: string
   ticketId: string
   title: string
-  status: "open" | "reopened" | "pending" | "resolved" | "canceled"
+  status: "open" | "reopened" | "pending" | "resolved" | "canceled" | "sent"
   priority: "low" | "medium" | "urgent"
   assignee: {
     name: string
@@ -62,9 +64,9 @@ const mockTickets: Ticket[] = [
   },
   {
     id: "2",
-    ticketId: "#22232",
+    ticketId: "#22233",
     title: "Login issues with ...",
-    status: "open",
+    status: "sent",
     priority: "medium",
     assignee: { name: "Full Name", avatar: "FN" },
     dateCreated: "Jan 15, 2024, 10:30 AM",
@@ -132,9 +134,9 @@ const mockTickets: Ticket[] = [
   },
   {
     id: "7",
-    ticketId: "#22232",
+    ticketId: "#22238",
     title: "Login issues with ...",
-    status: "canceled",
+    status: "sent",
     priority: "urgent",
     assignee: { name: "Full Name", avatar: "FN" },
     dateCreated: "Jan 15, 2024, 10:30 AM",
@@ -228,6 +230,7 @@ export default function SupportPage() {
   const [ticketToContact, setTicketToContact] = useState<Ticket | null>(null)
   const [showDeleteTicketModal, setShowDeleteTicketModal] = useState(false)
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null)
+  const [showAddTicketModal, setShowAddTicketModal] = useState(false)
 
   const totalPages = Math.ceil(tickets.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
@@ -419,6 +422,7 @@ export default function SupportPage() {
                 <option>Open</option>
                 <option>Pending</option>
                 <option>Resolved</option>
+                <option>Sent</option>
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <DropdownArrow />
@@ -450,7 +454,10 @@ export default function SupportPage() {
               </div>
             </div>
 
-            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90 transition-colors">
+            <button 
+              onClick={() => setShowAddTicketModal(true)}
+              className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90 transition-colors"
+            >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -671,39 +678,64 @@ export default function SupportPage() {
                             <RiMoreLine className="w-5 h-5 text-muted-foreground" />
                           </button>
                         }
-                        items={[
-                          {
-                            label: "View ticket",
-                            icon: <RiEyeLine className="w-4 h-4" />,
-                            onClick: () => handleViewTicket(ticket),
-                          },
-                          {
-                            label: "Change status",
-                            icon: <ChangeStatusIcon />,
-                            onClick: () => handleChangeStatus(ticket),
-                          },
-                          {
-                            label: "Change assignee",
-                            icon: <AssignTicketIcon />,
-                            onClick: () => handleAssignTicket(ticket),
-                          },
-                          {
-                            label: "View messages",
-                            icon: <AddReplyIcon />,
-                            onClick: () => handleContactPartner(ticket),
-                          },
-                          {
-                            label: ticket.isMarkedAsTicket ? "Unmark ticket" : "Mark as a ticket",
-                            icon: <MarkAsTicketIcon />,
-                            onClick: () => handleUnmarkTicket(ticket),
-                          },
-                          {
-                            label: "Supprimer",
-                            icon: <RiDeleteBinLine className="w-4 h-4" />,
-                            onClick: () => handleDeleteTicket(ticket),
-                            variant: "danger",
-                          },
-                        ]}
+                        items={
+                          ticket.status === "sent"
+                            ? [
+                                {
+                                  label: "View ticket",
+                                  icon: <RiEyeLine className="w-4 h-4" />,
+                                  onClick: () => handleViewTicket(ticket),
+                                },
+                                {
+                                  label: "Edit ticket",
+                                  icon: <RiEditLine className="w-4 h-4" />,
+                                  onClick: () => handleUnmarkTicket(ticket),
+                                },
+                                {
+                                  label: "Delete",
+                                  icon: <RiDeleteBinLine className="w-4 h-4" style={{ color: "#FF0D0D" }} />,
+                                  onClick: () => handleDeleteTicket(ticket),
+                                  variant: "danger",
+                                },
+                              ]
+                            : ticket.status === "reopened"
+                            ? [
+                                {
+                                  label: "View ticket",
+                                  icon: <RiEyeLine className="w-4 h-4" />,
+                                  onClick: () => handleViewTicket(ticket),
+                                },
+                                {
+                                  label: "View reply",
+                                  icon: <SupportSidebarIcon size={16} strokeColor="#141B34" />,
+                                  onClick: () => handleContactPartner(ticket),
+                                },
+                                {
+                                  label: "Delete",
+                                  icon: <RiDeleteBinLine className="w-4 h-4" style={{ color: "#FF0D0D" }} />,
+                                  onClick: () => handleDeleteTicket(ticket),
+                                  variant: "danger",
+                                },
+                              ]
+                            : [
+                                {
+                                  label: "View ticket",
+                                  icon: <RiEyeLine className="w-4 h-4" />,
+                                  onClick: () => handleViewTicket(ticket),
+                                },
+                                {
+                                  label: "Edit ticket",
+                                  icon: <RiEditLine className="w-4 h-4" />,
+                                  onClick: () => handleUnmarkTicket(ticket),
+                                },
+                                {
+                                  label: "Delete",
+                                  icon: <RiDeleteBinLine className="w-4 h-4" style={{ color: "#FF0D0D" }} />,
+                                  onClick: () => handleDeleteTicket(ticket),
+                                  variant: "danger",
+                                },
+                              ]
+                        }
                       />
                     </td>
                   </tr>
@@ -822,6 +854,7 @@ export default function SupportPage() {
                 <option>Open</option>
                 <option>Pending</option>
                 <option>Resolved</option>
+                <option>Sent</option>
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <DropdownArrow />
@@ -853,12 +886,6 @@ export default function SupportPage() {
               </div>
             </div>
 
-            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90 transition-colors">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span className="text-sm font-medium">Add new ticket</span>
-            </button>
           </div>
         </div>
 
@@ -1071,13 +1098,21 @@ export default function SupportPage() {
                     <td className="px-4 py-4">
                       <DropdownMenu
                         trigger={
-                          <button className="p-1 hover:bg-muted rounded-xl transition-colors">
+                          <button className="p-1 hover:bg-muted rounded transition-colors">
                             <RiMoreLine className="w-5 h-5 text-muted-foreground" />
                           </button>
                         }
                         items={[
-                          { label: "View ticket", icon: <RiEyeLine className="w-4 h-4" />, onClick: () => handleViewTicket(ticket) },
-                          { label: "View reply", icon: <RiReplyLine className="w-4 h-4" />, onClick: () => console.log("View reply", ticket.id) },
+                          {
+                            label: "View ticket",
+                            icon: <RiEyeLine className="w-4 h-4" style={{ width: "16px", height: "16px" }} />,
+                            onClick: () => handleViewTicket(ticket),
+                          },
+                          {
+                            label: "View reply",
+                            icon: <SupportSidebarIcon size={16} strokeColor="#141B34" />,
+                            onClick: () => handleContactPartner(ticket),
+                          },
                         ]}
                       />
                     </td>
@@ -1177,6 +1212,12 @@ export default function SupportPage() {
         isOpen={showDeleteTicketModal}
         onClose={closeDeleteTicketModal}
         onConfirm={confirmDeleteTicket}
+      />
+
+      {/* Add Ticket Modal */}
+      <AddTicketModal
+        isOpen={showAddTicketModal}
+        onClose={() => setShowAddTicketModal(false)}
       />
     </div>
   )

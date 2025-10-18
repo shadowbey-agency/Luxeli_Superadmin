@@ -15,12 +15,26 @@ import UserPermissionsModal from "@/app/superadmin/components/user-permissions-m
 import DropdownArrow from "@/app/superadmin/components/dropdown-arrow"
 import SortArrows from "@/app/superadmin/components/sort-arrows"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
+import AddStaffModal from "@/app/partner/components/add-staff-modal"
+import AddMemberModal from "@/app/partner/components/add-member-modal"
+import ResetPasswordModal from "@/app/partner/components/reset-password-modal"
 
 interface TeamMember {
   id: string
   name: string
   email: string
   phone: string
+  dateAdded: string
+  isActive: boolean
+  avatar: string
+}
+
+interface StaffMember {
+  id: string
+  name: string
+  email: string
+  phone: string
+  role: string
   dateAdded: string
   isActive: boolean
   avatar: string
@@ -65,29 +79,86 @@ const mockTeamMembers: TeamMember[] = [
   },
 ]
 
+const mockStaffMembers: StaffMember[] = [
+  {
+    id: "1",
+    name: "Full Name",
+    email: "Email@gamail.com",
+    phone: "+212 632-002529",
+    role: "Role",
+    dateAdded: "15 juin 2025",
+    isActive: true,
+    avatar: "FN",
+  },
+  {
+    id: "2",
+    name: "Full Name",
+    email: "Email@gamail.com",
+    phone: "+212 632-002529",
+    role: "Role",
+    dateAdded: "15 juin 2025",
+    isActive: true,
+    avatar: "FN",
+  },
+  {
+    id: "3",
+    name: "Full Name",
+    email: "Email@gamail.com",
+    phone: "+212 632-002529",
+    role: "Role",
+    dateAdded: "15 juin 2025",
+    isActive: true,
+    avatar: "FN",
+  },
+  {
+    id: "4",
+    name: "Full Name",
+    email: "Email@gamail.com",
+    phone: "+212 632-002529",
+    role: "Role",
+    dateAdded: "15 juin 2025",
+    isActive: false,
+    avatar: "FN",
+  },
+]
+
 export default function TeamPage() {
+  const [activeTab, setActiveTab] = useState<'members' | 'staff'>('members')
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(mockTeamMembers)
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>(mockStaffMembers)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null)
+  const [memberToDelete, setMemberToDelete] = useState<TeamMember | StaffMember | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
+  const [selectedMember, setSelectedMember] = useState<TeamMember | StaffMember | null>(null)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
-  const [memberForPermissions, setMemberForPermissions] = useState<TeamMember | null>(null)
+  const [memberForPermissions, setMemberForPermissions] = useState<TeamMember | StaffMember | null>(null)
+  const [showAddStaffModal, setShowAddStaffModal] = useState(false)
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false)
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
+  const [memberForPasswordReset, setMemberForPasswordReset] = useState<TeamMember | StaffMember | null>(null)
 
   const handleToggleActive = (id: string) => {
+    if (activeTab === 'members') {
     setTeamMembers(teamMembers.map((m) => (m.id === id ? { ...m, isActive: !m.isActive } : m)))
+    } else {
+      setStaffMembers(staffMembers.map((m) => (m.id === id ? { ...m, isActive: !m.isActive } : m)))
+    }
   }
 
-  const handleDeleteMember = (member: TeamMember) => {
+  const handleDeleteMember = (member: TeamMember | StaffMember) => {
     setMemberToDelete(member)
     setShowDeleteModal(true)
   }
 
   const confirmDelete = () => {
     if (memberToDelete) {
+      if (activeTab === 'members') {
       setTeamMembers(teamMembers.filter((m) => m.id !== memberToDelete.id))
+      } else {
+        setStaffMembers(staffMembers.filter((m) => m.id !== memberToDelete.id))
+      }
       setShowDeleteModal(false)
       setMemberToDelete(null)
     }
@@ -98,14 +169,19 @@ export default function TeamPage() {
     setMemberToDelete(null)
   }
 
-  const handleEditMember = (member: TeamMember) => {
+  const handleEditMember = (member: TeamMember | StaffMember) => {
     setSelectedMember(member)
     setShowEditModal(true)
   }
 
-  const handleUserPermissions = (member: TeamMember) => {
+  const handleUserPermissions = (member: TeamMember | StaffMember) => {
     setMemberForPermissions(member)
     setShowPermissionsModal(true)
+  }
+
+  const handleResetPassword = (member: TeamMember | StaffMember) => {
+    setMemberForPasswordReset(member)
+    setShowResetPasswordModal(true)
   }
 
   const closePermissionsModal = () => {
@@ -125,24 +201,57 @@ export default function TeamPage() {
     setSelectedMember(null)
   }
 
-  const totalPages = Math.ceil(teamMembers.length / itemsPerPage)
+  const currentData = activeTab === 'members' ? teamMembers : staffMembers
+  const totalPages = Math.ceil(currentData.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentMembers = teamMembers.slice(startIndex, endIndex)
+  const currentMembers = currentData.slice(startIndex, endIndex)
 
   return (
     <div className="p-6">
-      {/* Page Header */}
+      {/* Tab Navigation */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Team</h1>
-        <p className="text-sm text-muted-foreground">Last updated on 09/15/2025, 12AM</p>
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('members')}
+            className={`px-4 py-3 text-sm font-medium transition-colors relative ${
+              activeTab === 'members'
+                ? 'text-foreground border-b-2 border-[#1F2A44] -mb-[2px]'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              Members
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('staff')}
+            className={`px-4 py-3 text-sm font-medium transition-colors relative ${
+              activeTab === 'staff'
+                ? 'text-foreground border-b-2 border-[#1F2A44] -mb-[2px]'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7h-4V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM10 5h4v2h-4V5z" />
+              </svg>
+              Staff
+            </div>
+          </button>
+        </div>
       </div>
 
-      {/* Members Section */}
+      {/* Content Section */}
       <div className="bg-card rounded-lg p-4">
         {/* Header */}
         <div className="flex items-center justify-between pb-4  border-border">
-          <h3 className="text-base font-semibold text-foreground">Members</h3>
+          <h3 className="text-base font-semibold text-foreground">
+            {activeTab === 'members' ? 'Members' : 'Staff list'}
+          </h3>
           <div className="flex items-center gap-2">
             <div className="relative">
               <select
@@ -186,9 +295,40 @@ export default function TeamPage() {
               className="focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
 
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-sm font-medium transition-colors">
+            {activeTab === 'staff' && (
+              <div className="relative">
+                <select
+                  className="appearance-none"
+                  style={{
+                    padding: "7.52px 12px",
+                    paddingRight: "32px",
+                    borderRadius: "4px",
+                    border: "1px solid #CED4DA",
+                    background: "#FFF",
+                    color: "rgba(33, 33, 33, 0.60)",
+                    fontSize: "13px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
+                  }}
+                >
+                  <option value="">Role</option>
+                  <option value="admin">Admin</option>
+                  <option value="manager">Manager</option>
+                  <option value="staff">Staff</option>
+                  <option value="receptionist">Receptionist</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <DropdownArrow />
+                </div>
+              </div>
+            )}
+
+            <button 
+              onClick={() => activeTab === 'members' ? setShowAddMemberModal(true) : setShowAddStaffModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-sm font-medium transition-colors"
+            >
               <RiAddLine className="w-5 h-5" />
-              Add Member
+              {activeTab === 'members' ? 'Add Member' : 'Add Staff'}
             </button>
           </div>
         </div>
@@ -210,7 +350,7 @@ export default function TeamPage() {
                       fontWeight: "500", 
                       lineHeight: "19.5px" 
                     }}>
-                      Member Name
+                      {activeTab === 'members' ? 'Member Name' : 'Staff Name'}
                     </span>
                   </div>
                 </th>
@@ -240,6 +380,21 @@ export default function TeamPage() {
                     </span>
                   </div>
                 </th>
+                {activeTab === 'staff' && (
+                  <th className="px-4 py-4 text-left">
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                      <SortArrows sortDirection="none" />
+                      <span style={{ 
+                        color: "#000", 
+                        fontSize: "12px", 
+                        fontWeight: "500", 
+                        lineHeight: "19.5px" 
+                      }}>
+                        Role
+                      </span>
+                    </div>
+                  </th>
+                )}
                 <th className="px-4 py-4 text-left">
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
                     <SortArrows sortDirection="none" />
@@ -262,7 +417,7 @@ export default function TeamPage() {
                       fontWeight: "500", 
                       lineHeight: "19.5px" 
                     }}>
-                      Complete
+                      {activeTab === 'members' ? 'Complete' : 'Compte'}
                     </span>
                   </div>
                 </th>
@@ -306,6 +461,16 @@ export default function TeamPage() {
                   }}>
                     {member.phone}
                   </td>
+                  {activeTab === 'staff' && (
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {'role' in member ? (member as StaffMember).role : ''}
+                    </td>
+                  )}
                   <td className="px-4 py-4" style={{
                     color: "#525866",
                     fontSize: "12px",
@@ -324,7 +489,27 @@ export default function TeamPage() {
                           <RiMoreLine className="w-5 h-5 text-muted-foreground" />
                         </button>
                       }
-                      items={[
+                      items={
+                        activeTab === 'staff'
+                          ? [
+                              {
+                                label: "Edit",
+                                icon: <RiEditLine className="w-4 h-4" />,
+                                onClick: () => handleEditMember(member),
+                              },
+                              {
+                                label: "Reset password",
+                                icon: <RiLockPasswordLine className="w-4 h-4" />,
+                                onClick: () => handleResetPassword(member),
+                              },
+                              {
+                                label: "Supprimer",
+                                icon: <RiDeleteBinLine className="w-4 h-4" style={{ color: "#FF0D0D" }} />,
+                                onClick: () => handleDeleteMember(member),
+                                variant: "danger",
+                              },
+                            ]
+                          : [
                         {
                           label: "Edit",
                           icon: <RiEditLine className="w-4 h-4" />,
@@ -338,15 +523,16 @@ export default function TeamPage() {
                         {
                           label: "Reset password",
                           icon: <RiLockPasswordLine className="w-4 h-4" />,
-                          onClick: () => console.log("Reset password", member.id),
+                                onClick: () => handleResetPassword(member),
                         },
                         {
                           label: "Supprimer",
-                          icon: <RiDeleteBinLine className="w-4 h-4" />,
+                                icon: <RiDeleteBinLine className="w-4 h-4" style={{ color: "#FF0D0D" }} />,
                           onClick: () => handleDeleteMember(member),
                           variant: "danger",
                         },
-                      ]}
+                            ]
+                      }
                     />
                   </td>
                 </tr>
@@ -358,7 +544,7 @@ export default function TeamPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between  py-3 border-t ">
           <p className="text-sm text-muted-foreground">
-            Displaying {startIndex + 1}-{Math.min(endIndex, teamMembers.length)} results out of {teamMembers.length}
+            Displaying {startIndex + 1}-{Math.min(endIndex, currentData.length)} results out of {currentData.length}
           </p>
 
           <div className="flex items-center gap-2">
@@ -423,9 +609,9 @@ export default function TeamPage() {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 space-y-8">
+            <div className="p-6 space-y-6">
               {/* General Information Section */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <h3 
                   className="font-semibold"
                   style={{ 
@@ -722,6 +908,25 @@ export default function TeamPage() {
         isOpen={showPermissionsModal}
         onClose={closePermissionsModal}
         onEdit={handleEditFromPermissions}
+      />
+
+      {/* Add Staff Modal */}
+      <AddStaffModal
+        isOpen={showAddStaffModal}
+        onClose={() => setShowAddStaffModal(false)}
+      />
+
+      {/* Add Member Modal */}
+      <AddMemberModal
+        isOpen={showAddMemberModal}
+        onClose={() => setShowAddMemberModal(false)}
+      />
+
+      {/* Reset Password Modal */}
+      <ResetPasswordModal
+        isOpen={showResetPasswordModal}
+        onClose={() => setShowResetPasswordModal(false)}
+        memberName={memberForPasswordReset?.email}
       />
     </div>
   )

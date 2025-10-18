@@ -61,7 +61,9 @@ export default function DropdownMenu({ trigger, items }: DropdownMenuProps) {
                 {items.map((item, index) => (
                   <button
                     key={index}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
                       item.onClick()
                       setIsOpen(false)
                     }}
