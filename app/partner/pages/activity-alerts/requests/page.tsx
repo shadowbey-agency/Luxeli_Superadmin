@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { RiFileList3Line, RiHome4Line, RiSettings3Line, RiArrowDownSLine, RiCalendarLine } from "react-icons/ri"
+import { RiFileList3Line, RiNotification3Line, RiArrowDownSLine, RiCalendarLine } from "react-icons/ri"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
-import ViewRequestModal from "@/app/partner/components/view-request-modal"
-import AssignStaffModal from "@/app/partner/components/assign-staff-modal"
+import ViewRequestModal from "../../../components/view-request-modal"
+import AssignStaffModal from "../../../components/assign-staff-modal"
 
-export default function RequestsPage() {
+export default function ActivityAlertsRequestsPage() {
   const router = useRouter()
   const [showDropdown, setShowDropdown] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -40,19 +40,112 @@ export default function RequestsPage() {
       id: "requests",
       label: "Requests",
       icon: <RiFileList3Line className="w-4 h-4" />,
-      href: "/partner/pages/housekeeping/requests"
+      href: "/partner/pages/activity-alerts/requests"
     },
     {
-      id: "house-cleaning", 
-      label: "House cleaning",
-      icon: <RiHome4Line className="w-4 h-4" />,
-      href: "/partner/pages/housekeeping/house-cleaning"
+      id: "activities", 
+      label: "Activities",
+      icon: <RiNotification3Line className="w-4 h-4" />,
+      href: "/partner/pages/activity-alerts/activities"
+    }
+  ]
+
+  // Sample data for activity alerts requests
+  const requests = [
+    {
+      id: "#22232",
+      requestId: "#22232",
+      room: "R1 E3 A3",
+      guest: "Lindsey Stroud",
+      title: "Torem ipsum dolo...",
+      created: "Jan 15, 10:30 AM",
+      status: "new",
+      statusBg: "#D1924F0D",
+      statusBorder: "#D1924F40",
+      statusColor: "#D1924F",
+      assignee: "",
+      hasAssignee: false,
+      requestedFor: "Today 14:00-16:00",
+      serviceName: "Activity Alert",
+      location: "Hotel Lobby",
+      price: "15$",
+      note: "Please monitor the activity in the lobby area."
     },
     {
-      id: "requests-management",
-      label: "Requests management", 
-      icon: <RiSettings3Line className="w-4 h-4" />,
-      href: "/partner/pages/housekeeping/requests-management"
+      id: "#22233",
+      requestId: "#22233",
+      room: "R2 E4 A5",
+      guest: "John Smith",
+      title: "Security alert...",
+      created: "Jan 15, 11:15 AM",
+      status: "accepted",
+      statusBg: "#8B5CF60D",
+      statusBorder: "#8B5CF640",
+      statusColor: "#8B5CF6",
+      assignee: "Full Name",
+      hasAssignee: true,
+      requestedFor: "Today 15:00-17:00",
+      serviceName: "Security Alert",
+      location: "Pool Area",
+      price: "25$",
+      note: "Security monitoring required for pool area."
+    },
+    {
+      id: "#22234",
+      requestId: "#22234",
+      room: "R3 E5 A6",
+      guest: "Sarah Johnson",
+      title: "Maintenance alert...",
+      created: "Jan 15, 12:00 PM",
+      status: "pending",
+      statusBg: "#6B72800D",
+      statusBorder: "#6B728040",
+      statusColor: "#6B7280",
+      assignee: "",
+      hasAssignee: false,
+      requestedFor: "Today 16:00-18:00",
+      serviceName: "Maintenance Alert",
+      location: "Elevator",
+      price: "30$",
+      note: "Elevator maintenance alert needs attention."
+    },
+    {
+      id: "#22235",
+      requestId: "#22235",
+      room: "R4 E6 A7",
+      guest: "Mike Wilson",
+      title: "System alert...",
+      created: "Jan 15, 01:30 PM",
+      status: "completed",
+      statusBg: "#10B9810D",
+      statusBorder: "#10B98140",
+      statusColor: "#10B981",
+      assignee: "Full Name",
+      hasAssignee: true,
+      requestedFor: "Today 17:00-19:00",
+      serviceName: "System Alert",
+      location: "Reception",
+      price: "20$",
+      note: "System monitoring alert resolved."
+    },
+    {
+      id: "#22236",
+      requestId: "#22236",
+      room: "R5 E7 A8",
+      guest: "Emma Davis",
+      title: "Emergency alert...",
+      created: "Jan 15, 02:45 PM",
+      status: "canceled",
+      statusBg: "#EF44440D",
+      statusBorder: "#EF444440",
+      statusColor: "#EF4444",
+      assignee: "Full Name",
+      hasAssignee: true,
+      requestedFor: "Today 18:00-20:00",
+      serviceName: "Emergency Alert",
+      location: "Kitchen",
+      price: "35$",
+      note: "Emergency alert was canceled."
     }
   ]
 
@@ -71,7 +164,7 @@ export default function RequestsPage() {
                   : "text-muted-foreground hover:text-foreground -mb-[2px]"
               }`}
               style={{
-                width: "210px",
+                width: "274px",
                 borderBottom: tab.id === "requests" ? "2px solid #1F2A44" : "2px solid #EDEDED"
               }}
             >
@@ -160,36 +253,8 @@ export default function RequestsPage() {
                   <option>New</option>
                   <option>Accepted</option>
                   <option>Completed</option>
-                  <option>No-show</option>
+                  <option>Pending</option>
                   <option>Canceled</option>
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
-                </div>
-              </div>
-              
-              {/* Priority dropdown */}
-              <div className="relative inline-block">
-                <select
-                  className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  style={{
-                    padding: "7.52px 12px",
-                    paddingRight: "32px",
-                    borderRadius: "4px",
-                    border: "1px solid #CED4DA",
-                    background: "#FFF",
-                    color: "rgba(33, 33, 33, 0.60)",
-                    fontSize: "13px",
-                    fontWeight: "400",
-                    lineHeight: "19.5px",
-                    width: "auto",
-                    minWidth: "90px"
-                  }}
-                >
-                  <option>Priority</option>
-                  <option>Urgent</option>
-                  <option>Medium</option>
-                  <option>Low</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
@@ -215,9 +280,11 @@ export default function RequestsPage() {
                   }}
                 >
                   <option>Type</option>
-                  <option>Custom cleaning</option>
-                  <option>Request needed</option>
-                  <option>Room cleaning</option>
+                  <option>Activity Alert</option>
+                  <option>Security Alert</option>
+                  <option>Maintenance Alert</option>
+                  <option>System Alert</option>
+                  <option>Emergency Alert</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
@@ -302,7 +369,7 @@ export default function RequestsPage() {
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
-                    Type
+                    Title
                   </div>
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
@@ -313,11 +380,6 @@ export default function RequestsPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
                     Status
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
-                  <div className="flex items-center gap-1">
-                    Priority
                   </div>
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
@@ -336,101 +398,95 @@ export default function RequestsPage() {
                   requestId: "#22232",
                   room: "R1 E3 A3",
                   guest: "Lindsey Stroud",
-                  type: "Custom cleaning",
+                  title: "Torem ipsum dolo...",
                   created: "Jan 15, 10:30 AM",
                   status: "new",
                   statusBg: "#D1924F0D",
                   statusBorder: "#D1924F40",
                   statusColor: "#D1924F",
-                  priority: "urgent",
-                  priorityBg: "#FF0D0D0D",
-                  priorityBorder: "#FF0D0D40",
-                  priorityColor: "#FF0D0D",
-                  assignee: "Full Name",
-                  hasAssignee: true,
+                  assignee: "",
+                  hasAssignee: false,
                   requestedFor: "Today 14:00-16:00",
-                  cleaningType: "Full clean",
-                  note: "Please pay special attention to the bathroom area."
+                  serviceName: "Activity Alert",
+                  location: "Hotel Lobby",
+                  price: "15$",
+                  note: "Please monitor the activity in the lobby area."
                 },
                 {
                   id: "#22233",
                   requestId: "#22233",
-                  room: "R2 E3 A3",
-                  guest: "Lindsey Stroud",
-                  type: "Request needed",
-                  created: "Jan 15, 10:30 AM",
+                  room: "R2 E4 A5",
+                  guest: "John Smith",
+                  title: "Security alert...",
+                  created: "Jan 15, 11:15 AM",
                   status: "accepted",
-                  statusBg: "#6457D30D",
-                  statusBorder: "#6457D340",
-                  statusColor: "#6457D3",
-                  priority: "medium",
-                  priorityBg: "#D1924F0D",
-                  priorityBorder: "#D1924F40",
-                  priorityColor: "#D1924F",
+                  statusBg: "#8B5CF60D",
+                  statusBorder: "#8B5CF640",
+                  statusColor: "#8B5CF6",
                   assignee: "",
                   hasAssignee: false,
-                  requestedFor: "Today 14:00-16:00",
-                  cleaningType: "Full clean"
+                  requestedFor: "Today 15:00-17:00",
+                  serviceName: "Security Alert",
+                  location: "Pool Area",
+                  price: "25$",
+                  note: "Security monitoring required for pool area."
                 },
                 {
                   id: "#22234",
                   requestId: "#22234",
-                  room: "R3 E3 A3",
-                  guest: "Lindsey Stroud",
-                  type: "Custom cleaning",
-                  created: "Jan 15, 10:30 AM",
-                  status: "completed",
-                  statusBg: "#17B26A0D",
-                  statusBorder: "#17B26A40",
-                  statusColor: "#17B26A",
-                  priority: "low",
-                  priorityBg: "#56C6FF0D",
-                  priorityBorder: "#56C6FF40",
-                  priorityColor: "#56C6FF",
-                  assignee: "Full Name",
-                  hasAssignee: true,
-                  requestedFor: "Today 14:00-16:00",
-                  cleaningType: "Full clean"
+                  room: "R3 E5 A6",
+                  guest: "Sarah Johnson",
+                  title: "Maintenance alert...",
+                  created: "Jan 15, 12:00 PM",
+                  status: "pending",
+                  statusBg: "#6B72800D",
+                  statusBorder: "#6B728040",
+                  statusColor: "#6B7280",
+                  assignee: "",
+                  hasAssignee: false,
+                  requestedFor: "Today 16:00-18:00",
+                  serviceName: "Maintenance Alert",
+                  location: "Elevator",
+                  price: "30$",
+                  note: "Elevator maintenance alert needs attention."
                 },
                 {
                   id: "#22235",
                   requestId: "#22235",
-                  room: "R4 E3 A3",
-                  guest: "Lindsey Stroud",
-                  type: "Request needed",
-                  created: "Jan 15, 10:30 AM",
-                  status: "no-show",
-                  statusBg: "#1F2A440D",
-                  statusBorder: "#1F2A4440",
-                  statusColor: "#1F2A44",
-                  priority: "medium",
-                  priorityBg: "#D1924F0D",
-                  priorityBorder: "#D1924F40",
-                  priorityColor: "#D1924F",
-                  assignee: "",
-                  hasAssignee: false,
-                  requestedFor: "Today 14:00-16:00",
-                  cleaningType: "Full clean"
+                  room: "R4 E6 A7",
+                  guest: "Mike Wilson",
+                  title: "System alert...",
+                  created: "Jan 15, 01:30 PM",
+                  status: "completed",
+                  statusBg: "#10B9810D",
+                  statusBorder: "#10B98140",
+                  statusColor: "#10B981",
+                  assignee: "Full Name",
+                  hasAssignee: true,
+                  requestedFor: "Today 17:00-19:00",
+                  serviceName: "System Alert",
+                  location: "Reception",
+                  price: "20$",
+                  note: "System monitoring alert resolved."
                 },
                 {
                   id: "#22236",
                   requestId: "#22236",
-                  room: "R5 E3 A3",
-                  guest: "Lindsey Stroud",
-                  type: "Custom cleaning",
-                  created: "Jan 15, 10:30 AM",
+                  room: "R5 E7 A8",
+                  guest: "Emma Davis",
+                  title: "Emergency alert...",
+                  created: "Jan 15, 02:45 PM",
                   status: "canceled",
-                  statusBg: "#FF0D0D0D",
-                  statusBorder: "#FF0D0D40",
-                  statusColor: "#FF0D0D",
-                  priority: "low",
-                  priorityBg: "#56C6FF0D",
-                  priorityBorder: "#56C6FF40",
-                  priorityColor: "#56C6FF",
+                  statusBg: "#EF44440D",
+                  statusBorder: "#EF444440",
+                  statusColor: "#EF4444",
                   assignee: "Full Name",
                   hasAssignee: true,
-                  requestedFor: "Today 14:00-16:00",
-                  cleaningType: "Full clean"
+                  requestedFor: "Today 18:00-20:00",
+                  serviceName: "Emergency Alert",
+                  location: "Kitchen",
+                  price: "35$",
+                  note: "Emergency alert was canceled."
                 }
               ].map((row, index) => (
                 <tr key={index} className="hover:bg-muted/50 transition-colors">
@@ -460,7 +516,7 @@ export default function RequestsPage() {
                     fontSize: "12px",
                     fontWeight: "400",
                     lineHeight: "19.5px"
-                  }}>{row.type}</td>
+                  }}>{row.title}</td>
                   <td className="px-4 py-4" style={{
                     color: "#525866",
                     fontSize: "12px",
@@ -483,24 +539,6 @@ export default function RequestsPage() {
                       }}
                     >
                       {row.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span 
-                      className="inline-flex items-center justify-center text-xs font-medium capitalize"
-                      style={{
-                        width: "80px",
-                        height: "22px",
-                        gap: "4px",
-                        borderRadius: "4px",
-                        borderWidth: "0.5px",
-                        padding: "10px",
-                        background: row.priorityBg,
-                        border: `0.5px solid ${row.priorityBorder}`,
-                        color: row.priorityColor
-                      }}
-                    >
-                      {row.priority}
                     </span>
                   </td>
                   <td className="px-4 py-4" style={{
@@ -647,4 +685,3 @@ export default function RequestsPage() {
     </div>
   )
 }
-

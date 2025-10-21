@@ -48,8 +48,11 @@ const servicesItems = [
   {
     label: "Bookings interns",
     icon: RiCalendarLine,
-    href: "/partner/pages/bookings-interns",
-    subItems: []
+    href: "/partner/pages/booking",
+    subItems: [
+      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/booking/requests" },
+      { label: "Bookings setting", icon: RiSettings3Line, href: "/partner/pages/booking/settings" },
+    ]
   },
   {
     label: "Customized services",
@@ -61,7 +64,10 @@ const servicesItems = [
     label: "Activity alerts",
     icon: RiNotification3Line,
     href: "/partner/pages/activity-alerts",
-    subItems: []
+    subItems: [
+      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/activity-alerts/requests" },
+      { label: "Activities", icon: RiNotification3Line, href: "/partner/pages/activity-alerts/activities" },
+    ]
   },
   {
     label: "Laundry",

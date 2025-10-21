@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { RiFileList3Line, RiHome4Line, RiSettings3Line, RiArrowDownSLine, RiCalendarLine } from "react-icons/ri"
+import { RiFileList3Line, RiCalendarEventLine, RiSettings3Line, RiArrowDownSLine, RiCalendarLine } from "react-icons/ri"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
 import ViewRequestModal from "@/app/partner/components/view-request-modal"
 import AssignStaffModal from "@/app/partner/components/assign-staff-modal"
 
-export default function RequestsPage() {
+export default function BookingRequestsPage() {
   const router = useRouter()
   const [showDropdown, setShowDropdown] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -40,19 +40,13 @@ export default function RequestsPage() {
       id: "requests",
       label: "Requests",
       icon: <RiFileList3Line className="w-4 h-4" />,
-      href: "/partner/pages/housekeeping/requests"
+      href: "/partner/pages/booking/requests"
     },
     {
-      id: "house-cleaning", 
-      label: "House cleaning",
-      icon: <RiHome4Line className="w-4 h-4" />,
-      href: "/partner/pages/housekeeping/house-cleaning"
-    },
-    {
-      id: "requests-management",
-      label: "Requests management", 
+      id: "bookings-setting", 
+      label: "Bookings setting",
       icon: <RiSettings3Line className="w-4 h-4" />,
-      href: "/partner/pages/housekeeping/requests-management"
+      href: "/partner/pages/booking/settings"
     }
   ]
 
@@ -71,7 +65,7 @@ export default function RequestsPage() {
                   : "text-muted-foreground hover:text-foreground -mb-[2px]"
               }`}
               style={{
-                width: "210px",
+                width: "274px",
                 borderBottom: tab.id === "requests" ? "2px solid #1F2A44" : "2px solid #EDEDED"
               }}
             >
@@ -160,36 +154,8 @@ export default function RequestsPage() {
                   <option>New</option>
                   <option>Accepted</option>
                   <option>Completed</option>
-                  <option>No-show</option>
+                  <option>Pending</option>
                   <option>Canceled</option>
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
-                </div>
-              </div>
-              
-              {/* Priority dropdown */}
-              <div className="relative inline-block">
-                <select
-                  className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  style={{
-                    padding: "7.52px 12px",
-                    paddingRight: "32px",
-                    borderRadius: "4px",
-                    border: "1px solid #CED4DA",
-                    background: "#FFF",
-                    color: "rgba(33, 33, 33, 0.60)",
-                    fontSize: "13px",
-                    fontWeight: "400",
-                    lineHeight: "19.5px",
-                    width: "auto",
-                    minWidth: "90px"
-                  }}
-                >
-                  <option>Priority</option>
-                  <option>Urgent</option>
-                  <option>Medium</option>
-                  <option>Low</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
@@ -215,9 +181,9 @@ export default function RequestsPage() {
                   }}
                 >
                   <option>Type</option>
-                  <option>Custom cleaning</option>
-                  <option>Request needed</option>
-                  <option>Room cleaning</option>
+                  <option>Clubs</option>
+                  <option>SPA</option>
+                  <option>Restaurant</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
@@ -302,7 +268,7 @@ export default function RequestsPage() {
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
-                    Type
+                    Category
                   </div>
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
@@ -313,11 +279,6 @@ export default function RequestsPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
                     Status
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
-                  <div className="flex items-center gap-1">
-                    Priority
                   </div>
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
@@ -336,101 +297,171 @@ export default function RequestsPage() {
                   requestId: "#22232",
                   room: "R1 E3 A3",
                   guest: "Lindsey Stroud",
-                  type: "Custom cleaning",
+                  category: "Clubs",
                   created: "Jan 15, 10:30 AM",
                   status: "new",
                   statusBg: "#D1924F0D",
                   statusBorder: "#D1924F40",
                   statusColor: "#D1924F",
-                  priority: "urgent",
-                  priorityBg: "#FF0D0D0D",
-                  priorityBorder: "#FF0D0D40",
-                  priorityColor: "#FF0D0D",
-                  assignee: "Full Name",
-                  hasAssignee: true,
+                  assignee: "",
+                  hasAssignee: false,
                   requestedFor: "Today 14:00-16:00",
-                  cleaningType: "Full clean",
+                  serviceName: "Kayaking Adventure",
+                  location: "Lake Resort",
+                  price: "20$",
                   note: "Please pay special attention to the bathroom area."
                 },
                 {
                   id: "#22233",
                   requestId: "#22233",
-                  room: "R2 E3 A3",
+                  room: "R1 E3 A3",
                   guest: "Lindsey Stroud",
-                  type: "Request needed",
+                  category: "SPA",
                   created: "Jan 15, 10:30 AM",
                   status: "accepted",
                   statusBg: "#6457D30D",
                   statusBorder: "#6457D340",
                   statusColor: "#6457D3",
-                  priority: "medium",
-                  priorityBg: "#D1924F0D",
-                  priorityBorder: "#D1924F40",
-                  priorityColor: "#D1924F",
                   assignee: "",
                   hasAssignee: false,
                   requestedFor: "Today 14:00-16:00",
-                  cleaningType: "Full clean"
+                  serviceName: "Relaxing Massage",
+                  location: "SPA Center",
+                  price: "50$",
+                  note: "Deep tissue massage requested."
                 },
                 {
                   id: "#22234",
                   requestId: "#22234",
-                  room: "R3 E3 A3",
+                  room: "R1 E3 A3",
                   guest: "Lindsey Stroud",
-                  type: "Custom cleaning",
+                  category: "SPA",
+                  created: "Jan 15, 10:30 AM",
+                  status: "pending",
+                  statusBg: "#1F2A440D",
+                  statusBorder: "#1F2A4440",
+                  statusColor: "#1F2A44",
+                  assignee: "",
+                  hasAssignee: false,
+                  requestedFor: "Today 14:00-16:00",
+                  serviceName: "Facial Treatment",
+                  location: "SPA Center",
+                  price: "35$",
+                  note: "Sensitive skin treatment needed."
+                },
+                {
+                  id: "#22235",
+                  requestId: "#22235",
+                  room: "R1 E3 A3",
+                  guest: "Lindsey Stroud",
+                  category: "SPA",
                   created: "Jan 15, 10:30 AM",
                   status: "completed",
                   statusBg: "#17B26A0D",
                   statusBorder: "#17B26A40",
                   statusColor: "#17B26A",
-                  priority: "low",
-                  priorityBg: "#56C6FF0D",
-                  priorityBorder: "#56C6FF40",
-                  priorityColor: "#56C6FF",
                   assignee: "Full Name",
                   hasAssignee: true,
                   requestedFor: "Today 14:00-16:00",
-                  cleaningType: "Full clean"
-                },
-                {
-                  id: "#22235",
-                  requestId: "#22235",
-                  room: "R4 E3 A3",
-                  guest: "Lindsey Stroud",
-                  type: "Request needed",
-                  created: "Jan 15, 10:30 AM",
-                  status: "no-show",
-                  statusBg: "#1F2A440D",
-                  statusBorder: "#1F2A4440",
-                  statusColor: "#1F2A44",
-                  priority: "medium",
-                  priorityBg: "#D1924F0D",
-                  priorityBorder: "#D1924F40",
-                  priorityColor: "#D1924F",
-                  assignee: "",
-                  hasAssignee: false,
-                  requestedFor: "Today 14:00-16:00",
-                  cleaningType: "Full clean"
+                  serviceName: "Aromatherapy Session",
+                  location: "SPA Center",
+                  price: "40$",
+                  note: "Lavender essential oil preferred."
                 },
                 {
                   id: "#22236",
                   requestId: "#22236",
-                  room: "R5 E3 A3",
+                  room: "R1 E3 A3",
                   guest: "Lindsey Stroud",
-                  type: "Custom cleaning",
+                  category: "SPA",
+                  created: "Jan 15, 10:30 AM",
+                  status: "completed",
+                  statusBg: "#17B26A0D",
+                  statusBorder: "#17B26A40",
+                  statusColor: "#17B26A",
+                  assignee: "Full Name",
+                  hasAssignee: true,
+                  requestedFor: "Today 14:00-16:00",
+                  serviceName: "Hot Stone Therapy",
+                  location: "SPA Center",
+                  price: "60$",
+                  note: "Extra hot stones for deep relaxation."
+                },
+                {
+                  id: "#22237",
+                  requestId: "#22237",
+                  room: "R1 E3 A3",
+                  guest: "Lindsey Stroud",
+                  category: "SPA",
                   created: "Jan 15, 10:30 AM",
                   status: "canceled",
                   statusBg: "#FF0D0D0D",
                   statusBorder: "#FF0D0D40",
                   statusColor: "#FF0D0D",
-                  priority: "low",
-                  priorityBg: "#56C6FF0D",
-                  priorityBorder: "#56C6FF40",
-                  priorityColor: "#56C6FF",
                   assignee: "Full Name",
                   hasAssignee: true,
                   requestedFor: "Today 14:00-16:00",
-                  cleaningType: "Full clean"
+                  serviceName: "Body Scrub",
+                  location: "SPA Center",
+                  price: "45$",
+                  note: "Customer cancelled due to schedule conflict."
+                },
+                {
+                  id: "#22238",
+                  requestId: "#22238",
+                  room: "R1 E3 A3",
+                  guest: "Lindsey Stroud",
+                  category: "Restaurant",
+                  created: "Jan 15, 10:30 AM",
+                  status: "completed",
+                  statusBg: "#17B26A0D",
+                  statusBorder: "#17B26A40",
+                  statusColor: "#17B26A",
+                  assignee: "Full Name",
+                  hasAssignee: true,
+                  requestedFor: "Today 14:00-16:00",
+                  serviceName: "Room Service Dinner",
+                  location: "Restaurant",
+                  price: "25$",
+                  note: "Vegetarian meal with no onions."
+                },
+                {
+                  id: "#22239",
+                  requestId: "#22239",
+                  room: "R1 E3 A3",
+                  guest: "Lindsey Stroud",
+                  category: "Restaurant",
+                  created: "Jan 15, 10:30 AM",
+                  status: "completed",
+                  statusBg: "#17B26A0D",
+                  statusBorder: "#17B26A40",
+                  statusColor: "#17B26A",
+                  assignee: "Full Name",
+                  hasAssignee: true,
+                  requestedFor: "Today 14:00-16:00",
+                  serviceName: "Breakfast in Bed",
+                  location: "Restaurant",
+                  price: "18$",
+                  note: "Fresh orange juice and croissants."
+                },
+                {
+                  id: "#22240",
+                  requestId: "#22240",
+                  room: "R1 E3 A3",
+                  guest: "Lindsey Stroud",
+                  category: "Restaurant",
+                  created: "Jan 15, 10:30 AM",
+                  status: "completed",
+                  statusBg: "#17B26A0D",
+                  statusBorder: "#17B26A40",
+                  statusColor: "#17B26A",
+                  assignee: "Full Name",
+                  hasAssignee: true,
+                  requestedFor: "Today 14:00-16:00",
+                  serviceName: "Wine Tasting",
+                  location: "Restaurant",
+                  price: "30$",
+                  note: "Local wines with cheese pairing."
                 }
               ].map((row, index) => (
                 <tr key={index} className="hover:bg-muted/50 transition-colors">
@@ -460,7 +491,7 @@ export default function RequestsPage() {
                     fontSize: "12px",
                     fontWeight: "400",
                     lineHeight: "19.5px"
-                  }}>{row.type}</td>
+                  }}>{row.category}</td>
                   <td className="px-4 py-4" style={{
                     color: "#525866",
                     fontSize: "12px",
@@ -483,24 +514,6 @@ export default function RequestsPage() {
                       }}
                     >
                       {row.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span 
-                      className="inline-flex items-center justify-center text-xs font-medium capitalize"
-                      style={{
-                        width: "80px",
-                        height: "22px",
-                        gap: "4px",
-                        borderRadius: "4px",
-                        borderWidth: "0.5px",
-                        padding: "10px",
-                        background: row.priorityBg,
-                        border: `0.5px solid ${row.priorityBorder}`,
-                        color: row.priorityColor
-                      }}
-                    >
-                      {row.priority}
                     </span>
                   </td>
                   <td className="px-4 py-4" style={{
@@ -647,4 +660,3 @@ export default function RequestsPage() {
     </div>
   )
 }
-

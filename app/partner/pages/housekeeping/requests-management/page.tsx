@@ -34,16 +34,20 @@ export default function RequestsManagementPage() {
     <div className="p-6">
       {/* Tab Navigation */}
       <div className="mb-6 rounded-t-lg">
-        <div className="flex items-center border-b border-gray-200">
+        <div className="flex items-center">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => router.push(tab.href)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
+              className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative focus:outline-none flex-shrink-0 ${
                 tab.id === "requests-management"
-                  ? "text-foreground border-b-2 border-[#1F2A44] -mb-[2px]"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-foreground -mb-[2px]"
+                  : "text-muted-foreground hover:text-foreground -mb-[2px]"
               }`}
+              style={{
+                width: "210px",
+                borderBottom: tab.id === "requests-management" ? "2px solid #1F2A44" : "2px solid #EDEDED"
+              }}
             >
               {tab.icon}
               {tab.label}
