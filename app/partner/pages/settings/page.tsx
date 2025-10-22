@@ -271,47 +271,51 @@ export default function SettingsPage() {
       </div>
 
       <div className="mb-6">
-        <div className="flex items-center  border-b-2 border-[#EDEDED]">
+        <div className="flex items-center">
           <button
             onClick={() => setActiveTab("account")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
               activeTab === "account"
                 ? "text-foreground border-b-2 border-primary -mb-[2px]"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground border-b-2 border-[#EDEDED] -mb-[2px]"
             }`}
+            style={{ width: "190px" }}
           >
             <RiUserLine className="w-5 h-5" />
             Account
           </button>
           <button
             onClick={() => setActiveTab("notifications")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
               activeTab === "notifications"
                 ? "text-foreground border-b-2 border-primary -mb-[2px]"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground border-b-2 border-[#EDEDED] -mb-[2px]"
             }`}
+            style={{ width: "190px" }}
           >
             <RiNotification3Line className="w-5 h-5" />
             Notifications
           </button>
           <button
             onClick={() => setActiveTab("services")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
               activeTab === "services"
                 ? "text-foreground border-b-2 border-primary -mb-[2px]"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground border-b-2 border-[#EDEDED] -mb-[2px]"
             }`}
+            style={{ width: "190px" }}
           >
             <RiHome4Line className="w-5 h-5" />
             Services
           </button>
           <button
             onClick={() => setActiveTab("app-management")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
               activeTab === "app-management"
                 ? "text-foreground border-b-2 border-primary -mb-[2px]"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground border-b-2 border-[#EDEDED] -mb-[2px]"
             }`}
+            style={{ width: "190px" }}
           >
             <RiAppsLine className="w-5 h-5" />
             App management

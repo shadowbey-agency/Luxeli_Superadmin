@@ -1,0 +1,17 @@
+<svg width="120" height="40" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Text: Luxeli -->
+  <text x="0" y="28" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#1F2A44">
+    Luxel
+  </text>
+  
+  <!-- House icon with arc for the 'i' -->
+  <!-- House base -->
+  <rect x="86" y="18" width="8" height="8" fill="#4195BF"/>
+  <!-- House windows -->
+  <rect x="87.5" y="19.5" width="1.5" height="1.5" fill="white"/>
+  <rect x="90" y="19.5" width="1.5" height="1.5" fill="white"/>
+  <!-- Arc above house -->
+  <path d="M84 15 Q90 10 96 15" stroke="#4195BF" stroke-width="2" fill="none"/>
+  <!-- Dot of 'i' -->
+  <circle cx="90" cy="12" r="1.5" fill="#4195BF"/>
+</svg>

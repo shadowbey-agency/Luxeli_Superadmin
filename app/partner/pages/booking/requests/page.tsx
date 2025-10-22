@@ -205,7 +205,7 @@ export default function BookingRequestsPage() {
               </button>
               
               {/* Export button */}
-              <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors">
+              <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="14"

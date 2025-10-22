@@ -31,7 +31,7 @@ const menuItems = [
   { icon: SupportSidebarIcon, label: "Support", href: "/partner/pages/support" },
   { icon: TeamSidebarIcon, label: "Team", href: "/partner/pages/team" },
   { icon: SubscriptionSidebarIcon, label: "Subscription", href: "/partner/pages/subscription" },
-  { icon: RiSettings4Line, label: "Settings", href: "/partner/pages/settings" },
+  { icon: RiSettings4Line, label: "Settings", href: "/partner/pages/settings", isReactIcon: true },
 ]
 
 const servicesItems = [
@@ -39,47 +39,61 @@ const servicesItems = [
     label: "Housekeeping",
     icon: RiHome4Line,
     href: "/partner/pages/housekeeping",
+    isReactIcon: true,
     subItems: [
-      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/housekeeping/requests" },
-      { label: "House cleaning", icon: RiHome4Line, href: "/partner/pages/housekeeping/house-cleaning" },
-      { label: "Requests management", icon: RiSettings3Line, href: "/partner/pages/housekeeping/requests-management" },
+      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/housekeeping/requests", isReactIcon: true },
+      { label: "House cleaning", icon: RiHome4Line, href: "/partner/pages/housekeeping/house-cleaning", isReactIcon: true },
+      { label: "Requests management", icon: RiSettings3Line, href: "/partner/pages/housekeeping/requests-management", isReactIcon: true },
     ]
   },
   {
     label: "Bookings interns",
     icon: RiCalendarLine,
     href: "/partner/pages/booking",
+    isReactIcon: true,
     subItems: [
-      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/booking/requests" },
-      { label: "Bookings setting", icon: RiSettings3Line, href: "/partner/pages/booking/settings" },
+      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/booking/requests", isReactIcon: true },
+      { label: "Bookings setting", icon: RiSettings3Line, href: "/partner/pages/booking/settings", isReactIcon: true },
     ]
   },
   {
     label: "Customized services",
     icon: RiSettings3Line,
     href: "/partner/pages/customized-services",
-    subItems: []
+    isReactIcon: true,
+    subItems: [
+      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/customized-services/requests", isReactIcon: true }
+    ]
   },
   {
     label: "Activity alerts",
     icon: RiNotification3Line,
     href: "/partner/pages/activity-alerts",
+    isReactIcon: true,
     subItems: [
-      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/activity-alerts/requests" },
-      { label: "Activities", icon: RiNotification3Line, href: "/partner/pages/activity-alerts/activities" },
+      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/activity-alerts/requests", isReactIcon: true },
+      { label: "Activities", icon: RiNotification3Line, href: "/partner/pages/activity-alerts/activities", isReactIcon: true },
     ]
   },
   {
     label: "Laundry",
     icon: RiShirtLine,
     href: "/partner/pages/laundry",
-    subItems: []
+    isReactIcon: true,
+    subItems: [
+      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/laundry/requests", isReactIcon: true },
+      { label: "Laundry settings", icon: RiSettings3Line, href: "/partner/pages/laundry/settings", isReactIcon: true },
+    ]
   },
   {
-    label: "In-room delivery",
+    label: "Room delivery",
     icon: RiTruckLine,
-    href: "/partner/pages/in-room-delivery",
-    subItems: []
+    href: "/partner/pages/room-delivery",
+    isReactIcon: true,
+    subItems: [
+      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/room-delivery/requests", isReactIcon: true },
+      { label: "Restaurants", icon: RiTruckLine, href: "/partner/pages/room-delivery/restaurants", isReactIcon: true },
+    ]
   },
 ]
 
@@ -150,47 +164,53 @@ export default function Sidebar() {
       <nav
         className="flex flex-col items-start self-stretch mt-8"
         style={{
-          padding: "0 var(--spacing-xl, 16px)",
-          gap: "10px",
+          padding: "0 6px",
+          gap: "6px",
         }}
       >
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
-          const strokeColor = isActive ? "white" : "#141B34"
+          const strokeColor = isActive ? "white" : "#71717A"
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 w-full px-4 py-3 transition-all ${
+              className={`flex items-center gap-3 w-full px-4 py-2 transition-all ${
                 isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
               style={{ borderRadius: "8px" }}
             >
-              <Icon 
-                strokeColor={strokeColor} 
-                className="w-6 h-6 flex-shrink-0" 
-              />
+              {item.isReactIcon ? (
+                <Icon 
+                  className="flex-shrink-0" 
+                  style={{ 
+                    width: "18px", 
+                    height: "18px",
+                    strokeWidth: "1.5px",
+                    color: strokeColor
+                  }}
+                />
+              ) : (
+                <Icon 
+                  strokeColor={strokeColor} 
+                  className="w-6 h-6 flex-shrink-0" 
+                />
+              )}
               {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
             </Link>
           )
         })}
 
         {/* Services Section */}
-        <div className="w-full mt-4">
-          {!isCollapsed && (
-            <div className="px-4 py-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Services</h3>
-            </div>
-          )}
-          
+        <div className="w-full mt-4" style={{ gap: "6px", display: "flex", flexDirection: "column" }}>
           {servicesItems.map((service) => {
             const Icon = service.icon
             const isExpanded = expandedServices.includes(service.label)
             const hasActiveSubItem = service.subItems.some(subItem => currentFullPath === subItem.href)
             const isActive = pathname === service.href
-            const strokeColor = isActive ? "white" : "#141B34"
+            const strokeColor = isActive ? "white" : "#71717A"
 
             const toggleExpanded = () => {
               if (service.subItems.length > 0) {
@@ -206,16 +226,28 @@ export default function Sidebar() {
               <div key={service.label} className="w-full">
                 {/* Main Service Item */}
                 <div
-                  className={`flex items-center gap-3 w-full px-4 py-3 transition-all cursor-pointer ${
+                  className={`flex items-center gap-3 w-full px-4 py-2 transition-all cursor-pointer ${
                     isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                   style={{ borderRadius: "8px" }}
                   onClick={toggleExpanded}
                 >
-                  <Icon 
-                    strokeColor={strokeColor} 
-                    className="w-6 h-6 flex-shrink-0" 
-                  />
+                  {service.isReactIcon ? (
+                    <Icon 
+                      className="flex-shrink-0" 
+                      style={{ 
+                        width: "18px", 
+                        height: "18px",
+                        strokeWidth: "1.5px",
+                        color: strokeColor
+                      }}
+                    />
+                  ) : (
+                    <Icon 
+                      strokeColor={strokeColor} 
+                      className="w-6 h-6 flex-shrink-0" 
+                    />
+                  )}
                   {!isCollapsed && (
                     <>
                       <span className="text-sm font-medium flex-1">{service.label}</span>
@@ -232,26 +264,38 @@ export default function Sidebar() {
 
                 {/* Sub Items */}
                 {isExpanded && service.subItems.length > 0 && !isCollapsed && (
-                  <div className="ml-4 mt-1 space-y-1">
+                  <div className="ml-4 mt-1" style={{ gap: "6px", display: "flex", flexDirection: "column" }}>
                     {service.subItems.map((subItem) => {
                       const SubIcon = subItem.icon
                       // Check both exact match and pathname match for direct page routes
                       const isSubActive = currentFullPath === subItem.href || pathname === subItem.href.split('?')[0]
-                      const subStrokeColor = isSubActive ? "white" : "#141B34"
+                      const subStrokeColor = isSubActive ? "white" : "#71717A"
 
                       return (
                         <Link
                           key={subItem.href}
                           href={subItem.href}
-                          className={`flex items-center gap-3 w-full px-4 py-2 transition-all text-sm ${
+                          className={`flex items-center gap-3 w-full px-4 py-1.5 transition-all text-sm ${
                             isSubActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                           }`}
                           style={{ borderRadius: "8px" }}
                         >
-                          <SubIcon 
-                            strokeColor={subStrokeColor} 
-                            className="w-5 h-5 flex-shrink-0" 
-                          />
+                          {subItem.isReactIcon ? (
+                            <SubIcon 
+                              className="flex-shrink-0" 
+                              style={{ 
+                                width: "18px", 
+                                height: "18px",
+                                strokeWidth: "1.5px",
+                                color: subStrokeColor
+                              }}
+                            />
+                          ) : (
+                            <SubIcon 
+                              strokeColor={subStrokeColor} 
+                              className="w-5 h-5 flex-shrink-0" 
+                            />
+                          )}
                           <span className="font-medium">{subItem.label}</span>
                         </Link>
                       )

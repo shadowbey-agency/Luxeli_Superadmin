@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [userType, setUserType] = useState<"superadmin" | "partner">("superadmin")
+  const [rememberMe, setRememberMe] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -140,6 +141,32 @@ export default function LoginPage() {
                       {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
                     </button>
                   </div>
+                </div>
+
+                {/* Remember Me and Forgot Password */}
+                <div className="flex justify-between items-center w-full max-w-[470px]">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 text-[#1F2A44] bg-white border border-[#CED4DA] rounded focus:ring-[#1F2A44] focus:ring-2"
+                    />
+                    <span className="text-[#212121] text-sm">Remember me</span>
+                  </label>
+                  <button
+                    type="button"
+                    className="text-sm transition-colors"
+                    style={{ 
+                      color: "#4195BF",
+                      hover: "color: #3a7ba8"
+                    }}
+                    onMouseEnter={(e) => e.target.style.color = "#3a7ba8"}
+                    onMouseLeave={(e) => e.target.style.color = "#4195BF"}
+                    onClick={() => router.push("/login/forgot-password")}
+                  >
+                    Forgot password?
+                  </button>
                 </div>
 
                 {/* Login Button */}

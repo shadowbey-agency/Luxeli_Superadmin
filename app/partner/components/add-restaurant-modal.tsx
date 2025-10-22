@@ -1,19 +1,18 @@
 "use client"
 
 import { useState } from "react"
-import { RiCloseLine, RiImageLine, RiArrowDownSLine } from "react-icons/ri"
+import { RiCloseLine, RiImageLine, RiTimeLine } from "react-icons/ri"
 
-interface AddItemModalProps {
+interface AddRestaurantModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
-export default function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
-  const [itemName, setItemName] = useState("")
+export default function AddRestaurantModal({ isOpen, onClose }: AddRestaurantModalProps) {
+  const [restaurantName, setRestaurantName] = useState("")
   const [isPublished, setIsPublished] = useState(true)
-  const [category, setCategory] = useState("")
-  const [itemPrice, setItemPrice] = useState("")
-  const [itemDescription, setItemDescription] = useState("")
+  const [startWork, setStartWork] = useState("")
+  const [endWork, setEndWork] = useState("")
 
   if (!isOpen) return null
 
@@ -22,7 +21,7 @@ export default function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
        <div className="bg-white shadow-xl max-w-3xl w-full mx-4" style={{ borderRadius: "10px" }}>
         {/* Header */}
         <div className="flex items-center justify-between pl-6 pr-6 pt-5 pb-5 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Add new items</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Add new restaurant</h2>
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors"
@@ -33,18 +32,18 @@ export default function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
 
         {/* Content */}
         <div className="p-6 space-y-4">
-          {/* Section 1: Item Details */}
+          {/* Section 1: Restaurant Details */}
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-4">
-              {/* Item Name */}
+              {/* Restaurant Name */}
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-1" style={{ color: "#212121" }}>
-                  Item name
+                  Restaurant name
                 </label>
                 <input
                   type="text"
-                  value={itemName}
-                  onChange={(e) => setItemName(e.target.value)}
+                  value={restaurantName}
+                  onChange={(e) => setRestaurantName(e.target.value)}
                   placeholder="Write Here..."
                   className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-transparent"
                   style={{ borderRadius: "4px" }}
@@ -81,72 +80,55 @@ export default function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
               </div>
             </div>
 
-            {/* Category and Price Row */}
+            {/* Work Hours */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Category */}
+              {/* Start Work */}
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: "#212121" }}>
-                  Category
-                </label>
-                <div className="relative">
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3 py-2 pr-8 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
-                    style={{ borderRadius: "4px" }}
-                  >
-                    <option value="">Select</option>
-                    <option value="main-course">Main Course</option>
-                    <option value="grilled">Grilled</option>
-                    <option value="italian">Italian</option>
-                    <option value="beverage">Beverage</option>
-                    <option value="healthy">Healthy</option>
-                    <option value="seafood">Seafood</option>
-                    <option value="fast-food">Fast Food</option>
-                    <option value="mexican">Mexican</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Item Price */}
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: "#212121" }}>
-                  Item price
+                  Start work
                 </label>
                 <div className="relative">
                   <input
-                    type="text"
-                    value={itemPrice}
-                    onChange={(e) => setItemPrice(e.target.value)}
-                    placeholder="Write Here..."
-                    className="w-full px-3 py-2 pr-8 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    style={{ borderRadius: "4px" }}
+                    type="time"
+                    value={startWork}
+                    onChange={(e) => setStartWork(e.target.value)}
+                    placeholder="Choose"
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    style={{ 
+                      borderRadius: "4px",
+                      WebkitAppearance: "none",
+                      MozAppearance: "textfield"
+                    }}
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">$</span>
+                  <RiTimeLine className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* End Work */}
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: "#212121" }}>
+                  End work
+                </label>
+                <div className="relative">
+                  <input
+                    type="time"
+                    value={endWork}
+                    onChange={(e) => setEndWork(e.target.value)}
+                    placeholder="Choose"
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    style={{ 
+                      borderRadius: "4px",
+                      WebkitAppearance: "none",
+                      MozAppearance: "textfield"
+                    }}
+                  />
+                  <RiTimeLine className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Section 2: Item Description */}
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: "#212121" }}>
-              Item description
-            </label>
-            <textarea
-              value={itemDescription}
-              onChange={(e) => setItemDescription(e.target.value)}
-              placeholder="Write Here..."
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              style={{ borderRadius: "4px" }}
-            />
-          </div>
-
-          {/* Section 3: Item Image Upload */}
+          {/* Section 2: Restaurant Image Upload */}
           <div
             style={{
               width: "100%",
@@ -161,7 +143,7 @@ export default function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
             }}
             className="flex flex-col"
           >
-            <label className="text-sm font-medium" style={{ color: "#212121" }}>Item image</label>
+            <label className="text-sm font-medium" style={{ color: "#212121" }}>Restaurant image</label>
             
             <div
               className="flex flex-col"
@@ -206,7 +188,7 @@ export default function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
            <button
              onClick={() => {
                // Handle save logic here
-               console.log("Saving item:", { itemName, isPublished, category, itemPrice, itemDescription })
+               console.log("Saving restaurant:", { restaurantName, isPublished, startWork, endWork })
                onClose()
              }}
              className="px-4 py-2 text-white hover:opacity-90 transition-colors"

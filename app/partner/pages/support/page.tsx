@@ -329,24 +329,26 @@ export default function SupportPage() {
     <div className="p-6">
       {/* Tab Navigation */}
       <div className="mb-6">
-        <div className="flex border-b border-gray-200">
+        <div className="flex">
           <button
             onClick={() => setActiveTab('my-tickets')}
-            className={`px-4 py-3 text-sm font-medium transition-colors relative ${
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
               activeTab === 'my-tickets'
-                ? 'text-foreground border-b-2 border-[#1F2A44] -mb-[2px]'
-                : 'text-muted-foreground hover:text-foreground'
+                ? 'text-foreground border-b-2 border-primary -mb-[2px]'
+                : 'text-muted-foreground hover:text-foreground border-b-2 border-[#EDEDED] -mb-[2px]'
             }`}
+            style={{ width: "270px" }}
           >
             My Tickets
           </button>
           <button
             onClick={() => setActiveTab('tickets-saved')}
-            className={`px-4 py-3 text-sm font-medium transition-colors relative ${
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
               activeTab === 'tickets-saved'
-                ? 'text-foreground border-b-2 border-[#1F2A44] -mb-[2px]'
-                : 'text-muted-foreground hover:text-foreground'
+                ? 'text-foreground border-b-2 border-primary -mb-[2px]'
+                : 'text-muted-foreground hover:text-foreground border-b-2 border-[#EDEDED] -mb-[2px]'
             }`}
+            style={{ width: "270px" }}
           >
             Tickets saved
           </button>

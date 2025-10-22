@@ -73,7 +73,7 @@ export default function Header() {
       {/* Right Section */}
       <div className="flex items-center gap-4">
       {/* Search Bar */}
-      <div className="flex items-center gap-2 flex-1 max-w-md">
+      <div className="flex items-center gap-2" style={{ width: "370px" }}>
         <div className="relative w-full">
           <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <input

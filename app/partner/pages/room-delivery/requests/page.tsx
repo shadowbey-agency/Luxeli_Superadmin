@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { RiFileList3Line, RiNotification3Line, RiArrowDownSLine, RiCalendarLine } from "react-icons/ri"
+import { RiFileList3Line, RiRestaurantLine, RiArrowDownSLine, RiCalendarLine } from "react-icons/ri"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
-import ViewRequestModal from "../../../components/view-request-modal"
-import AssignStaffModal from "../../../components/assign-staff-modal"
+import ViewRequestModal from "@/app/partner/components/view-request-modal"
+import AssignStaffModal from "@/app/partner/components/assign-staff-modal"
 
-export default function ActivityAlertsRequestsPage() {
+export default function RoomDeliveryRequestsPage() {
   const router = useRouter()
   const [showDropdown, setShowDropdown] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -40,112 +40,13 @@ export default function ActivityAlertsRequestsPage() {
       id: "requests",
       label: "Requests",
       icon: <RiFileList3Line className="w-4 h-4" />,
-      href: "/partner/pages/activity-alerts/requests"
+      href: "/partner/pages/room-delivery/requests"
     },
     {
-      id: "activities", 
-      label: "Activities",
-      icon: <RiNotification3Line className="w-4 h-4" />,
-      href: "/partner/pages/activity-alerts/activities"
-    }
-  ]
-
-  // Sample data for activity alerts requests
-  const requests = [
-    {
-      id: "#22232",
-      requestId: "#22232",
-      room: "R1 E3 A3",
-      guest: "Lindsey Stroud",
-      title: "Torem ipsum dolo...",
-      created: "Jan 15, 10:30 AM",
-      status: "new",
-      statusBg: "#D1924F0D",
-      statusBorder: "#D1924F40",
-      statusColor: "#D1924F",
-      assignee: "",
-      hasAssignee: false,
-      requestedFor: "Today 14:00-16:00",
-      serviceName: "Activity Alert",
-      location: "Hotel Lobby",
-      price: "15$",
-      note: "Please monitor the activity in the lobby area."
-    },
-    {
-      id: "#22233",
-      requestId: "#22233",
-      room: "R2 E4 A5",
-      guest: "John Smith",
-      title: "Security alert...",
-      created: "Jan 15, 11:15 AM",
-      status: "accepted",
-      statusBg: "#8B5CF60D",
-      statusBorder: "#8B5CF640",
-      statusColor: "#8B5CF6",
-      assignee: "Full Name",
-      hasAssignee: true,
-      requestedFor: "Today 15:00-17:00",
-      serviceName: "Security Alert",
-      location: "Pool Area",
-      price: "25$",
-      note: "Security monitoring required for pool area."
-    },
-    {
-      id: "#22234",
-      requestId: "#22234",
-      room: "R3 E5 A6",
-      guest: "Sarah Johnson",
-      title: "Maintenance alert...",
-      created: "Jan 15, 12:00 PM",
-      status: "pending",
-      statusBg: "#6B72800D",
-      statusBorder: "#6B728040",
-      statusColor: "#6B7280",
-      assignee: "",
-      hasAssignee: false,
-      requestedFor: "Today 16:00-18:00",
-      serviceName: "Maintenance Alert",
-      location: "Elevator",
-      price: "30$",
-      note: "Elevator maintenance alert needs attention."
-    },
-    {
-      id: "#22235",
-      requestId: "#22235",
-      room: "R4 E6 A7",
-      guest: "Mike Wilson",
-      title: "System alert...",
-      created: "Jan 15, 01:30 PM",
-      status: "completed",
-      statusBg: "#10B9810D",
-      statusBorder: "#10B98140",
-      statusColor: "#10B981",
-      assignee: "Full Name",
-      hasAssignee: true,
-      requestedFor: "Today 17:00-19:00",
-      serviceName: "System Alert",
-      location: "Reception",
-      price: "20$",
-      note: "System monitoring alert resolved."
-    },
-    {
-      id: "#22236",
-      requestId: "#22236",
-      room: "R5 E7 A8",
-      guest: "Emma Davis",
-      title: "Emergency alert...",
-      created: "Jan 15, 02:45 PM",
-      status: "canceled",
-      statusBg: "#EF44440D",
-      statusBorder: "#EF444440",
-      statusColor: "#EF4444",
-      assignee: "Full Name",
-      hasAssignee: true,
-      requestedFor: "Today 18:00-20:00",
-      serviceName: "Emergency Alert",
-      location: "Kitchen",
-      price: "35$",
-      note: "Emergency alert was canceled."
+      id: "restaurants", 
+      label: "Restaurants",
+      icon: <RiRestaurantLine className="w-4 h-4" />,
+      href: "/partner/pages/room-delivery/restaurants"
     }
   ]
 
@@ -252,8 +153,8 @@ export default function ActivityAlertsRequestsPage() {
                   <option>Status</option>
                   <option>New</option>
                   <option>Accepted</option>
+                  <option>No-show</option>
                   <option>Completed</option>
-                  <option>Pending</option>
                   <option>Canceled</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -261,7 +162,7 @@ export default function ActivityAlertsRequestsPage() {
                 </div>
               </div>
               
-              {/* Type dropdown */}
+              {/* Restaurant dropdown */}
               <div className="relative inline-block">
                 <select
                   className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -279,12 +180,40 @@ export default function ActivityAlertsRequestsPage() {
                     minWidth: "120px"
                   }}
                 >
-                  <option>Type</option>
-                  <option>Activity Alert</option>
-                  <option>Security Alert</option>
-                  <option>Maintenance Alert</option>
-                  <option>System Alert</option>
-                  <option>Emergency Alert</option>
+                  <option>Restaurant</option>
+                  <option>Italian Bistro</option>
+                  <option>Asian Fusion</option>
+                  <option>Mexican Grill</option>
+                  <option>Seafood Palace</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
+                </div>
+              </div>
+              
+              {/* Pick up dropdown */}
+              <div className="relative inline-block">
+                <select
+                  className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  style={{
+                    padding: "7.52px 12px",
+                    paddingRight: "32px",
+                    borderRadius: "4px",
+                    border: "1px solid #CED4DA",
+                    background: "#FFF",
+                    color: "rgba(33, 33, 33, 0.60)",
+                    fontSize: "13px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px",
+                    width: "auto",
+                    minWidth: "100px"
+                  }}
+                >
+                  <option>Pick up</option>
+                  <option>Breakfast</option>
+                  <option>Lunch</option>
+                  <option>Dinner</option>
+                  <option>Late Night</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
@@ -369,7 +298,17 @@ export default function ActivityAlertsRequestsPage() {
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
-                    Title
+                    Items
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
+                  <div className="flex items-center gap-1">
+                    Restaurant
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
+                  <div className="flex items-center gap-1">
+                    Pick Up
                   </div>
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
@@ -394,99 +333,106 @@ export default function ActivityAlertsRequestsPage() {
               {/* Sample data rows */}
               {[
                 {
-                  id: "#22232",
-                  requestId: "#22232",
+                  id: "#RD001",
                   room: "R1 E3 A3",
-                  guest: "Lindsey Stroud",
-                  title: "Torem ipsum dolo...",
-                  created: "Jan 15, 10:30 AM",
-                  status: "new",
-                  statusBg: "#D1924F0D",
-                  statusBorder: "#D1924F40",
-                  statusColor: "#D1924F",
+                  guest: "John Smith",
+                  items: "2x Pizza Margherita, 1x Caesar Salad",
+                  restaurant: "Italian Bistro",
+                   pickup: "Ready",
+                   created: "Jan 15, 10:30 AM",
+                   status: "new",
+                   statusBg: "#D1924F0D",
+                   statusBorder: "#D1924F40",
+                   statusColor: "#D1924F",
                   assignee: "",
                   hasAssignee: false,
-                  requestedFor: "Today 14:00-16:00",
-                  serviceName: "Activity Alert",
-                  location: "Hotel Lobby",
-                  price: "15$",
-                  note: "Please monitor the activity in the lobby area."
+                  totalAmount: "$45.50",
+                  deliveryTime: "30-45 min"
                 },
                 {
-                  id: "#22233",
-                  requestId: "#22233",
-                  room: "R2 E4 A5",
-                  guest: "John Smith",
-                  title: "Security alert...",
+                  id: "#RD002",
+                  room: "R2 E1 B5",
+                  guest: "Sarah Johnson",
+                  items: "3x Sushi Rolls, 2x Miso Soup",
+                  restaurant: "Asian Fusion",
+                  pickup: "Accepted",
                   created: "Jan 15, 11:15 AM",
                   status: "accepted",
-                  statusBg: "#8B5CF60D",
-                  statusBorder: "#8B5CF640",
-                  statusColor: "#8B5CF6",
+                  statusBg: "#6457D30D",
+                  statusBorder: "#6457D340",
+                  statusColor: "#6457D3",
                   assignee: "",
                   hasAssignee: false,
-                  requestedFor: "Today 15:00-17:00",
-                  serviceName: "Security Alert",
-                  location: "Pool Area",
-                  price: "25$",
-                  note: "Security monitoring required for pool area."
+                  totalAmount: "$62.00",
+                  deliveryTime: "25-35 min"
                 },
                 {
-                  id: "#22234",
-                  requestId: "#22234",
-                  room: "R3 E5 A6",
-                  guest: "Sarah Johnson",
-                  title: "Maintenance alert...",
+                  id: "#RD003",
+                  room: "R3 E2 C2",
+                  guest: "Mike Davis",
+                  items: "1x Fish Tacos, 1x Guacamole",
+                  restaurant: "Mexican Grill",
+                  pickup: "No-show",
+                  created: "Jan 15, 11:45 AM",
+                  status: "no-show",
+                  statusBg: "#1F2A440D",
+                  statusBorder: "#1F2A4440",
+                  statusColor: "#1F2A44",
+                  assignee: "",
+                  hasAssignee: false,
+                  totalAmount: "$28.75",
+                  deliveryTime: "20-30 min"
+                },
+                {
+                  id: "#RD004",
+                  room: "R1 E1 A1",
+                  guest: "Emily Wilson",
+                  items: "2x Lobster Roll, 1x Clam Chowder",
+                  restaurant: "Seafood Palace",
+                  pickup: "Completed",
                   created: "Jan 15, 12:00 PM",
-                  status: "pending",
-                  statusBg: "#6B72800D",
-                  statusBorder: "#6B728040",
-                  statusColor: "#6B7280",
+                  status: "completed",
+                  statusBg: "#17B26A0D",
+                  statusBorder: "#17B26A40",
+                  statusColor: "#17B26A",
+                  assignee: "Delivery Staff",
+                  hasAssignee: true,
+                  totalAmount: "$89.50",
+                  deliveryTime: "Completed"
+                },
+                {
+                  id: "#RD005",
+                  room: "R2 E3 B1",
+                  guest: "David Brown",
+                  items: "1x Pasta Carbonara, 1x Tiramisu",
+                  restaurant: "Italian Bistro",
+                   pickup: "Accepted",
+                   created: "Jan 15, 12:30 PM",
+                   status: "accepted",
+                   statusBg: "#6457D30D",
+                   statusBorder: "#6457D340",
+                   statusColor: "#6457D3",
                   assignee: "",
                   hasAssignee: false,
-                  requestedFor: "Today 16:00-18:00",
-                  serviceName: "Maintenance Alert",
-                  location: "Elevator",
-                  price: "30$",
-                  note: "Elevator maintenance alert needs attention."
+                  totalAmount: "$35.25",
+                  deliveryTime: "30-45 min"
                 },
                 {
-                  id: "#22235",
-                  requestId: "#22235",
-                  room: "R4 E6 A7",
-                  guest: "Mike Wilson",
-                  title: "System alert...",
-                  created: "Jan 15, 01:30 PM",
-                  status: "completed",
-                  statusBg: "#10B9810D",
-                  statusBorder: "#10B98140",
-                  statusColor: "#10B981",
-                  assignee: "Full Name",
-                  hasAssignee: true,
-                  requestedFor: "Today 17:00-19:00",
-                  serviceName: "System Alert",
-                  location: "Reception",
-                  price: "20$",
-                  note: "System monitoring alert resolved."
-                },
-                {
-                  id: "#22236",
-                  requestId: "#22236",
-                  room: "R5 E7 A8",
-                  guest: "Emma Davis",
-                  title: "Emergency alert...",
-                  created: "Jan 15, 02:45 PM",
+                  id: "#RD006",
+                  room: "R3 E1 C3",
+                  guest: "Lisa Anderson",
+                  items: "1x Pad Thai, 1x Spring Rolls",
+                  restaurant: "Asian Fusion",
+                  pickup: "Cancelled",
+                  created: "Jan 15, 1:00 PM",
                   status: "canceled",
-                  statusBg: "#EF44440D",
-                  statusBorder: "#EF444440",
-                  statusColor: "#EF4444",
-                  assignee: "Full Name",
-                  hasAssignee: true,
-                  requestedFor: "Today 18:00-20:00",
-                  serviceName: "Emergency Alert",
-                  location: "Kitchen",
-                  price: "35$",
-                  note: "Emergency alert was canceled."
+                  statusBg: "#FF0D0D0D",
+                  statusBorder: "#FF0D0D40",
+                  statusColor: "#FF0D0D",
+                  assignee: "",
+                  hasAssignee: false,
+                  totalAmount: "$24.50",
+                  deliveryTime: "Cancelled"
                 }
               ].map((row, index) => (
                 <tr key={index} className="hover:bg-muted/50 transition-colors">
@@ -516,7 +462,25 @@ export default function ActivityAlertsRequestsPage() {
                     fontSize: "12px",
                     fontWeight: "400",
                     lineHeight: "19.5px"
-                  }}>{row.title}</td>
+                  }}>
+                    <div className="max-w-xs">
+                      <div className="truncate" title={row.items}>
+                        {row.items}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4" style={{
+                    color: "#525866",
+                    fontSize: "12px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
+                  }}>{row.restaurant}</td>
+                  <td className="px-4 py-4" style={{
+                    color: "#525866",
+                    fontSize: "12px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
+                  }}>{row.pickup}</td>
                   <td className="px-4 py-4" style={{
                     color: "#525866",
                     fontSize: "12px",
@@ -527,7 +491,8 @@ export default function ActivityAlertsRequestsPage() {
                     <span 
                       className="inline-flex items-center justify-center text-xs font-medium capitalize"
                       style={{
-                        width: "80px",
+                        width: "auto",
+                        minWidth: "80px",
                         height: "22px",
                         gap: "4px",
                         borderRadius: "4px",
@@ -538,7 +503,7 @@ export default function ActivityAlertsRequestsPage() {
                         color: row.statusColor
                       }}
                     >
-                      {row.status}
+                      {row.status.replace('_', ' ').replace('-', '-').replace(/\b\w/g, l => l.toUpperCase())}
                     </span>
                   </td>
                   <td className="px-4 py-4" style={{

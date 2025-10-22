@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { RiFileList3Line, RiNotification3Line, RiArrowDownSLine, RiCalendarLine } from "react-icons/ri"
+import { RiFileList3Line, RiSettings3Line, RiArrowDownSLine, RiCalendarLine } from "react-icons/ri"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
-import ViewRequestModal from "../../../components/view-request-modal"
-import AssignStaffModal from "../../../components/assign-staff-modal"
+import ViewRequestModal from "@/app/partner/components/view-request-modal"
+import AssignStaffModal from "@/app/partner/components/assign-staff-modal"
 
-export default function ActivityAlertsRequestsPage() {
+export default function LaundryRequestsPage() {
   const router = useRouter()
   const [showDropdown, setShowDropdown] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -40,112 +40,13 @@ export default function ActivityAlertsRequestsPage() {
       id: "requests",
       label: "Requests",
       icon: <RiFileList3Line className="w-4 h-4" />,
-      href: "/partner/pages/activity-alerts/requests"
+      href: "/partner/pages/laundry/requests"
     },
     {
-      id: "activities", 
-      label: "Activities",
-      icon: <RiNotification3Line className="w-4 h-4" />,
-      href: "/partner/pages/activity-alerts/activities"
-    }
-  ]
-
-  // Sample data for activity alerts requests
-  const requests = [
-    {
-      id: "#22232",
-      requestId: "#22232",
-      room: "R1 E3 A3",
-      guest: "Lindsey Stroud",
-      title: "Torem ipsum dolo...",
-      created: "Jan 15, 10:30 AM",
-      status: "new",
-      statusBg: "#D1924F0D",
-      statusBorder: "#D1924F40",
-      statusColor: "#D1924F",
-      assignee: "",
-      hasAssignee: false,
-      requestedFor: "Today 14:00-16:00",
-      serviceName: "Activity Alert",
-      location: "Hotel Lobby",
-      price: "15$",
-      note: "Please monitor the activity in the lobby area."
-    },
-    {
-      id: "#22233",
-      requestId: "#22233",
-      room: "R2 E4 A5",
-      guest: "John Smith",
-      title: "Security alert...",
-      created: "Jan 15, 11:15 AM",
-      status: "accepted",
-      statusBg: "#8B5CF60D",
-      statusBorder: "#8B5CF640",
-      statusColor: "#8B5CF6",
-      assignee: "Full Name",
-      hasAssignee: true,
-      requestedFor: "Today 15:00-17:00",
-      serviceName: "Security Alert",
-      location: "Pool Area",
-      price: "25$",
-      note: "Security monitoring required for pool area."
-    },
-    {
-      id: "#22234",
-      requestId: "#22234",
-      room: "R3 E5 A6",
-      guest: "Sarah Johnson",
-      title: "Maintenance alert...",
-      created: "Jan 15, 12:00 PM",
-      status: "pending",
-      statusBg: "#6B72800D",
-      statusBorder: "#6B728040",
-      statusColor: "#6B7280",
-      assignee: "",
-      hasAssignee: false,
-      requestedFor: "Today 16:00-18:00",
-      serviceName: "Maintenance Alert",
-      location: "Elevator",
-      price: "30$",
-      note: "Elevator maintenance alert needs attention."
-    },
-    {
-      id: "#22235",
-      requestId: "#22235",
-      room: "R4 E6 A7",
-      guest: "Mike Wilson",
-      title: "System alert...",
-      created: "Jan 15, 01:30 PM",
-      status: "completed",
-      statusBg: "#10B9810D",
-      statusBorder: "#10B98140",
-      statusColor: "#10B981",
-      assignee: "Full Name",
-      hasAssignee: true,
-      requestedFor: "Today 17:00-19:00",
-      serviceName: "System Alert",
-      location: "Reception",
-      price: "20$",
-      note: "System monitoring alert resolved."
-    },
-    {
-      id: "#22236",
-      requestId: "#22236",
-      room: "R5 E7 A8",
-      guest: "Emma Davis",
-      title: "Emergency alert...",
-      created: "Jan 15, 02:45 PM",
-      status: "canceled",
-      statusBg: "#EF44440D",
-      statusBorder: "#EF444440",
-      statusColor: "#EF4444",
-      assignee: "Full Name",
-      hasAssignee: true,
-      requestedFor: "Today 18:00-20:00",
-      serviceName: "Emergency Alert",
-      location: "Kitchen",
-      price: "35$",
-      note: "Emergency alert was canceled."
+      id: "laundry-settings", 
+      label: "Laundry settings",
+      icon: <RiSettings3Line className="w-4 h-4" />,
+      href: "/partner/pages/laundry/settings"
     }
   ]
 
@@ -252,8 +153,8 @@ export default function ActivityAlertsRequestsPage() {
                   <option>Status</option>
                   <option>New</option>
                   <option>Accepted</option>
+                  <option>No-show</option>
                   <option>Completed</option>
-                  <option>Pending</option>
                   <option>Canceled</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -261,7 +162,7 @@ export default function ActivityAlertsRequestsPage() {
                 </div>
               </div>
               
-              {/* Type dropdown */}
+              {/* Priority dropdown */}
               <div className="relative inline-block">
                 <select
                   className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -276,15 +177,42 @@ export default function ActivityAlertsRequestsPage() {
                     fontWeight: "400",
                     lineHeight: "19.5px",
                     width: "auto",
-                    minWidth: "120px"
+                    minWidth: "100px"
                   }}
                 >
-                  <option>Type</option>
-                  <option>Activity Alert</option>
-                  <option>Security Alert</option>
-                  <option>Maintenance Alert</option>
-                  <option>System Alert</option>
-                  <option>Emergency Alert</option>
+                  <option>Priority</option>
+                  <option>Urgent</option>
+                  <option>Medium</option>
+                  <option>Low</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
+                </div>
+              </div>
+              
+              {/* Pick up dropdown */}
+              <div className="relative inline-block">
+                <select
+                  className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  style={{
+                    padding: "7.52px 12px",
+                    paddingRight: "32px",
+                    borderRadius: "4px",
+                    border: "1px solid #CED4DA",
+                    background: "#FFF",
+                    color: "rgba(33, 33, 33, 0.60)",
+                    fontSize: "13px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px",
+                    width: "auto",
+                    minWidth: "100px"
+                  }}
+                >
+                  <option>Pick up</option>
+                  <option>Breakfast</option>
+                  <option>Lunch</option>
+                  <option>Dinner</option>
+                  <option>Late Night</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
@@ -369,7 +297,12 @@ export default function ActivityAlertsRequestsPage() {
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
-                    Title
+                    Piece
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
+                  <div className="flex items-center gap-1">
+                    Pick Up
                   </div>
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
@@ -384,6 +317,11 @@ export default function ActivityAlertsRequestsPage() {
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
+                    Priority
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
+                  <div className="flex items-center gap-1">
                     Assignee
                   </div>
                 </th>
@@ -394,99 +332,124 @@ export default function ActivityAlertsRequestsPage() {
               {/* Sample data rows */}
               {[
                 {
-                  id: "#22232",
-                  requestId: "#22232",
+                  id: "#L001",
                   room: "R1 E3 A3",
-                  guest: "Lindsey Stroud",
-                  title: "Torem ipsum dolo...",
+                  guest: "John Smith",
+                  piece: "3x Shirts, 2x Pants",
+                  pickup: "Ready",
                   created: "Jan 15, 10:30 AM",
                   status: "new",
                   statusBg: "#D1924F0D",
                   statusBorder: "#D1924F40",
                   statusColor: "#D1924F",
+                  priority: "urgent",
+                  priorityBg: "#FF0D0D0D",
+                  priorityBorder: "#FF0D0D40",
+                  priorityColor: "#FF0D0D",
                   assignee: "",
                   hasAssignee: false,
-                  requestedFor: "Today 14:00-16:00",
-                  serviceName: "Activity Alert",
-                  location: "Hotel Lobby",
-                  price: "15$",
-                  note: "Please monitor the activity in the lobby area."
+                  totalAmount: "$25.50",
+                  deliveryTime: "30-45 min"
                 },
                 {
-                  id: "#22233",
-                  requestId: "#22233",
-                  room: "R2 E4 A5",
-                  guest: "John Smith",
-                  title: "Security alert...",
+                  id: "#L002",
+                  room: "R2 E1 B5",
+                  guest: "Sarah Johnson",
+                  piece: "2x Dresses, 1x Blouse",
+                  pickup: "Accepted",
                   created: "Jan 15, 11:15 AM",
                   status: "accepted",
-                  statusBg: "#8B5CF60D",
-                  statusBorder: "#8B5CF640",
-                  statusColor: "#8B5CF6",
+                  statusBg: "#6457D30D",
+                  statusBorder: "#6457D340",
+                  statusColor: "#6457D3",
+                  priority: "medium",
+                  priorityBg: "#D1924F0D",
+                  priorityBorder: "#D1924F40",
+                  priorityColor: "#D1924F",
                   assignee: "",
                   hasAssignee: false,
-                  requestedFor: "Today 15:00-17:00",
-                  serviceName: "Security Alert",
-                  location: "Pool Area",
-                  price: "25$",
-                  note: "Security monitoring required for pool area."
+                  totalAmount: "$35.00",
+                  deliveryTime: "25-35 min"
                 },
                 {
-                  id: "#22234",
-                  requestId: "#22234",
-                  room: "R3 E5 A6",
-                  guest: "Sarah Johnson",
-                  title: "Maintenance alert...",
-                  created: "Jan 15, 12:00 PM",
-                  status: "pending",
-                  statusBg: "#6B72800D",
-                  statusBorder: "#6B728040",
-                  statusColor: "#6B7280",
-                  assignee: "",
-                  hasAssignee: false,
-                  requestedFor: "Today 16:00-18:00",
-                  serviceName: "Maintenance Alert",
-                  location: "Elevator",
-                  price: "30$",
-                  note: "Elevator maintenance alert needs attention."
-                },
-                {
-                  id: "#22235",
-                  requestId: "#22235",
-                  room: "R4 E6 A7",
-                  guest: "Mike Wilson",
-                  title: "System alert...",
-                  created: "Jan 15, 01:30 PM",
+                  id: "#L003",
+                  room: "R3 E2 C2",
+                  guest: "Mike Davis",
+                  piece: "1x Suit, 2x Ties",
+                  pickup: "Completed",
+                  created: "Jan 15, 11:45 AM",
                   status: "completed",
-                  statusBg: "#10B9810D",
-                  statusBorder: "#10B98140",
-                  statusColor: "#10B981",
+                  statusBg: "#17B26A0D",
+                  statusBorder: "#17B26A40",
+                  statusColor: "#17B26A",
+                  priority: "low",
+                  priorityBg: "#56C6FF0D",
+                  priorityBorder: "#56C6FF40",
+                  priorityColor: "#56C6FF",
                   assignee: "Full Name",
                   hasAssignee: true,
-                  requestedFor: "Today 17:00-19:00",
-                  serviceName: "System Alert",
-                  location: "Reception",
-                  price: "20$",
-                  note: "System monitoring alert resolved."
+                  totalAmount: "$45.75",
+                  deliveryTime: "Completed"
                 },
                 {
-                  id: "#22236",
-                  requestId: "#22236",
-                  room: "R5 E7 A8",
-                  guest: "Emma Davis",
-                  title: "Emergency alert...",
-                  created: "Jan 15, 02:45 PM",
-                  status: "canceled",
-                  statusBg: "#EF44440D",
-                  statusBorder: "#EF444440",
-                  statusColor: "#EF4444",
+                  id: "#L004",
+                  room: "R1 E1 A1",
+                  guest: "Emily Wilson",
+                  piece: "4x Shirts, 3x Pants",
+                  pickup: "No-show",
+                  created: "Jan 15, 12:00 PM",
+                  status: "no-show",
+                  statusBg: "#1F2A440D",
+                  statusBorder: "#1F2A4440",
+                  statusColor: "#1F2A44",
+                  priority: "urgent",
+                  priorityBg: "#FF0D0D0D",
+                  priorityBorder: "#FF0D0D40",
+                  priorityColor: "#FF0D0D",
                   assignee: "Full Name",
                   hasAssignee: true,
-                  requestedFor: "Today 18:00-20:00",
-                  serviceName: "Emergency Alert",
-                  location: "Kitchen",
-                  price: "35$",
-                  note: "Emergency alert was canceled."
+                  totalAmount: "$55.50",
+                  deliveryTime: "20-30 min"
+                },
+                {
+                  id: "#L005",
+                  room: "R2 E3 B1",
+                  guest: "David Brown",
+                  piece: "2x Jackets, 1x Sweater",
+                  pickup: "Accepted",
+                  created: "Jan 15, 12:30 PM",
+                  status: "accepted",
+                  statusBg: "#6457D30D",
+                  statusBorder: "#6457D340",
+                  statusColor: "#6457D3",
+                  priority: "low",
+                  priorityBg: "#56C6FF0D",
+                  priorityBorder: "#56C6FF40",
+                  priorityColor: "#56C6FF",
+                  assignee: "",
+                  hasAssignee: false,
+                  totalAmount: "$40.25",
+                  deliveryTime: "30-45 min"
+                },
+                {
+                  id: "#L006",
+                  room: "R3 E1 C3",
+                  guest: "Lisa Anderson",
+                  piece: "1x Dress, 2x Skirts",
+                  pickup: "Cancelled",
+                  created: "Jan 15, 1:00 PM",
+                  status: "canceled",
+                  statusBg: "#FF0D0D0D",
+                  statusBorder: "#FF0D0D40",
+                  statusColor: "#FF0D0D",
+                  priority: "medium",
+                  priorityBg: "#D1924F0D",
+                  priorityBorder: "#D1924F40",
+                  priorityColor: "#D1924F",
+                  assignee: "",
+                  hasAssignee: false,
+                  totalAmount: "$30.00",
+                  deliveryTime: "Cancelled"
                 }
               ].map((row, index) => (
                 <tr key={index} className="hover:bg-muted/50 transition-colors">
@@ -516,7 +479,19 @@ export default function ActivityAlertsRequestsPage() {
                     fontSize: "12px",
                     fontWeight: "400",
                     lineHeight: "19.5px"
-                  }}>{row.title}</td>
+                  }}>
+                    <div className="max-w-xs">
+                      <div className="truncate" title={row.piece}>
+                        {row.piece}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4" style={{
+                    color: "#525866",
+                    fontSize: "12px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
+                  }}>{row.pickup}</td>
                   <td className="px-4 py-4" style={{
                     color: "#525866",
                     fontSize: "12px",
@@ -539,6 +514,24 @@ export default function ActivityAlertsRequestsPage() {
                       }}
                     >
                       {row.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span 
+                      className="inline-flex items-center justify-center text-xs font-medium capitalize"
+                      style={{
+                        width: "80px",
+                        height: "22px",
+                        gap: "4px",
+                        borderRadius: "4px",
+                        borderWidth: "0.5px",
+                        padding: "10px",
+                        background: row.priorityBg,
+                        border: `0.5px solid ${row.priorityBorder}`,
+                        color: row.priorityColor
+                      }}
+                    >
+                      {row.priority}
                     </span>
                   </td>
                   <td className="px-4 py-4" style={{
@@ -624,7 +617,7 @@ export default function ActivityAlertsRequestsPage() {
           {/* Pagination */}
           <div className="flex items-center justify-between py-3 border-t border-border">
             <p className="text-sm text-muted-foreground">
-              Displaying {((currentPage - 1) * 10) + 1}-{Math.min(currentPage * 10, 30)} results out of 30
+              Displaying 10 results out of 03
             </p>
 
             <div className="flex items-center gap-2">
