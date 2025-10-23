@@ -281,47 +281,47 @@ export default function RoomDeliveryRequestsPage() {
                 <th className="w-12 px-4 py-3">
                   <input type="checkbox" className="rounded" />
                 </th>
-                <th className="px-4 py-1 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
+                <th className="px-4 py-1 text-left text-xs font-semibold tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
                     ID
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
                     Room
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
                     Guest
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
                     Items
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
                     Restaurant
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
                     Pick Up
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
                     Created
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
                     Status
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#000000" }}>
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
                     Assignee
                   </div>

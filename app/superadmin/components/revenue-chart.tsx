@@ -3,18 +3,14 @@
 import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area } from "recharts"
 
 const data = [
-  { month: "Jan", thisYear: 600, lastYear: 500 },
-  { month: "Feb", thisYear: 650, lastYear: 520 },
-  { month: "Mar", thisYear: 700, lastYear: 550 },
-  { month: "Apr", thisYear: 720, lastYear: 580 },
-  { month: "May", thisYear: 750, lastYear: 600 },
-  { month: "Jun", thisYear: 780, lastYear: 620 },
-  { month: "Jul", thisYear: 800, lastYear: 640 },
-  { month: "Aug", thisYear: 820, lastYear: 660 },
-  { month: "Sep", thisYear: 850, lastYear: 680 },
-  { month: "Oct", thisYear: 870, lastYear: 700 },
-  { month: "Nov", thisYear: 900, lastYear: 720 },
-  { month: "Dec", thisYear: 920, lastYear: 750 },
+  { month: "Sep 21", thisYear: 600, lastYear: 500 },
+  { month: "Sep 22", thisYear: 650, lastYear: 520 },
+  { month: "Sep 23", thisYear: 700, lastYear: 550 },
+  { month: "Sep 24", thisYear: 720, lastYear: 580 },
+  { month: "Sep 25", thisYear: 750, lastYear: 600 },
+  { month: "Sep 26", thisYear: 780, lastYear: 620 },
+  { month: "Sep 27", thisYear: 800, lastYear: 640 },
+  { month: "Sep 28", thisYear: 820, lastYear: 660 },
 ]
 
 export default function RevenueChart() {
@@ -41,7 +37,7 @@ export default function RevenueChart() {
       <div 
         className="flex flex-col p-4 w-full"
         style={{
-          height: "350px",
+          height: "280px",
           flexShrink: 0,
           fill: "#FFF",
           strokeWidth: "1px",
@@ -49,8 +45,10 @@ export default function RevenueChart() {
           background: "#FFF",
           border: "1px solid #E9EAEB",
           borderRadius: "14px",
-          marginTop: "-15px"
+          marginTop: "-15px",
+          outline: 'none'
         }}
+        onFocus={(e) => e.target.blur()}
       >
         {/* Legend */}
         <div className="flex items-center justify-end mb-4">
@@ -66,43 +64,37 @@ export default function RevenueChart() {
           </div>
         </div>
 
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" style={{ outline: 'none' }}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="0" stroke="#E5E7EB" horizontal={true} vertical={false} />
           <XAxis 
             dataKey="month" 
-            stroke="#535862" 
+            stroke="transparent" 
             fontSize={12}
-            tick={{ fill: '#535862', fontSize: '12px', fontFamily: 'Fustat', fontWeight: '500', lineHeight: '18px' }}
-            label={{ value: 'Month', position: 'insideBottom', offset: -5, style: { textAnchor: 'middle', fontSize: '12px', fill: '#535862', fontFamily: 'Fustat', fontWeight: '500', lineHeight: '18px' } }}
+            tick={{ fill: '#535862', fontSize: '12px', fontWeight: '500' }}
+            label={{ value: 'Week days', position: 'insideBottom', offset: -5, style: {  fontSize: '12px', fill: '#535862', fontWeight: '500' } }}
           />
           <YAxis 
-            stroke="#535862" 
+            stroke="transparent" 
             fontSize={12} 
             domain={[0, 1000]}
             ticks={[0, 200, 400, 600, 800, 1000]}
-            tick={{ fill: '#535862', fontSize: '12px', fontFamily: 'Fustat', fontWeight: '500', lineHeight: '18px' }}
-            label={{ value: 'Amount', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '12px', fill: '#535862', fontFamily: 'Fustat', fontWeight: '500', lineHeight: '18px' } }}
+            tick={{ fill: '#535862', fontSize: '12px', fontWeight: '500' }}
+            label={{ value: 'Nbr', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '12px', fill: '#535862', fontWeight: '500' } }}
           />
           <Tooltip />
           <defs>
             <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#1F2A44" stopOpacity={0.3}/>
-              <stop offset="100%" stopColor="#4195BF" stopOpacity={0.1}/>
+              <stop offset="0%" stopColor="#126F48" stopOpacity={1}/>
+              <stop offset="50%" stopColor="#126F48" stopOpacity={0.5}/>
+              <stop offset="100%" stopColor="#126F48" stopOpacity={0.2}/>
             </linearGradient>
           </defs>
-          <Area
-            type="monotone"
-            dataKey="thisYear"
-            stroke="none"
-            fill="url(#areaGradient)"
-            fillOpacity={0.3}
-          />
           <Line 
             type="monotone" 
             dataKey="thisYear" 
             stroke="#1F2A44" 
-            strokeWidth={0.5} 
+            strokeWidth={2} 
             dot={false}
             strokeDasharray="none"
           />
@@ -110,9 +102,17 @@ export default function RevenueChart() {
             type="monotone" 
             dataKey="lastYear" 
             stroke="#4195BF" 
-            strokeWidth={0.5} 
+            strokeWidth={2} 
             dot={false}
             strokeDasharray="none"
+          />
+          <Area
+            type="monotone"
+            dataKey="thisYear"
+            stroke="none"
+            fill="url(#areaGradient)"
+            fillOpacity={1}
+            connectNulls={false}
           />
         </LineChart>
         </ResponsiveContainer>

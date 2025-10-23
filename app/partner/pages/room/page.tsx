@@ -15,6 +15,7 @@ import {
 } from "react-icons/ri"
 import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 import StatCard from "@/app/superadmin/components/stat-card"
+import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
 
 interface Room {
   id: string
@@ -79,6 +80,26 @@ export default function RoomPage() {
   const [showAddStepOne, setShowAddStepOne] = useState(false)
   const [newRoomName, setNewRoomName] = useState("")
   const [newRoomStatus, setNewRoomStatus] = useState<"Full" | "Empty">("Empty")
+  // Selection state
+  const [selectedRooms, setSelectedRooms] = useState<Set<string>>(new Set())
+
+  const handleRoomSelection = (roomId: string, isSelected: boolean) => {
+    const newSelectedRooms = new Set(selectedRooms)
+    if (isSelected) {
+      newSelectedRooms.add(roomId)
+    } else {
+      newSelectedRooms.delete(roomId)
+    }
+    setSelectedRooms(newSelectedRooms)
+  }
+
+  const handleSelectAll = () => {
+    if (selectedRooms.size === currentRooms.length) {
+      setSelectedRooms(new Set())
+    } else {
+      setSelectedRooms(new Set(currentRooms.map(room => room.id)))
+    }
+  }
 
   const handleDeleteRoom = (room: Room) => {
     setRoomToDelete(room)
@@ -330,8 +351,23 @@ export default function RoomPage() {
     <div className="p-6">
       {/* Page Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Rooms</h1>
-        <p className="text-sm text-muted-foreground">Last updated on 09/15/2025, 12AM</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Rooms</h1>
+            <p className="text-sm text-muted-foreground">Last updated on 09/15/2025, 12AM</p>
+          </div>
+          <div className="flex items-center" style={{ border: "0.925px solid #CED4DA", borderTopLeftRadius: "6px", borderBottomLeftRadius: "6px",  borderTopRightRadius: "6px", borderBottomRightRadius: "6px"}}>
+            <button className="px-4 py-2 bg-[#1F2A44] text-white rounded-[1px] text-sm font-medium hover:bg-[#1F2A44]/90 transition-colors" style={{ borderRight: "0.925px solid #CED4DA", borderTopLeftRadius: "6px", borderBottomLeftRadius: "6px"}}>
+              Semaine
+            </button>
+            <button className="px-4 py-2 bg-[#FFF] text-[rgba(33,33,33,0.60)] rounded-[1px] text-sm font-medium hover:bg-muted/80 transition-colors" style={{ borderRight: "0.925px solid #CED4DA",  borderTopRightRadius: "6px", borderBottomRightRadius: "6px" }}>
+              Mois
+            </button>
+            <button className="px-4 py-2 bg-[#FFF] text-[rgba(33,33,33,0.60)] rounded-[1px] text-sm font-medium hover:bg-muted/80 transition-colors" style={{ borderRight: "0.925px solid #CED4DA",  borderTopRightRadius: "6px", borderBottomRightRadius: "6px" }}>
+              Plage de dates
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -367,7 +403,70 @@ export default function RoomPage() {
          {/* Table Header */}
          <div className="flex items-center justify-between pb-4">
            <h3 className="text-base font-semibold text-foreground">Rooms list</h3>
-           <div className="flex items-center gap-2">
+           {selectedRooms.size > 0 ? (
+             // Selection controls
+             <div className="flex items-center gap-4">
+               <button 
+                 onClick={() => setSelectedRooms(new Set())}
+                 className="flex items-center justify-center w-6 h-6 rounded text-white"
+                 style={{ backgroundColor: "#1F2A44" }}
+               >
+                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                   <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                 </svg>
+               </button>
+               <span style={{ color: "#00000099", fontSize: "14px" }}>
+                 {selectedRooms.size} item{selectedRooms.size > 1 ? 's' : ''} selected
+               </span>
+               <button 
+                 onClick={handleSelectAll}
+                 style={{ 
+                   color: "#212121", 
+                   fontSize: "14px", 
+                   textDecoration: "underline",
+                   fontWeight: "400"
+                 }}
+               >
+                 Select all items
+               </button>
+               <button 
+                 style={{ 
+                   color: "#1F2A44", 
+                   fontSize: "14px", 
+                   textDecoration: "underline",
+                   fontWeight: "400",
+                   display: "flex",
+                   alignItems: "center",
+                   gap: "4px"
+                 }}
+               >
+                 <svg width="14" height="16" viewBox="0 0 14 16" fill="none">
+                   <path d="M11.3333 10.6666C11.6705 10.9943 13 11.8665 13 12.3333M11.3333 14C11.6705 13.6723 13 12.8001 13 12.3333M13 12.3333L7.66667 12.3333" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+                   <path d="M6.33398 14.6666H6.15217C3.97803 14.6666 2.89096 14.6666 2.13603 14.1347C1.91973 13.9823 1.7277 13.8016 1.56578 13.598C1.00065 12.8875 1.00065 11.8644 1.00065 9.81814V8.12117C1.00065 6.14572 1.00065 5.158 1.31328 4.36913C1.81586 3.10091 2.87874 2.10055 4.22622 1.62753C5.0644 1.33329 6.11386 1.33329 8.21277 1.33329C9.41215 1.33329 10.0118 1.33329 10.4908 1.50143C11.2608 1.77172 11.8682 2.34336 12.1553 3.06805C12.334 3.51884 12.334 4.08325 12.334 5.21208V8.66663" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+                   <path d="M1.0013 8C1.0013 6.7727 1.99622 5.77778 3.22352 5.77778C3.66738 5.77778 4.19066 5.85555 4.62221 5.73992C5.00565 5.63718 5.30514 5.33768 5.40789 4.95424C5.52352 4.52269 5.44575 3.99941 5.44575 3.55556C5.44575 2.32826 6.44067 1.33333 7.66797 1.33333" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+                 </svg>
+                 Export
+               </button>
+               <button 
+                 style={{ 
+                   color: "#1F2A44", 
+                   fontSize: "14px", 
+                   textDecoration: "underline",
+                   fontWeight: "400",
+                   display: "flex",
+                   alignItems: "center",
+                   gap: "4px"
+                 }}
+               >
+                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                   <path d="M6 2V1C6 0.447715 6.44772 0 7 0H9C9.55228 0 10 0.447715 10 1V2M6 2H2M6 2H10M10 2H14M2 2V13C2 14.1046 2.89543 15 4 15H12C13.1046 15 14 14.1046 14 13V2M4 6V11M8 6V11M12 6V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                 </svg>
+                 Delete
+               </button>
+             </div>
+           ) : (
+             // Normal controls
+             <div className="flex items-center gap-2">
              <div className="relative">
                <select
                  value={itemsPerPage}
@@ -440,7 +539,7 @@ export default function RoomPage() {
                </div>
              </div>
 
-             <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors">
+             <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
                <svg
                  xmlns="http://www.w3.org/2000/svg"
                  width="14"
@@ -471,7 +570,7 @@ export default function RoomPage() {
                <span className="text-sm font-medium text-[#212121]">Export</span>
              </button>
 
-             <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors">
+             <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
                <svg
                  xmlns="http://www.w3.org/2000/svg"
                  width="14"
@@ -504,12 +603,14 @@ export default function RoomPage() {
 
              <button 
                onClick={handleAddRoom}
-               className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-sm font-medium transition-colors"
+               className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 text-sm font-medium transition-colors"
+               style={{ borderRadius: "6px" }}
              >
                <RiAddLine className="w-5 h-5" />
                Add Room
              </button>
            </div>
+           )}
          </div>
 
          {/* Table */}
@@ -518,34 +619,65 @@ export default function RoomPage() {
              <thead className="bg-muted/50">
                <tr>
                  <th className="w-12 px-4 py-4">
-                   <input type="checkbox" className="rounded" />
+                   <input 
+                     type="checkbox" 
+                     className="rounded" 
+                     checked={selectedRooms.size === currentRooms.length && currentRooms.length > 0}
+                     onChange={(e) => handleSelectAll(e.target.checked)}
+                     style={{
+                       accentColor: "#1F2A44",
+                       width: "16px",
+                       height: "16px"
+                     }}
+                   />
                  </th>
-                 <th className="px-4 py-4 text-left text-xs font-semibold uppercase" style={{ color: "#000000" }}>
-                   Room name
+                 <th className="px-4 py-4 text-left text-xs font-semibold" style={{ color: "#000000" }}>
+                   Room ID
                  </th>
-                 <th className="px-4 py-4 text-left text-xs font-semibold uppercase" style={{ color: "#000000" }}>
+                 <th className="px-4 py-4 text-left text-xs font-semibold" style={{ color: "#000000" }}>
+                   Room Name
+                 </th>
+                 <th className="px-4 py-4 text-left text-xs font-semibold" style={{ color: "#000000" }}>
                    Status
                  </th>
-                 <th className="px-4 py-4 text-left text-xs font-semibold uppercase" style={{ color: "#000000" }}>
-                   The resident
+                 <th className="px-4 py-4 text-left text-xs font-semibold" style={{ color: "#000000" }}>
+                   The Resident
                  </th>
-                 <th className="px-4 py-4 text-left text-xs font-semibold uppercase" style={{ color: "#000000" }}>
-                   Check in
+                 <th className="px-4 py-4 text-left text-xs font-semibold" style={{ color: "#000000" }}>
+                   Check In
                  </th>
-                 <th className="px-4 py-4 text-left text-xs font-semibold uppercase" style={{ color: "#000000" }}>
-                   Check out
+                 <th className="px-4 py-4 text-left text-xs font-semibold" style={{ color: "#000000" }}>
+                   Check Out
                  </th>
                  <th className="w-12 px-4 py-4"></th>
                </tr>
              </thead>
              <tbody className="divide-y divide-border">
                {currentRooms.map((room) => (
-                 <tr key={room.id} className="hover:bg-muted/50 transition-colors">
+                 <tr 
+                   key={room.id} 
+                   className={`hover:bg-muted/50 transition-colors ${
+                     selectedRooms.has(room.id) ? 'bg-muted/30' : ''
+                   }`}
+                 >
                    <td className="px-4 py-4">
-                     <input type="checkbox" className="rounded" />
+                     <input 
+                       type="checkbox" 
+                       className="rounded" 
+                       checked={selectedRooms.has(room.id)}
+                       onChange={(e) => handleRoomSelection(room.id, e.target.checked)}
+                       style={{
+                         accentColor: "#1F2A44",
+                         width: "16px",
+                         height: "16px"
+                       }}
+                     />
                    </td>
                    <td className="px-4 py-4">
-                     <span className="text-sm text-foreground">{room.roomNumber}</span>
+                     <span className="text-sm" style={{ color: "#525866" }}>#{room.roomNumber}</span>
+                   </td>
+                   <td className="px-4 py-4">
+                     <span className="text-sm" style={{ color: "#525866" }}>{`R${room.id}`}</span>
                    </td>
                    <td className="px-4 py-4">
                      <div
@@ -563,13 +695,13 @@ export default function RoomPage() {
                        {room.status === "Available" ? "Empty" : "Full"}
                      </div>
                    </td>
-                  <td className="px-4 py-4 text-sm text-foreground">
+                  <td className="px-4 py-4 text-sm" style={{ color: "#525866" }}>
                     {room.status === "Available" ? "-" : (room.resident || "Lindsey Stroud")}
                   </td>
-                  <td className="px-4 py-4 text-sm text-foreground">
+                  <td className="px-4 py-4 text-sm" style={{ color: "#525866" }}>
                     {room.status === "Available" ? "-" : (room.checkIn || "Jan 15, 10:30 AM")}
                   </td>
-                  <td className="px-4 py-4 text-sm text-foreground">
+                  <td className="px-4 py-4 text-sm" style={{ color: "#525866" }}>
                     {room.status === "Available" ? "-" : (room.checkOut || "Jan 15, 10:30 AM")}
                   </td>
                    <td className="px-4 py-4">
@@ -627,7 +759,7 @@ export default function RoomPage() {
               disabled={currentPage === 1}
               className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              &lt;
+              <LeftArrow />
             </button>
 
             {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
@@ -650,7 +782,7 @@ export default function RoomPage() {
               disabled={currentPage === totalPages}
               className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              &gt;
+              <RightArrow />
             </button>
           </div>
         </div>
@@ -736,7 +868,7 @@ export default function RoomPage() {
                 padding: "20px 16px",
                 justifyContent: "flex-end",
                 alignItems: "center",
-                gap: "72px",
+                gap: "10px",
                 alignSelf: "stretch",
                 borderRadius: "0 0 10px 10px",
                 borderTop: "1px solid rgba(0, 0, 0, 0.04)",
@@ -829,7 +961,7 @@ export default function RoomPage() {
                style={{
                  borderTop: "1px solid rgba(0, 0, 0, 0.04)",
                  background: "#FFF",
-                 gap: "72px"
+                 gap: "10px"
                }}
              >
                <div className="flex gap-[16px] flex-end">
@@ -1390,7 +1522,7 @@ export default function RoomPage() {
               style={{
                 width: "704px",
                 height: "77.04000091552734px",
-                gap: "72px",
+                gap: "10px",
                 opacity: 1,
                 borderBottomRightRadius: "10px",
                 borderBottomLeftRadius: "10px",
@@ -1671,13 +1803,34 @@ export default function RoomPage() {
              <div className="flex justify-end items-center border-t p-5 gap-4">
                <button
                  onClick={closeAddStepOne}
-                 className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors bg-gray-50"
+                 className="flex items-center justify-center border rounded text-black"
+                 style={{
+                   padding: "8.52px 10px",
+                   borderRadius: "6px",
+                   background: "#FBFAFA",
+                   border: "1px solid #CED4DA",
+                   fontWeight: 400,
+                   fontSize: "14px",
+                   lineHeight: "19.5px",
+                   textAlign: "center",
+                   opacity: 1,
+                 }}
                >
                  Cancel
                </button>
                <button
                  onClick={handleSaveStepOne}
-                 className="px-5 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors bg-primary"
+                 className="flex items-center justify-center rounded text-white"
+                 style={{
+                   padding: "8.52px 20px",
+                   borderRadius: "6px",
+                   background: "#1F2A44",
+                   fontWeight: 400,
+                   fontSize: "14px",
+                   lineHeight: "19.5px",
+                   textAlign: "center",
+                   opacity: 1,
+                 }}
                >
                  Save
                </button>

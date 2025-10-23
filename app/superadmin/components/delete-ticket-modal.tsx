@@ -99,7 +99,7 @@ export default function DeleteTicketModal({ ticket, isOpen, onClose, onConfirm }
           style={{
             borderTop: "1px solid rgba(0, 0, 0, 0.04)",
             background: "#FFF",
-            gap: "72px"
+            gap: "10px"
           }}
         >
           <div className="flex gap-[16px] flex-end">

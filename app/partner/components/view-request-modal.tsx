@@ -55,11 +55,11 @@ export default function ViewRequestModal({ request, isOpen, onClose }: ViewReque
   const InfoRow = ({ label, value, centerValue = false }: { label: string; value: string | React.ReactNode; centerValue?: boolean }) => (
     <div className="flex items-center w-full">
       <div className="w-24 flex-shrink-0">
-        <span className="text-sm font-medium text-[#212121]">{label}</span>
+      <span className="text-sm font-medium text-[#212121]">{label}</span>
       </div>
       <div className="w-[210px] flex-shrink-0"></div>
       <div className="w-40 flex-shrink-0 flex items-center">
-        <span className="text-sm text-[#525866]">{value}</span>
+      <span className="text-sm text-[#525866]">{value}</span>
       </div>
     </div>
   )

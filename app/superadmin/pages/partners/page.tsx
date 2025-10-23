@@ -377,7 +377,7 @@ export default function PartnersPage() {
               className="focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
 
-            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors">
+            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="16"
@@ -397,7 +397,7 @@ export default function PartnersPage() {
               <span className="text-sm font-medium text-[#212121]">Filtre</span>
             </button>
 
-            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors">
+            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="14"
@@ -429,7 +429,8 @@ export default function PartnersPage() {
             </button>
 
             <button 
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 text-sm font-medium transition-colors"
+              style={{ borderRadius: "6px" }}
               onClick={() => setShowAddPartnerModal(true)}
             >
               <RiAddLine className="w-5 h-5" />
@@ -800,7 +801,7 @@ export default function PartnersPage() {
               style={{
                 borderTop: "1px solid rgba(0, 0, 0, 0.04)",
                 background: "#FFF",
-                gap: "72px"
+                gap: "10px"
               }}
             
         >
@@ -2332,7 +2333,7 @@ export default function PartnersPage() {
                 padding: "20px 16px",
                 justifyContent: "flex-end",
                 alignItems: "center",
-                gap: "72px",
+                gap: "10px",
                 alignSelf: "stretch",
                 borderRadius: "0 0 10px 10px",
                 borderTop: "1px solid rgba(0, 0, 0, 0.04)",

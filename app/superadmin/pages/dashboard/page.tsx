@@ -45,7 +45,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           {/* Filter Button */}
-          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]">
+          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]" style={{ borderRadius: "6px" }}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -65,7 +65,7 @@ export default function DashboardPage() {
             <span className="text-sm font-medium text-[#212121]">Filter</span>
           </button>
           {/* Export Button */}
-          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]">
+          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]" style={{ borderRadius: "6px" }}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="14"
@@ -164,7 +164,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           {/* Filter Button */}
-          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]">
+          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]" style={{ borderRadius: "6px" }}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -184,7 +184,7 @@ export default function DashboardPage() {
             <span className="text-sm font-medium text-[#212121]">Filter</span>
           </button>
           {/* Export Button */}
-          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]">
+          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]" style={{ borderRadius: "6px" }}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="14"
@@ -492,7 +492,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           {/* Filter Button */}
-          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]">
+          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]" style={{ borderRadius: "6px" }}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -512,7 +512,7 @@ export default function DashboardPage() {
             <span className="text-sm font-medium text-[#212121]">Filter</span>
           </button>
           {/* Export Button */}
-          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]">
+          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]" style={{ borderRadius: "6px" }}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="14"

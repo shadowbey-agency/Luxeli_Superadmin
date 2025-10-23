@@ -56,7 +56,7 @@ export default function DropdownMenu({ trigger, items }: DropdownMenuProps) {
             className="z-50"
             style={{ position: "fixed", top: position.top, left: position.left, transform: "translateX(-100%)" }}
           >
-            <div className="w-56 max-h-[280px] overflow-auto bg-white rounded-[8px] shadow-lg border border-border">
+            <div className="w-48 max-h-[280px] overflow-auto bg-white border border-border" style={{ borderRadius: "10px", boxShadow: "0px 0px 32px 4px #161A1D1A" }}>
               <div className="py-1">
                 {items.map((item, index) => (
                   <button

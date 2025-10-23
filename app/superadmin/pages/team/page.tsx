@@ -186,7 +186,7 @@ export default function TeamPage() {
               className="focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
 
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-sm font-medium transition-colors">
+            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 text-sm font-medium transition-colors" style={{ borderRadius: "6px" }}>
               <RiAddLine className="w-5 h-5" />
               Add Member
             </button>
@@ -676,7 +676,7 @@ export default function TeamPage() {
               style={{
                 borderTop: "1px solid rgba(0, 0, 0, 0.04)",
                 background: "#FFF",
-                gap: "72px"
+                gap: "10px"
               }}
             >
               <div className="flex gap-[16px] flex-end">
