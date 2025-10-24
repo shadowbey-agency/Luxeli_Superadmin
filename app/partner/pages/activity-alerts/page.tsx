@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation"
 import PublicIcon from "../../components/public-icon"
-import { RiNotification3Line } from "react-icons/ri"
 
 export default function ActivityAlertsPage() {
   const router = useRouter()
@@ -60,7 +59,7 @@ export default function ActivityAlertsPage() {
           {/* Content Area */}
           <div style={{ background: "#FFFFFF", padding: "16px" }}>
             <div className="text-center py-12">
-              <RiNotification3Line className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <PublicIcon src="/assets/icons/notification.svg" alt="Activity Alerts" width={64} height={64} className="mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Activity Alerts</h3>
               <p className="text-gray-500">Select a tab above to view requests or activities</p>
             </div>
