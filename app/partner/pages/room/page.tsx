@@ -3,16 +3,13 @@
 import { useState } from "react"
 import {
   RiMoreLine,
-  RiEditLine,
   RiDeleteBinLine,
   RiAddLine,
   RiHotelBedLine,
   RiUserLine,
   RiDownloadLine,
-  RiQrCodeLine,
-  RiUserAddLine,
-  RiHistoryLine,
 } from "react-icons/ri"
+import PublicIcon from "@/app/partner/components/public-icon"
 import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 import StatCard from "@/app/superadmin/components/stat-card"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
@@ -155,6 +152,12 @@ export default function RoomPage() {
   const closeAssignModal = () => {
     setShowAssignModal(false)
     setRoomToAssign(null)
+  }
+
+  const handleUnassignRoom = (room: Room) => {
+    // Handle room unassignment logic here
+    console.log("Unassigning room:", room.roomNumber)
+    // You can implement actual unassignment functionality here
   }
 
   const handleSaveAssignment = () => {
@@ -714,24 +717,41 @@ export default function RoomPage() {
                       items={[
                         {
                           label: "Edit",
-                          icon: <RiEditLine className="w-4 h-4" />,
+                          icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>,
                           onClick: () => handleEditRoom(room),
                         },
                         {
                           label: "Room QR code",
-                          icon: <RiQrCodeLine className="w-4 h-4" />,
+                          icon: <PublicIcon src="/assets/icons/qr-code.svg" alt="QR code" width={16} height={16} />,
                           onClick: () => handleRoomQRCode(room),
                         },
-                        {
+                        ...(room.resident ? [] : [{
                           label: "Assign room",
-                          icon: <RiUserAddLine className="w-4 h-4" />,
+                          icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 16 15">
+                            <path d="M1.33301 6.81348C2.88748 5.18536 5.09516 5.1087 6.66634 6.81348M5.66307 2.48014C5.66307 3.40062 4.91582 4.14681 3.99403 4.14681C3.07224 4.14681 2.32499 3.40062 2.32499 2.48014C2.32499 1.55967 3.07224 0.813477 3.99403 0.813477C4.91582 0.813477 5.66307 1.55967 5.66307 2.48014Z" stroke="#141B34" strokeLinecap="round"/>
+                            <path d="M9.33301 14.1465C10.8875 12.5184 13.0952 12.4417 14.6663 14.1465M13.6631 9.81315C13.6631 10.7336 12.9158 11.4798 11.994 11.4798C11.0722 11.4798 10.325 10.7336 10.325 9.81315C10.325 8.89268 11.0722 8.14648 11.994 8.14648C12.9158 8.14648 13.6631 8.89268 13.6631 9.81315Z" stroke="#141B34" strokeLinecap="round"/>
+                            <path d="M2 8.81331C2 11.3933 4.08667 13.48 6.66667 13.48L6 12.1466" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M10 1.47998H14M10 3.47998H14M10 5.47998H12.3333" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>,
                           onClick: () => handleAssignRoom(room),
-                        },
+                        }]),
                         {
                           label: "Room history",
-                          icon: <RiHistoryLine className="w-4 h-4" />,
+                          icon: <PublicIcon src="/assets/icons/room history.svg" alt="Room history" width={16} height={16} />,
                           onClick: () => handleRoomHistory(room),
                         },
+                        ...(room.resident ? [{
+                          label: "Unassign",
+                          icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 16 15">
+                            <path d="M1.33301 6.81348C2.88748 5.18536 5.09516 5.1087 6.66634 6.81348M5.66307 2.48014C5.66307 3.40062 4.91582 4.14681 3.99403 4.14681C3.07224 4.14681 2.32499 3.40062 2.32499 2.48014C2.32499 1.55967 3.07224 0.813477 3.99403 0.813477C4.91582 0.813477 5.66307 1.55967 5.66307 2.48014Z" stroke="#141B34" strokeLinecap="round"/>
+                            <path d="M9.33301 14.1465C10.8875 12.5184 13.0952 12.4417 14.6663 14.1465M13.6631 9.81315C13.6631 10.7336 12.9158 11.4798 11.994 11.4798C11.0722 11.4798 10.325 10.7336 10.325 9.81315C10.325 8.89268 11.0722 8.14648 11.994 8.14648C12.9158 8.14648 13.6631 8.89268 13.6631 9.81315Z" stroke="#141B34" strokeLinecap="round"/>
+                            <path d="M2 8.81331C2 11.3933 4.08667 13.48 6.66667 13.48L6 12.1466" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M10 1.47998H14M10 3.47998H14M10 5.47998H12.3333" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>,
+                          onClick: () => handleUnassignRoom(room),
+                        }] : []),
                         {
                           label: "Delete",
                           icon: <RiDeleteBinLine className="w-4 h-4" />,

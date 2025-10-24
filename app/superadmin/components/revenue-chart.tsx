@@ -18,9 +18,9 @@ export default function RevenueChart() {
     <div className="flex flex-col w-full">
       {/* Header */}
       <div 
-        className="flex items-center px-4 w-full"
+        className="flex py-[12px] px-4 w-full"
         style={{
-          height: "64px",
+          height: "65px",
           flexShrink: 0,
           fill: "#FCFCFC",
           strokeWidth: "1px",
@@ -30,7 +30,7 @@ export default function RevenueChart() {
           borderRadius: "12px 12px 0 0"
         }}
       >
-        <h3 className="text-sm font-semibold text-[#212121]">Revenue — This year vs last year</h3>
+        <h3 className="text-sm font-semibold text-[#212121]">Empty vs Full Room</h3>
       </div>
 
       {/* Content */}
@@ -54,12 +54,12 @@ export default function RevenueChart() {
         <div className="flex items-center justify-end mb-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#1F2A44]"></div>
-              <span className="text-sm text-muted-foreground">This year (2025)</span>
+              <div className="w-[10px] h-[10px] rounded-full bg-[#4195BF]"></div>
+              <span className="text-medium text-muted-foreground">Empty Room</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#4195BF]"></div>
-              <span className="text-sm text-muted-foreground">Last year (2024)</span>
+              <div className="w-[10px] h-[10px] rounded-full bg-[#1F2A44]"></div>
+              <span className="text-medium text-muted-foreground">Full Room</span>
             </div>
           </div>
         </div>
@@ -71,16 +71,16 @@ export default function RevenueChart() {
             dataKey="month" 
             stroke="transparent" 
             fontSize={12}
-            tick={{ fill: '#535862', fontSize: '12px', fontWeight: '500' }}
-            label={{ value: 'Week days', position: 'insideBottom', offset: -5, style: {  fontSize: '12px', fill: '#535862', fontWeight: '500' } }}
+            tick={{ fill: '#212121', fontSize: '12px', fontWeight: '500' }}
+            label={{ value: 'Week days', position: 'insideBottom', offset: -5, style: {  fontSize: '12px', fill: '#212121', fontWeight: '500' } }}
           />
           <YAxis 
             stroke="transparent" 
             fontSize={12} 
             domain={[0, 1000]}
             ticks={[0, 200, 400, 600, 800, 1000]}
-            tick={{ fill: '#535862', fontSize: '12px', fontWeight: '500' }}
-            label={{ value: 'Nbr', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '12px', fill: '#535862', fontWeight: '500' } }}
+            tick={{ fill: '#212121', fontSize: '12px', fontWeight: '500' }}
+            label={{ value: 'Nbr', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '12px', fill: '#212121', fontWeight: '500' } }}
           />
           <Tooltip />
           <defs>

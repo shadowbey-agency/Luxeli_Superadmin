@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { RiFileList3Line, RiNotification3Line } from "react-icons/ri"
+import PublicIcon from "../../components/public-icon"
 
 export default function ActivityAlertsPage() {
   const router = useRouter()
@@ -10,13 +10,13 @@ export default function ActivityAlertsPage() {
     {
       id: "requests",
       label: "Requests",
-      icon: <RiFileList3Line className="w-4 h-4" />,
+      icon: <PublicIcon src="/assets/icons/houskeeping-request.svg" alt="Requests" width={16} height={16} />,
       href: "/partner/pages/activity-alerts/requests"
     },
     {
       id: "activities", 
       label: "Activities",
-      icon: <RiNotification3Line className="w-4 h-4" />,
+      icon: <PublicIcon src="/assets/icons/menu-01.svg" alt="Activities" width={16} height={16} />,
       href: "/partner/pages/activity-alerts/activities"
     }
   ]

@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { RiFileList3Line, RiCalendarEventLine, RiSettings3Line, RiArrowDownSLine, RiCalendarLine } from "react-icons/ri"
+import { RiCalendarEventLine, RiArrowDownSLine } from "react-icons/ri"
+import PublicIcon from "@/app/partner/components/public-icon"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
-import ViewRequestModal from "@/app/partner/components/view-request-modal"
+import ViewBookingModal from "@/app/partner/components/view-booking-modal"
 import AssignStaffModal from "@/app/partner/components/assign-staff-modal"
 
 export default function BookingRequestsPage() {
@@ -39,13 +40,13 @@ export default function BookingRequestsPage() {
     {
       id: "requests",
       label: "Requests",
-      icon: <RiFileList3Line className="w-4 h-4" />,
+      icon: <PublicIcon src="/assets/icons/houskeeping-request.svg" alt="Requests" width={16} height={16} />,
       href: "/partner/pages/booking/requests"
     },
     {
       id: "bookings-setting", 
       label: "Bookings setting",
-      icon: <RiSettings3Line className="w-4 h-4" />,
+      icon: <PublicIcon src="/assets/icons/settings.svg" alt="Bookings setting" width={16} height={16} />,
       href: "/partner/pages/booking/settings"
     }
   ]
@@ -201,7 +202,7 @@ export default function BookingRequestsPage() {
                   gap: "6px"
                 }}
               >
-                <RiCalendarLine className="w-4 h-4 text-[#1F2A44]" />
+                <PublicIcon src="/assets/icons/calendar.svg" alt="Calendar" width={16} height={16} style={{ filter: "brightness(0) saturate(100%)" }} />
               </button>
               
               {/* Export button */}
@@ -562,7 +563,23 @@ export default function BookingRequestsPage() {
                             </button>
                             <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Edit
+                            </button>
+                            <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 16 17">
+                                <g clipPath="url(#clip0_1_12740)">
+                                  <path d="M2.66699 12.4827C2.66699 12.8364 2.80747 13.1755 3.05752 13.4256C3.30756 13.6756 3.6467 13.8161 4.00033 13.8161C4.35395 13.8161 4.69309 13.6756 4.94313 13.4256C5.19318 13.1755 5.33366 12.8364 5.33366 12.4827C5.33366 12.1291 5.19318 11.79 4.94313 11.5399C4.69309 11.2899 4.35395 11.1494 4.00033 11.1494C3.6467 11.1494 3.30756 11.2899 3.05752 11.5399C2.80747 11.79 2.66699 12.1291 2.66699 12.4827Z" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M10.667 12.4827C10.667 12.8364 10.8075 13.1755 11.0575 13.4256C11.3076 13.6756 11.6467 13.8161 12.0003 13.8161C12.3539 13.8161 12.6931 13.6756 12.9431 13.4256C13.1932 13.1755 13.3337 12.8364 13.3337 12.4827C13.3337 12.1291 13.1932 11.79 12.9431 11.5399C12.6931 11.2899 12.3539 11.1494 12.0003 11.1494C11.6467 11.1494 11.3076 11.2899 11.0575 11.5399C10.8075 11.79 10.667 12.1291 10.667 12.4827Z" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M4 8.48275V7.14941C4 6.08855 4.42143 5.07113 5.17157 4.32099C5.92172 3.57084 6.93913 3.14941 8 3.14941C9.06087 3.14941 10.0783 3.57084 10.8284 4.32099C11.5786 5.07113 12 6.08855 12 7.14941V8.48275" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M10 6.47998L12 8.47998L14 6.47998" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+                                </g>
+                                <defs>
+                                  <clipPath id="clip0_1_12740">
+                                    <rect width="16" height="16" fill="white" transform="translate(0 0.47998)"/>
+                                  </clipPath>
+                                </defs>
                               </svg>
                               Change status
                             </button>
@@ -574,8 +591,11 @@ export default function BookingRequestsPage() {
                                 setShowDropdown(null)
                               }}
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 16 15">
+                                <path d="M1.33301 6.81348C2.88748 5.18536 5.09516 5.1087 6.66634 6.81348M5.66307 2.48014C5.66307 3.40062 4.91582 4.14681 3.99403 4.14681C3.07224 4.14681 2.32499 3.40062 2.32499 2.48014C2.32499 1.55967 3.07224 0.813477 3.99403 0.813477C4.91582 0.813477 5.66307 1.55967 5.66307 2.48014Z" stroke="#141B34" strokeLinecap="round"/>
+                                <path d="M9.33301 14.1465C10.8875 12.5184 13.0952 12.4417 14.6663 14.1465M13.6631 9.81315C13.6631 10.7336 12.9158 11.4798 11.994 11.4798C11.0722 11.4798 10.325 10.7336 10.325 9.81315C10.325 8.89268 11.0722 8.14648 11.994 8.14648C12.9158 8.14648 13.6631 8.89268 13.6631 9.81315Z" stroke="#141B34" strokeLinecap="round"/>
+                                <path d="M2 8.81331C2 11.3933 4.08667 13.48 6.66667 13.48L6 12.1466" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M10 1.47998H14M10 3.47998H14M10 5.47998H12.3333" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                               Assign to staff
                             </button>
@@ -639,7 +659,7 @@ export default function BookingRequestsPage() {
       </div>
 
       {/* View Request Modal */}
-      <ViewRequestModal
+      <ViewBookingModal
         request={selectedRequest}
         isOpen={showViewRequest}
         onClose={() => {

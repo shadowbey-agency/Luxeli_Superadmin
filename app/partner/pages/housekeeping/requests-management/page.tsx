@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { RiFileList3Line, RiHome4Line, RiSettings3Line, RiArrowDownSLine } from "react-icons/ri"
+import { RiArrowDownSLine } from "react-icons/ri"
+import PublicIcon from "../../../components/public-icon"
 import AddItemModal from "../../../components/add-item-modal"
 
 export default function RequestsManagementPage() {
@@ -13,19 +14,19 @@ export default function RequestsManagementPage() {
     {
       id: "requests",
       label: "Requests",
-      icon: <RiFileList3Line className="w-4 h-4" />,
+      icon: <PublicIcon src="/assets/icons/houskeeping-request.svg" alt="Requests" width={16} height={16} />,
       href: "/partner/pages/housekeeping/requests"
     },
     {
       id: "house-cleaning", 
       label: "House cleaning",
-      icon: <RiHome4Line className="w-4 h-4" />,
+      icon: <PublicIcon src="/assets/icons/housekeeping-cleaning.svg" alt="House cleaning" width={16} height={16} />,
       href: "/partner/pages/housekeeping/house-cleaning"
     },
     {
       id: "requests-management",
       label: "Requests management", 
-      icon: <RiSettings3Line className="w-4 h-4" />,
+      icon: <PublicIcon src="/assets/icons/settings.svg" alt="Requests management" width={16} height={16} />,
       href: "/partner/pages/housekeeping/requests-management"
     }
   ]

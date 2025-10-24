@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  RiSettings4Line,
   RiMenuFoldLine,
   RiMenuUnfoldLine,
   RiArrowUpSLine,
@@ -16,6 +15,7 @@ import {
   RiShirtLine,
   RiTruckLine,
 } from "react-icons/ri"
+import PublicIcon from "./public-icon"
 import { useState, useEffect } from "react"
 import DashboardSidebarIcon from "./dashboard-sidebar-icon"
 import RoomSidebarIcon from "./room-sidebar-icon"
@@ -31,68 +31,74 @@ const menuItems = [
   { icon: SupportSidebarIcon, label: "Support", href: "/partner/pages/support" },
   { icon: TeamSidebarIcon, label: "Team", href: "/partner/pages/team" },
   { icon: SubscriptionSidebarIcon, label: "Subscription", href: "/partner/pages/subscription" },
-  { icon: RiSettings4Line, label: "Settings", href: "/partner/pages/settings", isReactIcon: true },
+  { icon: PublicIcon, label: "Settings", href: "/partner/pages/settings", isPublicIcon: true, iconProps: { src: "/assets/icons/settings.svg", alt: "Settings", width: 20, height: 20 } },
 ]
 
 const servicesItems = [
   {
     label: "Housekeeping",
-    icon: RiHome4Line,
+    icon: PublicIcon,
     href: "/partner/pages/housekeeping",
-    isReactIcon: true,
+    isPublicIcon: true,
+    iconProps: { src: "/assets/icons/housekeeping.svg", alt: "Housekeeping", width: 20, height: 20 },
     subItems: [
-      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/housekeeping/requests", isReactIcon: true },
-      { label: "House cleaning", icon: RiHome4Line, href: "/partner/pages/housekeeping/house-cleaning", isReactIcon: true },
-      { label: "Requests management", icon: RiSettings3Line, href: "/partner/pages/housekeeping/requests-management", isReactIcon: true },
+      { label: "Requests", icon: PublicIcon, href: "/partner/pages/housekeeping/requests", isPublicIcon: true, iconProps: { src: "/assets/icons/houskeeping-request.svg", alt: "Requests", width: 20, height: 20 } },
+      { label: "House cleaning", icon: PublicIcon, href: "/partner/pages/housekeeping/house-cleaning", isPublicIcon: true, iconProps: { src: "/assets/icons/housekeeping-cleaning.svg", alt: "House cleaning", width: 20, height: 20 } },
+      { label: "Requests management", icon: PublicIcon, href: "/partner/pages/housekeeping/requests-management", isPublicIcon: true, iconProps: { src: "/assets/icons/settings.svg", alt: "Requests management", width: 20, height: 20 } },
     ]
   },
   {
     label: "Bookings interns",
-    icon: RiCalendarLine,
+    icon: PublicIcon,
     href: "/partner/pages/booking",
-    isReactIcon: true,
+    isPublicIcon: true,
+    iconProps: { src: "/assets/icons/calendar.svg", alt: "Bookings", width: 20, height: 20 },
     subItems: [
-      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/booking/requests", isReactIcon: true },
-      { label: "Bookings setting", icon: RiSettings3Line, href: "/partner/pages/booking/settings", isReactIcon: true },
+      { label: "Requests", icon: PublicIcon, href: "/partner/pages/booking/requests", isPublicIcon: true, iconProps: { src: "/assets/icons/houskeeping-request.svg", alt: "Requests", width: 20, height: 20 } },
+      { label: "Bookings setting", icon: PublicIcon, href: "/partner/pages/booking/settings", isPublicIcon: true, iconProps: { src: "/assets/icons/settings.svg", alt: "Bookings setting", width: 20, height: 20 } },
     ]
   },
   {
     label: "Customized services",
-    icon: RiSettings3Line,
+    icon: PublicIcon,
     href: "/partner/pages/customized-services",
-    isReactIcon: true,
+    isPublicIcon: true,
+    iconProps: { src: "/assets/icons/customized service.svg", alt: "Customized services", width: 20, height: 20 },
     subItems: [
-      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/customized-services/requests", isReactIcon: true }
+      { label: "Requests", icon: PublicIcon, href: "/partner/pages/customized-services/requests", isPublicIcon: true, iconProps: { src: "/assets/icons/houskeeping-request.svg", alt: "Requests", width: 20, height: 20 } }
     ]
   },
   {
     label: "Activity alerts",
-    icon: RiNotification3Line,
+    icon: PublicIcon,
     href: "/partner/pages/activity-alerts",
-    isReactIcon: true,
+    isPublicIcon: true,
+    iconProps: { src: "/assets/icons/activity alert.svg", alt: "Activity alerts", width: 20, height: 20 },
     subItems: [
-      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/activity-alerts/requests", isReactIcon: true },
-      { label: "Activities", icon: RiNotification3Line, href: "/partner/pages/activity-alerts/activities", isReactIcon: true },
+      { label: "Requests", icon: PublicIcon, href: "/partner/pages/activity-alerts/requests", isPublicIcon: true, iconProps: { src: "/assets/icons/houskeeping-request.svg", alt: "Requests", width: 20, height: 20 } },
+      { label: "Activities", icon: PublicIcon, href: "/partner/pages/activity-alerts/activities", isPublicIcon: true, iconProps: { src: "/assets/icons/menu-01.svg", alt: "Activities", width: 20, height: 20 } },
     ]
   },
   {
     label: "Laundry",
-    icon: RiShirtLine,
+    icon: PublicIcon,
     href: "/partner/pages/laundry",
-    isReactIcon: true,
+    isPublicIcon: true,
+    iconProps: { src: "/assets/icons/laundary.svg", alt: "Laundry", width: 20, height: 20 },
     subItems: [
-      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/laundry/requests", isReactIcon: true },
-      { label: "Laundry settings", icon: RiSettings3Line, href: "/partner/pages/laundry/settings", isReactIcon: true },
+      { label: "Requests", icon: PublicIcon, href: "/partner/pages/laundry/requests", isPublicIcon: true, iconProps: { src: "/assets/icons/houskeeping-request.svg", alt: "Requests", width: 20, height: 20 } },
+      { label: "Laundry settings", icon: PublicIcon, href: "/partner/pages/laundry/settings", isPublicIcon: true, iconProps: { src: "/assets/icons/settings.svg", alt: "Laundry settings", width: 20, height: 20 } },
     ]
   },
   {
     label: "Room delivery",
-    icon: RiTruckLine,
+    icon: PublicIcon,
     href: "/partner/pages/room-delivery",
-    isReactIcon: true,
+    isPublicIcon: true,
+    iconProps: { src: "/assets/icons/in-room delivery.svg", alt: "Room delivery", width: 20, height: 20 },
     subItems: [
-      { label: "Requests", icon: RiFileList3Line, href: "/partner/pages/room-delivery/requests", isReactIcon: true },
-      { label: "Restaurants", icon: RiTruckLine, href: "/partner/pages/room-delivery/restaurants", isReactIcon: true },
+      { label: "Requests", icon: PublicIcon, href: "/partner/pages/room-delivery/requests", isPublicIcon: true, iconProps: { src: "/assets/icons/houskeeping-request.svg", alt: "Requests", width: 20, height: 20 } },
+      { label: "Restaurants", icon: PublicIcon, href: "/partner/pages/room-delivery/restaurants", isPublicIcon: true, iconProps: { src: "/assets/icons/resturent.svg", alt: "Restaurants", width: 20, height: 20 } },
     ]
   },
 ]
@@ -183,15 +189,29 @@ export default function Sidebar() {
               style={{ borderRadius: "8px" }}
             >
               {item.isReactIcon ? (
-                <Icon 
-                  className="flex-shrink-0" 
-                  style={{ 
-                    width: "18px", 
-                    height: "18px",
-                    strokeWidth: "1.5px",
-                    color: strokeColor
-                  }}
-                />
+                <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  <Icon 
+                    className="flex-shrink-0" 
+                    style={{ 
+                      width: "20px", 
+                      height: "20px",
+                      strokeWidth: "1.5px",
+                      color: strokeColor
+                    }}
+                  />
+                </div>
+              ) : item.isPublicIcon ? (
+                <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  <Icon 
+                    {...item.iconProps}
+                    className="flex-shrink-0"
+                    style={{ 
+                      width: "20px", 
+                      height: "20px",
+                      filter: isActive ? "brightness(0) invert(1)" : "brightness(0) saturate(100%) invert(45%) sepia(7%) saturate(1000%) hue-rotate(184deg) brightness(94%) contrast(86%)"
+                    }}
+                  />
+                </div>
               ) : (
                 <Icon 
                   strokeColor={strokeColor} 
@@ -233,15 +253,29 @@ export default function Sidebar() {
                   onClick={toggleExpanded}
                 >
                   {service.isReactIcon ? (
-                    <Icon 
-                      className="flex-shrink-0" 
-                      style={{ 
-                        width: "18px", 
-                        height: "18px",
-                        strokeWidth: "1.5px",
-                        color: strokeColor
-                      }}
-                    />
+                    <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                      <Icon 
+                        className="flex-shrink-0" 
+                        style={{ 
+                          width: "18px", 
+                          height: "18px",
+                          strokeWidth: "1.5px",
+                          color: strokeColor
+                        }}
+                      />
+                    </div>
+                  ) : service.isPublicIcon ? (
+                    <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                      <Icon 
+                        {...service.iconProps}
+                        className="flex-shrink-0"
+                        style={{ 
+                          width: "18px", 
+                          height: "18px",
+                          filter: isActive ? "brightness(0) invert(1)" : "brightness(0) saturate(100%) invert(45%) sepia(7%) saturate(1000%) hue-rotate(184deg) brightness(94%) contrast(86%)"
+                        }}
+                      />
+                    </div>
                   ) : (
                     <Icon 
                       strokeColor={strokeColor} 
@@ -281,19 +315,33 @@ export default function Sidebar() {
                           style={{ borderRadius: "8px" }}
                         >
                           {subItem.isReactIcon ? (
-                            <SubIcon 
-                              className="flex-shrink-0" 
-                              style={{ 
-                                width: "18px", 
-                                height: "18px",
-                                strokeWidth: "1.5px",
-                                color: subStrokeColor
-                              }}
-                            />
+                            <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                              <SubIcon 
+                                className="flex-shrink-0" 
+                                style={{ 
+                                  width: "20px", 
+                                  height: "20px",
+                                  strokeWidth: "1.5px",
+                                  color: subStrokeColor
+                                }}
+                              />
+                            </div>
+                          ) : subItem.isPublicIcon ? (
+                            <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                              <SubIcon 
+                                {...subItem.iconProps}
+                                className="flex-shrink-0"
+                                style={{ 
+                                  width: "20px", 
+                                  height: "20px",
+                                  filter: isSubActive ? "brightness(0) invert(1)" : "brightness(0) saturate(100%) invert(45%) sepia(7%) saturate(1000%) hue-rotate(184deg) brightness(94%) contrast(86%)"
+                                }}
+                              />
+                            </div>
                           ) : (
                             <SubIcon 
                               strokeColor={subStrokeColor} 
-                              className="w-5 h-5 flex-shrink-0" 
+                              className="w-6 h-6 flex-shrink-0" 
                             />
                           )}
                           <span className="font-medium">{subItem.label}</span>

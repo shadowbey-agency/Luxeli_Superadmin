@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { RiFileList3Line, RiRestaurantLine, RiArrowDownSLine, RiCalendarLine, RiAddLine } from "react-icons/ri"
+import { RiArrowDownSLine, RiCalendarLine, RiAddLine } from "react-icons/ri"
+import PublicIcon from "../../../components/public-icon"
 import AddRestaurantModal from "../../../components/add-restaurant-modal"
 
 // Custom RestaurantCard component
@@ -183,13 +184,13 @@ export default function RoomDeliveryRestaurantsPage() {
     {
       id: "requests",
       label: "Requests",
-      icon: <RiFileList3Line className="w-4 h-4" />,
+      icon: <PublicIcon src="/assets/icons/houskeeping-request.svg" alt="Requests" width={16} height={16} />,
       href: "/partner/pages/room-delivery/requests"
     },
     {
       id: "restaurants", 
       label: "Restaurants",
-      icon: <RiRestaurantLine className="w-4 h-4" />,
+      icon: <PublicIcon src="/assets/icons/resturent.svg" alt="Restaurants" width={16} height={16} />,
       href: "/partner/pages/room-delivery/restaurants"
     }
   ]

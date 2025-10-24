@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { RiUserLine, RiNotification3Line, RiEyeLine, RiEyeOffLine, RiArrowDownSLine, RiHome4Line, RiAppsLine, RiAddLine, RiDeleteBinLine, RiMoreLine, RiCalendarLine, RiSettings3Line, RiShirtLine, RiTruckLine } from "react-icons/ri"
+import { RiNotification3Line, RiEyeLine, RiEyeOffLine, RiArrowDownSLine, RiAddLine, RiDeleteBinLine, RiMoreLine } from "react-icons/ri"
+import PublicIcon from "@/app/partner/components/public-icon"
 import ToggleSwitch from "@/app/superadmin/components/toggle-switch"
 import SimpleToggleSwitch from "@/app/partner/components/simple-toggle-switch"
 import Image from "next/image"
@@ -79,7 +80,7 @@ export default function SettingsPage() {
       id: "housekeeping",
       title: "Housekeeping",
       description: "Guests request cleaning, turndown, towels, and amenities –auto-assigned to housekeeping with tracking.",
-      icon: <RiHome4Line className="w-8 h-8" />,
+      icon: <PublicIcon src="/assets/icons/housekeeping.svg" alt="Housekeeping" width={32} height={32} />,
       available: true,
       status: "Active"
     },
@@ -87,7 +88,7 @@ export default function SettingsPage() {
       id: "bookings-interns",
       title: "Bookings interns",
       description: "Take on-property bookings for spa, restaurant, or activities, with time slots and capacity.",
-      icon: <RiCalendarLine className="w-8 h-8" />,
+      icon: <PublicIcon src="/assets/icons/calendar.svg" alt="Bookings interns" width={32} height={32} />,
       available: false,
       status: "Disable"
     },
@@ -95,7 +96,7 @@ export default function SettingsPage() {
       id: "customized-services",
       title: "Customized services",
       description: "Offer tailored services-airport pickup, birthday setup- define price, lead time, and visibility.",
-      icon: <RiSettings3Line className="w-8 h-8" />,
+      icon: <PublicIcon src="/assets/icons/customized service.svg" alt="Customized services" width={32} height={32} />,
       available: true,
       status: "Disable"
     },
@@ -103,7 +104,7 @@ export default function SettingsPage() {
       id: "activity-alerts",
       title: "Activity alerts",
       description: "Send targeted notifications about events, offers, or schedule changes to selected guests.",
-      icon: <RiNotification3Line className="w-8 h-8" />,
+      icon: <PublicIcon src="/assets/icons/activity alert.svg" alt="Activity alerts" width={32} height={32} />,
       available: true,
       status: "Active"
     },
@@ -111,7 +112,7 @@ export default function SettingsPage() {
       id: "laundry",
       title: "Laundry",
       description: "Schedule laundry pickup and delivery; per-item pricing with live status updates.",
-      icon: <RiShirtLine className="w-8 h-8" />,
+      icon: <PublicIcon src="/assets/icons/laundary.svg" alt="Laundry" width={32} height={32} />,
       available: true,
       status: "Active"
     },
@@ -119,7 +120,7 @@ export default function SettingsPage() {
       id: "in-room-delivery",
       title: "In-room delivery",
       description: "Guests order food and amenities to the room, with prep-to-delivered tracking.",
-      icon: <RiTruckLine className="w-8 h-8" />,
+      icon: <PublicIcon src="/assets/icons/in-room delivery.svg" alt="In-room delivery" width={32} height={32} />,
       available: true,
       status: "Active"
     }
@@ -281,7 +282,7 @@ export default function SettingsPage() {
             }`}
             style={{ width: "190px" }}
           >
-            <RiUserLine className="w-5 h-5" />
+            <PublicIcon src="/assets/icons/account.svg" alt="Account" width={20} height={20} />
             Account
           </button>
           <button
@@ -305,7 +306,7 @@ export default function SettingsPage() {
             }`}
             style={{ width: "190px" }}
           >
-            <RiHome4Line className="w-5 h-5" />
+            <PublicIcon src="/assets/icons/services.svg" alt="Services" width={20} height={20} />
             Services
           </button>
           <button
@@ -317,7 +318,7 @@ export default function SettingsPage() {
             }`}
             style={{ width: "190px" }}
           >
-            <RiAppsLine className="w-5 h-5" />
+            <PublicIcon src="/assets/icons/app management.svg" alt="App management" width={20} height={20} />
             App management
           </button>
         </div>
@@ -664,13 +665,27 @@ export default function SettingsPage() {
                         <div className="flex items-center justify-between h-[28px]">
                           <h3 className="text-sm font-semibold text-foreground">{service.title}</h3>
                           <div 
-                            className={`px-[10px] py-[5px] rounded-[10px] border text-xs font-medium h-[28px] flex items-center ${
+                            className={`px-[10px] py-[5px] rounded-[10px] border text-xs font-medium h-[28px] flex items-center gap-1 ${
                               service.available 
                                 ? "bg-[#F3FFEA] border-[#13B601] text-[#13B601]" 
                                 : "bg-[#FF0D0D0D] border-[#FF0D0D] text-[#FF0D0D]"
                             }`}
                           >
-                            {service.available ? "Available" : "Unavailable"}
+                            {service.available ? (
+                              <>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Available
+                              </>
+                            ) : (
+                              <>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Unavailable
+                              </>
+                            )}
                           </div>
                         </div>
                         

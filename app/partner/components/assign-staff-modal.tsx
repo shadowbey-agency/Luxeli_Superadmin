@@ -26,7 +26,7 @@ const mockStaff: Staff[] = [
   { id: "8", name: "Full name", available: true },
 ]
 
-export default function AssignStaffModal({ isOpen, onClose, onAssign }: AssignStaffModalProps) {
+export default function   AssignStaffModal({ isOpen, onClose, onAssign }: AssignStaffModalProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStaff, setSelectedStaff] = useState<string>("")
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)

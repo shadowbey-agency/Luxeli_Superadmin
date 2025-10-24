@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { RiFileList3Line, RiSettings3Line } from "react-icons/ri"
+import PublicIcon from "../../../components/public-icon"
 
 export default function LaundrySettingsPage() {
   const router = useRouter()
@@ -81,13 +81,13 @@ export default function LaundrySettingsPage() {
     {
       id: "requests",
       label: "Requests",
-      icon: <RiFileList3Line className="w-4 h-4" />,
+      icon: <PublicIcon src="/assets/icons/houskeeping-request.svg" alt="Requests" width={16} height={16} />,
       href: "/partner/pages/laundry/requests"
     },
     {
       id: "settings", 
       label: "Laundry settings",
-      icon: <RiSettings3Line className="w-4 h-4" />,
+      icon: <PublicIcon src="/assets/icons/settings.svg" alt="Laundry settings" width={16} height={16} />,
       href: "/partner/pages/laundry/settings"
     }
   ]

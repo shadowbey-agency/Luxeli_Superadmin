@@ -2,9 +2,11 @@
 
 import StatCard from "@/app/superadmin/components/stat-card"
 import RevenueChart from "@/app/superadmin/components/revenue-chart"
+import PublicIcon from "@/app/partner/components/public-icon"
 import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
 import { useState, useEffect } from "react"
+import { RiArrowDownSLine } from "react-icons/ri"
 
 export default function DashboardPage() {
   const [activeSection, setActiveSection] = useState("subscriptions")
@@ -167,7 +169,8 @@ export default function DashboardPage() {
           <button className="px-4 py-2 bg-[#FFF] text-[rgba(33,33,33,0.60)] rounded-[1px] text-sm font-medium hover:bg-muted/80 transition-colors" style={{ borderRight: "0.925px solid #CED4DA" }}>
             Day
           </button>
-          <button className="px-4 py-2 bg-[#FFF] text-[rgba(33,33,33,0.60)] rounded-[1px] text-sm font-medium hover:bg-muted/80 transition-colors" style={{ borderTopRightRadius: "6px", borderBottomRightRadius: "6px",  }}>
+          <button className="px-4 py-2 bg-[#FFF] text-[rgba(33,33,33,0.60)] rounded-[1px] text-sm font-medium hover:bg-muted/80 transition-colors flex items-center gap-2" style={{ borderTopRightRadius: "6px", borderBottomRightRadius: "6px",  }}>
+            <PublicIcon src="/assets/icons/calendar.svg" alt="Calendar" width={16} height={16} />
             Dates range
           </button>
         </div>
@@ -180,9 +183,7 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 px-6">
         <StatCard
-          icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M2 6h16v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6zM6 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M8 10h4M8 13h2" stroke="#1F2A44" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>}
+          icon={<PublicIcon src="/assets/icons/bed-bunk.svg" alt="Total Room" />}
           label="Total Room" 
           value="65" 
           change="+2%"
@@ -190,9 +191,7 @@ export default function DashboardPage() {
           changeLabel="vs last week" 
         />
         <StatCard
-          icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M15 5L5 15M5 5l10 10" stroke="#1F2A44" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>}
+          icon={<PublicIcon src="/assets/icons/close.svg" alt="Empty rooms" />}
           label="Empty rooms" 
           value="42"
           change="+2%"
@@ -200,9 +199,7 @@ export default function DashboardPage() {
           changeLabel="vs last week" 
         />
         <StatCard
-          icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 0 0 1.946-.806 3.42 3.42 0 0 1 4.438 0 3.42 3.42 0 0 0 1.946.806 3.42 3.42 0 0 1 3.138 3.138 3.42 3.42 0 0 0 .806 1.946 3.42 3.42 0 0 1 0 4.438 3.42 3.42 0 0 0-.806 1.946 3.42 3.42 0 0 1-3.138 3.138 3.42 3.42 0 0 0-1.946.806 3.42 3.42 0 0 1-4.438 0 3.42 3.42 0 0 0-1.946-.806 3.42 3.42 0 0 1-3.138-3.138 3.42 3.42 0 0 0-.806-1.946 3.42 3.42 0 0 1 0-4.438 3.42 3.42 0 0 0 .806-1.946 3.42 3.42 0 0 1 3.138-3.138z" stroke="#1F2A44" strokeWidth="1.5"/>
-          </svg>}
+          icon={<PublicIcon src="/assets/icons/users-01.svg" alt="Full rooms" />}
           label="Full rooms" 
           value="23" 
           change="+2%" 
@@ -210,9 +207,7 @@ export default function DashboardPage() {
           changeLabel="vs last week" 
         />
         <StatCard
-          icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M13 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM18 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM14 15a4 4 0 0 0-8 0v3h8v-3zM6 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM16 18v-3a5.972 5.972 0 0 0-.75-2.906A3.005 3.005 0 0 1 19 15v3h-3zM4.75 12.094A5.973 5.973 0 0 0 4 15v3H1v-3a3 3 0 0 1 3.75-2.906z" stroke="#1F2A44" strokeWidth="1.5"/>
-          </svg>}
+          icon={<PublicIcon src="/assets/icons/user-group.svg" alt="Members" />}
           label="Members" 
           value="12"
           change="+2%"
@@ -220,9 +215,7 @@ export default function DashboardPage() {
           changeLabel="vs last week" 
         />
         <StatCard
-          icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M2 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5zM8 8h4M8 11h2" stroke="#1F2A44" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>}
+          icon={<PublicIcon src="/assets/icons/briefcase-06.svg" alt="Staffs" />}
           label="Staffs" 
           value="33" 
           change="+2%"
@@ -241,8 +234,8 @@ export default function DashboardPage() {
         {/* Requests Card */}
         <div className="flex flex-col w-full max-w-[450px] justify-between">
           {/* Header */}
-          <div className="h-[64px] flex items-center px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0"}}>
-            <h3 className="text-sm font-semibold text-[#212121]">Requests</h3>
+          <div className="h-[64px] flex py-[12px] px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0"}}>
+            <h3 className="text-sm font-semibold text-[#212121] ">Requests</h3>
           </div>
           {/* Content */}
           <div className="h-[280px] flex flex-col p-6 bg-white border border-[#E9EAEB] rounded-[14px] mt-[-15px]">
@@ -380,19 +373,59 @@ export default function DashboardPage() {
           <button className="px-4 py-2 bg-[#FFF] text-[rgba(33,33,33,0.60)] rounded-[1px] text-sm font-medium hover:bg-muted/80 transition-colors" style={{ borderRight: "0.925px solid #CED4DA" }}>
             Day
           </button>
-          <button className="px-4 py-2 bg-[#FFF] text-[rgba(33,33,33,0.60)] rounded-[1px] text-sm font-medium hover:bg-muted/80 transition-colors" style={{ borderRight: "0.925px solid #CED4DA",  borderTopRightRadius: "6px", borderBottomRightRadius: "6px" }}>
+          <button className="px-4 py-2 bg-[#FFF] text-[rgba(33,33,33,0.60)] rounded-[1px] text-sm font-medium hover:bg-muted/80 transition-colors flex items-center gap-2" style={{ borderRight: "0.925px solid #CED4DA",  borderTopRightRadius: "6px", borderBottomRightRadius: "6px" }}>
+            <PublicIcon src="/assets/icons/calendar.svg" alt="Calendar" width={16} height={16} />
             Dates range
           </button>
         </div>
             {/* Additional filters for In-room delivery */}
             {selectedService === "In-room delivery" && (
               <>
-                <select className="px-3 py-2 bg-white border border-gray-300 rounded text-sm">
-                  <option>Restaurant</option>
-                </select>
-                <select className="px-3 py-2 bg-white border border-gray-300 rounded text-sm">
-                  <option>Pick up</option>
-                </select>
+                {/* Restaurant dropdown */}
+                <div className="relative inline-block">
+                  <select
+                    className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    style={{
+                      padding: "7.52px 12px",
+                      paddingRight: "32px",
+                      borderRadius: "4px",
+                      border: "1px solid #CED4DA",
+                      background: "#FFF",
+                      color: "rgba(33, 33, 33, 0.60)",
+                      fontSize: "13px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}
+                  >
+                    <option>Restaurant</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+                
+                {/* Pick up dropdown */}
+                <div className="relative inline-block">
+                  <select
+                    className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    style={{
+                      padding: "7.52px 12px",
+                      paddingRight: "32px",
+                      borderRadius: "4px",
+                      border: "1px solid #CED4DA",
+                      background: "#FFF",
+                      color: "rgba(33, 33, 33, 0.60)",
+                      fontSize: "13px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}
+                  >
+                    <option>Pick up</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
               </>
             )}
           </div>
@@ -423,7 +456,7 @@ export default function DashboardPage() {
           <div className={servicesData[selectedService as keyof typeof servicesData].hasVerticalCard ? "lg:col-span-2" : ""}>
           <div className="flex flex-col w-full">
             {/* Header */}
-            <div className="h-[64px] flex items-center px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0"}}>
+            <div className="h-[64px] flex py-[12px] px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0"}}>
               <h3 className="text-sm font-semibold text-[#212121]">Requests Activity</h3>
             </div>
             {/* Content */}
@@ -592,7 +625,7 @@ export default function DashboardPage() {
           {servicesData[selectedService as keyof typeof servicesData].hasVerticalCard && (
         <div className="flex flex-col w-full">
           {/* Header */}
-          <div className="h-[64px] flex items-center px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0"}}>
+          <div className="h-[64px] flex py-[12px] px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0"}}>
                 <h3 className="text-sm font-semibold text-[#212121]">{servicesData[selectedService as keyof typeof servicesData].verticalCardTitle}</h3>
           </div>
           {/* Content */}
@@ -681,10 +714,7 @@ export default function DashboardPage() {
               border: "1px solid #DDDFE3",
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <circle cx="8" cy="8" r="7" stroke="#212121" strokeWidth="1.5"/>
-              <path d="M8 5v6M5 8h6" stroke="#212121" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
+            <PublicIcon src="/assets/icons/status error.svg" alt="Add new ticket" width={16} height={16} />
             <span className="text-sm font-medium text-[#212121]">Add new ticket</span>
           </button>
 
@@ -705,10 +735,7 @@ export default function DashboardPage() {
               border: "1px solid #DDDFE3",
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 10c-2.5 0-5 1.5-5 3.5v1h10v-1c0-2-2.5-3.5-5-3.5Z" stroke="#212121" strokeWidth="1.5"/>
-              <path d="M12 8a2 2 0 1 1-4 0M14 12c0-1-1-2-2-2s-2 1-2 2" stroke="#212121" strokeWidth="1.5"/>
-            </svg>
+            <PublicIcon src="/assets/icons/user-group.svg" alt="Add Member" width={16} height={16} />
             <span className="text-sm font-medium text-[#212121]">Add Member</span>
           </button>
 
@@ -729,10 +756,7 @@ export default function DashboardPage() {
               border: "1px solid #DDDFE3",
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M2 4h12a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="#212121" strokeWidth="1.5"/>
-              <path d="M6 8h4" stroke="#212121" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
+            <PublicIcon src="/assets/icons/briefcase-06.svg" alt="Add Staff" width={16} height={16} style={{ filter: "brightness(0) saturate(100%)" }} />
             <span className="text-sm font-medium text-[#212121]">Add Staff</span>
           </button>
 
@@ -753,9 +777,7 @@ export default function DashboardPage() {
               border: "1px solid #DDDFE3",
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M2 4h12M2 8h12M2 12h12" stroke="#212121" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
+            <PublicIcon src="/assets/icons/menu-01.svg" alt="More" width={16} height={16} />
             <span className="text-sm font-medium text-[#212121]">More</span>
           </button>
         </div>

@@ -4,12 +4,12 @@ import { useState } from "react"
 import {
   RiMoreLine,
   RiEyeLine,
-  RiEditLine,
   RiUserAddLine,
   RiReplyLine,
   RiCheckboxCircleLine,
   RiDeleteBinLine,
 } from "react-icons/ri"
+import PublicIcon from "@/app/partner/components/public-icon"
 import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 import DropdownArrow from "@/app/superadmin/components/dropdown-arrow"
 import SortArrows from "@/app/superadmin/components/sort-arrows"
@@ -691,7 +691,7 @@ export default function SupportPage() {
                                 },
                                 {
                                   label: "Edit ticket",
-                                  icon: <RiEditLine className="w-4 h-4" />,
+                                  icon: <PublicIcon src="/assets/icons/support edite ticket.svg" alt="Edit ticket" width={16} height={16} />,
                                   onClick: () => handleUnmarkTicket(ticket),
                                 },
                                 {
@@ -728,7 +728,7 @@ export default function SupportPage() {
                                 },
                                 {
                                   label: "Edit ticket",
-                                  icon: <RiEditLine className="w-4 h-4" />,
+                                  icon: <PublicIcon src="/assets/icons/support edite ticket.svg" alt="Edit ticket" width={16} height={16} />,
                                   onClick: () => handleUnmarkTicket(ticket),
                                 },
                                 {
