@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import PublicIcon from "../../components/public-icon"
+import { RiNotification3Line } from "react-icons/ri"
 
 export default function ActivityAlertsPage() {
   const router = useRouter()
