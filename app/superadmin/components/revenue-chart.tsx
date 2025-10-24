@@ -82,7 +82,28 @@ export default function RevenueChart() {
             tick={{ fill: '#535862', fontSize: '12px', fontWeight: '500' }}
             label={{ value: 'Nbr', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '12px', fill: '#535862', fontWeight: '500' } }}
           />
-          <Tooltip />
+          <Tooltip 
+            content={({ active, payload, label }) => {
+              if (active && payload && payload.length) {
+                // Filter unique data keys to avoid duplicates
+                const uniqueEntries = payload.filter((entry, index, self) => 
+                  index === self.findIndex(e => e.dataKey === entry.dataKey)
+                );
+                
+                return (
+                  <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+                    <p className="font-medium text-gray-800">{label}</p>
+                    {uniqueEntries.map((entry, index) => (
+                      <p key={index} className="text-sm text-gray-600">
+                        {entry.dataKey === 'thisYear' ? 'This Year' : 'Last Year'}: {entry.value}
+                      </p>
+                    ))}
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
           <defs>
             <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#126F48" stopOpacity={1}/>

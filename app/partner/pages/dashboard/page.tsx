@@ -7,8 +7,10 @@ import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 import { useState, useEffect } from "react"
 import { RiArrowDownSLine } from "react-icons/ri"
+import { useRouter } from "next/navigation"
 
 export default function DashboardPage() {
+  const router = useRouter()
   const [activeSection, setActiveSection] = useState("subscriptions")
   const [selectedService, setSelectedService] = useState("Housekeeping")
 
@@ -300,7 +302,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Half Circle Progress Chart with Legend Inside */}
-            <div className="w-full h-40 flex items-center justify-center mt-auto">
+            <div className="w-full h-40 flex items-center justify-center mt-auto relative">
               <svg className="w-4/5 h-full" viewBox="0 0 400 180">
                 {/* Background semicircle */}
                 <path
@@ -326,8 +328,15 @@ export default function DashboardPage() {
                     if (tooltip && tooltipText) {
                       tooltipText.textContent = '130';
                       tooltip.style.display = 'block';
-                      tooltip.style.left = e.clientX - 17.5 + 'px';
-                      tooltip.style.top = e.clientY - 17.5 + 'px';
+                      // Position tooltip relative to the chart container
+                      const chartContainer = e.currentTarget.closest('.relative');
+                      if (chartContainer) {
+                        const rect = chartContainer.getBoundingClientRect();
+                        const x = e.clientX - rect.left - 17.5;
+                        const y = e.clientY - rect.top - 17.5;
+                        tooltip.style.left = x + 'px';
+                        tooltip.style.top = y + 'px';
+                      }
                     }
                   }}
                   onMouseLeave={() => {
@@ -354,8 +363,15 @@ export default function DashboardPage() {
                     if (tooltip && tooltipText) {
                       tooltipText.textContent = '20';
                       tooltip.style.display = 'block';
-                      tooltip.style.left = e.clientX - 17.5 + 'px';
-                      tooltip.style.top = e.clientY - 17.5 + 'px';
+                      // Position tooltip relative to the chart container
+                      const chartContainer = e.currentTarget.closest('.relative');
+                      if (chartContainer) {
+                        const rect = chartContainer.getBoundingClientRect();
+                        const x = e.clientX - rect.left - 17.5;
+                        const y = e.clientY - rect.top - 17.5;
+                        tooltip.style.left = x + 'px';
+                        tooltip.style.top = y + 'px';
+                      }
                     }
                   }}
                   onMouseLeave={() => {
@@ -397,14 +413,28 @@ export default function DashboardPage() {
                   height: '35px',
                   backgroundColor: 'white',
                   borderRadius: '50%',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  border: '1px solid #E5E7EB',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                  border: '1px solid #E5E7EB'
+                  textAlign: 'center'
                 }}
               >
-                <span id="tooltip-text" className="text-sm font-semibold text-black">130</span>
+                <span 
+                  id="tooltip-text" 
+                  className="text-sm font-semibold text-black"
+                  style={{
+                    lineHeight: '1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                    height: '100%'
+                  }}
+                >
+                  130
+                </span>
               </div>
             </div>
           </div>
@@ -837,7 +867,8 @@ export default function DashboardPage() {
         <div className="flex items-center gap-3">
           {/* Add new ticket button */}
           <button 
-            className="flex items-center gap-[6px] rounded-md border transition-colors"
+            onClick={() => router.push('/partner/pages/support')}
+            className="flex items-center gap-[6px] rounded-md border transition-colors hover:bg-gray-100"
             style={{
               height: "37.040000915527344px",
               gap: "6px",
@@ -858,7 +889,8 @@ export default function DashboardPage() {
 
           {/* Add Member button */}
           <button 
-            className="flex items-center gap-[6px] rounded-md border transition-colors"
+            onClick={() => router.push('/partner/pages/team')}
+            className="flex items-center gap-[6px] rounded-md border transition-colors hover:bg-gray-100"
             style={{
               height: "37.040000915527344px",
               gap: "6px",
@@ -879,7 +911,8 @@ export default function DashboardPage() {
 
           {/* Add Staff button */}
           <button 
-            className="flex items-center gap-[6px] rounded-md border transition-colors"
+            onClick={() => router.push('/partner/pages/team')}
+            className="flex items-center gap-[6px] rounded-md border transition-colors hover:bg-gray-100"
             style={{
               height: "37.040000915527344px",
               gap: "6px",
