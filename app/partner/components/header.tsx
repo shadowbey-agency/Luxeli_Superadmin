@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import { RiSearchLine, RiNotification3Line } from "react-icons/ri"
+import Image from "next/image"
 
 export default function Header() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
@@ -66,7 +67,18 @@ export default function Header() {
     >
       <div>
         <h1>{pageInfo.title}</h1>
-        <p className="text-xs text-muted-foreground">{pageInfo.description}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-muted-foreground">{pageInfo.description}</p>
+          {pathname === '/partner/pages/dashboard' && (
+            <Image
+              src="/assets/icons/dashboard hand.svg"
+              alt="Dashboard Hand"
+              width={16}
+              height={16}
+              className="w-4 h-4"
+            />
+          )}
+        </div>
       </div>
      
 

@@ -183,7 +183,18 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 px-6">
         <StatCard
-          icon={<PublicIcon src="/assets/icons/bed-bunk.svg" alt="Total Room" />}
+          icon={
+            <div 
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width: "36px",
+                height: "36px",
+                backgroundColor: "#E9EAEC"
+              }}
+            >
+              <PublicIcon src="/assets/icons/bed-bunk.svg" alt="Total Room" width={20} height={20} />
+            </div>
+          }
           label="Total Room" 
           value="65" 
           change="+2%"
@@ -191,7 +202,18 @@ export default function DashboardPage() {
           changeLabel="vs last week" 
         />
         <StatCard
-          icon={<PublicIcon src="/assets/icons/close.svg" alt="Empty rooms" />}
+          icon={
+            <div 
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width: "36px",
+                height: "36px",
+                backgroundColor: "rgba(23, 178, 106, 0.05)"
+              }}
+            >
+              <PublicIcon src="/assets/icons/close.svg" alt="Empty rooms" width={20} height={20} />
+            </div>
+          }
           label="Empty rooms" 
           value="42"
           change="+2%"
@@ -199,7 +221,18 @@ export default function DashboardPage() {
           changeLabel="vs last week" 
         />
         <StatCard
-          icon={<PublicIcon src="/assets/icons/users-01.svg" alt="Full rooms" />}
+          icon={
+            <div 
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width: "36px",
+                height: "36px",
+                backgroundColor: "#EEF2FB"
+              }}
+            >
+              <PublicIcon src="/assets/icons/users-01.svg" alt="Full rooms" width={20} height={20} />
+            </div>
+          }
           label="Full rooms" 
           value="23" 
           change="+2%" 
@@ -207,7 +240,18 @@ export default function DashboardPage() {
           changeLabel="vs last week" 
         />
         <StatCard
-          icon={<PublicIcon src="/assets/icons/user-group.svg" alt="Members" />}
+          icon={
+            <div 
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width: "36px",
+                height: "36px",
+                backgroundColor: "rgba(12, 151, 161, 0.05)"
+              }}
+            >
+              <PublicIcon src="/assets/icons/user-group.svg" alt="Members" width={20} height={20} style={{ filter: "brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(145deg) brightness(96%) contrast(87%)" }} />
+            </div>
+          }
           label="Members" 
           value="12"
           change="+2%"
@@ -215,7 +259,18 @@ export default function DashboardPage() {
           changeLabel="vs last week" 
         />
         <StatCard
-          icon={<PublicIcon src="/assets/icons/briefcase-06.svg" alt="Staffs" />}
+          icon={
+            <div 
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width: "36px",
+                height: "36px",
+                backgroundColor: "rgba(212, 122, 18, 0.05)"
+              }}
+            >
+              <PublicIcon src="/assets/icons/briefcase-06.svg" alt="Staffs" width={20} height={20} />
+            </div>
+          }
           label="Staffs" 
           value="33" 
           change="+2%"
@@ -238,62 +293,119 @@ export default function DashboardPage() {
             <h3 className="text-sm font-semibold text-[#212121] ">Requests</h3>
           </div>
           {/* Content */}
-          <div className="h-[280px] flex flex-col p-6 bg-white border border-[#E9EAEB] rounded-[14px] mt-[-15px]">
-            <div className="text-center mb-12">
-              <p className="text-3xl font-bold text-[#212121] mb-2">150 Requests</p>
+          <div className="h-[280px] flex flex-col p-6 pt-12 bg-white border border-[#E9EAEB] rounded-[14px] mt-[-15px]">
+            <div className="text-center items-center mb-8">
+              <p className="text-4xl font-bold text-[#212121] mb-3">150 <span className="text-[18px]">Requests</span></p>
               <p className="text-sm font-medium text-[#10B981]">+31% vs last week</p>
             </div>
 
             {/* Half Circle Progress Chart with Legend Inside */}
-            <div className="w-full h-32 flex items-center justify-center mt-auto">
-              <svg className="w-4/5 h-full" viewBox="0 0 400 160">
+            <div className="w-full h-40 flex items-center justify-center mt-auto">
+              <svg className="w-4/5 h-full" viewBox="0 0 400 180">
                 {/* Background semicircle */}
                 <path
-                  d="M 50 150 A 150 150 0 0 1 350 150"
+                  d="M 50 160 A 150 150 0 0 1 350 160"
                   fill="none"
                   stroke="#E5E7EB"
                   strokeWidth="20"
                 />
                 {/* Accepted segment (130/150 = 86.7%) */}
                 <path
-                  d="M 50 150 A 150 150 0 0 1 350 150"
+                  d="M 50 160 A 150 150 0 0 1 350 160"
                   fill="none"
                   stroke="#10B981"
                   strokeWidth="20"
                   strokeDasharray="471.2"
                   strokeDashoffset="62.8"
                   strokeLinecap="round"
+                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{ pointerEvents: 'stroke' }}
+                  onMouseEnter={(e) => {
+                    const tooltip = document.getElementById('chart-tooltip');
+                    const tooltipText = document.getElementById('tooltip-text');
+                    if (tooltip && tooltipText) {
+                      tooltipText.textContent = '130';
+                      tooltip.style.display = 'block';
+                      tooltip.style.left = e.clientX - 17.5 + 'px';
+                      tooltip.style.top = e.clientY - 17.5 + 'px';
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    const tooltip = document.getElementById('chart-tooltip');
+                    if (tooltip) {
+                      tooltip.style.display = 'none';
+                    }
+                  }}
                 />
                 {/* Canceled segment (20/150 = 13.3%) */}
                 <path
-                  d="M 50 150 A 150 150 0 0 1 350 150"
+                  d="M 50 160 A 150 150 0 0 1 350 160"
                   fill="none"
-                  stroke="#EF4444"
+                  stroke="rgba(255, 13, 13, 0.05)"
                   strokeWidth="20"
                   strokeDasharray="62.8 471.2"
                   strokeDashoffset="-408.4"
                   strokeLinecap="round"
+                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{ pointerEvents: 'stroke' }}
+                  onMouseEnter={(e) => {
+                    const tooltip = document.getElementById('chart-tooltip');
+                    const tooltipText = document.getElementById('tooltip-text');
+                    if (tooltip && tooltipText) {
+                      tooltipText.textContent = '20';
+                      tooltip.style.display = 'block';
+                      tooltip.style.left = e.clientX - 17.5 + 'px';
+                      tooltip.style.top = e.clientY - 17.5 + 'px';
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    const tooltip = document.getElementById('chart-tooltip');
+                    if (tooltip) {
+                      tooltip.style.display = 'none';
+                    }
+                  }}
                 />
                 
-                {/* Legend inside semicircle */}
+                {/* Legend with colored circles */}
+                <circle cx="90" cy="130" r="5" fill="#10B981" />
                 <text
-                  x="120"
-                  y="120"
-                  textAnchor="middle"
-                  className="text-sm font-medium fill-[#10B981]"
+                  x="100"
+                  y="135"
+                  textAnchor="start"
+                  className="text-medium font-medium fill-[#000000]"
                 >
                   Accepted
                 </text>
-                
+
+                <circle cx="230" cy="130" r="5" fill="rgba(255, 13, 13, 0.05)" />
                 <text
-                  x="280"
-                  y="120"
-                  textAnchor="middle"
-                  className="text-sm font-medium fill-[#EF4444]"
+                  x="240"
+                  y="135"
+                  textAnchor="start"
+                  className="text-medium font-medium fill-[#000000]"
                 >
                   Canceled
                 </text>
               </svg>
+              
+              {/* Hover Tooltip */}
+              <div
+                id="chart-tooltip"
+                className="absolute hidden pointer-events-none z-10"
+                style={{
+                  width: '35px',
+                  height: '35px',
+                  backgroundColor: 'white',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  border: '1px solid #E5E7EB'
+                }}
+              >
+                <span id="tooltip-text" className="text-sm font-semibold text-black">130</span>
+              </div>
             </div>
           </div>
         </div>
@@ -378,6 +490,32 @@ export default function DashboardPage() {
             Dates range
           </button>
         </div>
+            {/* Priority dropdown for all services */}
+            <div className="relative inline-block">
+              <select
+                className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                style={{
+                  padding: "7.52px 12px",
+                  paddingRight: "32px",
+                  borderRadius: "4px",
+                  border: "1px solid #CED4DA",
+                  background: "#FFF",
+                  color: "rgba(33, 33, 33, 0.60)",
+                  fontSize: "13px",
+                  fontWeight: "400",
+                  lineHeight: "19.5px"
+                }}
+              >
+                <option>Priority</option>
+                <option>High</option>
+                <option>Medium</option>
+                <option>Low</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+
             {/* Additional filters for In-room delivery */}
             {selectedService === "In-room delivery" && (
               <>

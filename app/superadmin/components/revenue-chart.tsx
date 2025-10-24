@@ -71,16 +71,16 @@ export default function RevenueChart() {
             dataKey="month" 
             stroke="transparent" 
             fontSize={12}
-            tick={{ fill: '#212121', fontSize: '12px', fontWeight: '500' }}
-            label={{ value: 'Week days', position: 'insideBottom', offset: -5, style: {  fontSize: '12px', fill: '#212121', fontWeight: '500' } }}
+            tick={{ fill: '#535862', fontSize: '12px', fontWeight: '500' }}
+            label={{ value: 'Week days', position: 'insideBottom', offset: -5, style: {  fontSize: '12px', fill: '#535862', fontWeight: '500' } }}
           />
           <YAxis 
             stroke="transparent" 
             fontSize={12} 
             domain={[0, 1000]}
             ticks={[0, 200, 400, 600, 800, 1000]}
-            tick={{ fill: '#212121', fontSize: '12px', fontWeight: '500' }}
-            label={{ value: 'Nbr', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '12px', fill: '#212121', fontWeight: '500' } }}
+            tick={{ fill: '#535862', fontSize: '12px', fontWeight: '500' }}
+            label={{ value: 'Nbr', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '12px', fill: '#535862', fontWeight: '500' } }}
           />
           <Tooltip />
           <defs>

@@ -376,7 +376,18 @@ export default function RoomPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <StatCard
-          icon={<RiHotelBedLine className="w-6 h-6 text-primary" />}
+          icon={
+            <div 
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width: "36px",
+                height: "36px",
+                backgroundColor: "#E9EAEC"
+              }}
+            >
+              <PublicIcon src="/assets/icons/bed-bunk.svg" alt="Total Rooms" width={20} height={20} />
+            </div>
+          }
           label="Total Rooms"
           value="150"
           change="+5%"
@@ -384,7 +395,18 @@ export default function RoomPage() {
           subtitle="vs last month"
         />
         <StatCard
-          icon={<RiUserLine className="w-6 h-6 text-primary" />}
+          icon={
+            <div 
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width: "36px",
+                height: "36px",
+                backgroundColor: "#EEF2FB"
+              }}
+            >
+              <PublicIcon src="/assets/icons/users-01.svg" alt="Occupied Rooms" width={20} height={20} />
+            </div>
+          }
           label="Occupied Rooms"
           value="98"
           change="+12%"
@@ -392,8 +414,19 @@ export default function RoomPage() {
           subtitle="vs last month"
         />
         <StatCard
-          icon={<RiHotelBedLine className="w-6 h-6 text-primary" />}
-          label="Available Rooms"
+          icon={
+            <div 
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width: "36px",
+                height: "36px",
+                backgroundColor: "rgba(23, 178, 106, 0.05)"
+              }}
+            >
+              <PublicIcon src="/assets/icons/close.svg" alt="Empty Rooms" width={20} height={20} />
+            </div>
+          }
+          label="Empty Rooms"
           value="52"
           change="-8%"
           changeType="negative"

@@ -1,11 +1,10 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   RiSettings4Line,
-  RiMenuFoldLine,
-  RiMenuUnfoldLine,
 } from "react-icons/ri"
 import { useState } from "react"
 import DashboardSidebarIcon from "./dashboard-sidebar-icon"
@@ -45,19 +44,36 @@ export default function Sidebar() {
         }}
       >
         {!isCollapsed && (
-          <Link href="/superadmin/pages/dashboard" className="flex items-center gap-1">
-            <span className="text-2xl font-bold text-primary">Luxeli</span>
-            <span className="text-2xl font-bold text-info">A</span>
+          <Link href="/superadmin/pages/dashboard" className="flex items-center gap-2">
+            <Image
+              src="/assets/icons/lexelisidebarlogo.svg"
+              alt="Luxeli Logo"
+              width={120}
+              height={32}
+              className="w-auto h-8"
+            />
           </Link>
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 hover:bg-muted rounded-lg transition-colors"
+          className={`hover:bg-muted rounded-lg transition-colors flex items-center justify-center ${isCollapsed ? 'p-2 w-10 h-10' : 'p-2'}`}
         >
           {isCollapsed ? (
-            <RiMenuUnfoldLine className="w-5 h-5 text-muted-foreground" />
+            <Image
+              src="/assets/icons/lexelibluelogo.svg"
+              alt="Luxeli Logo"
+              width={24}
+              height={24}
+              className="w-6 h-6"
+            />
           ) : (
-            <RiMenuFoldLine className="w-5 h-5 text-muted-foreground" />
+            <Image
+              src="/assets/icons/sidebarclosing.svg"
+              alt="Toggle Sidebar"
+              width={20}
+              height={20}
+              className="w-5 h-5"
+            />
           )}
         </button>
       </div>

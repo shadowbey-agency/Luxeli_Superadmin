@@ -53,6 +53,19 @@ export default function LoginPage() {
 
         {/* Right Side - Login Form */}
         <div className="flex-1 h-full flex flex-col">
+          {/* Top Right - Need Help Link */}
+          <div className="w-full flex justify-end items-start pt-4">
+            <button
+              type="button"
+              className="text-sm transition-colors hover:text-[#56C6FF]"
+              style={{ 
+                color: "#6B7280"
+              }}
+            >
+              Need help?
+            </button>
+          </div>
+          
         <div className="flex-1 flex items-center justify-center">
             <div className="w-full max-w-[612.5px] flex flex-col items-center justify-center gap-10">
             {/* Login Form Content */}
@@ -62,9 +75,9 @@ export default function LoginPage() {
                 <h1
                   className="text-[#1F2A44]"
                   style={{
-                    fontFamily: "Fustat, sans-serif",
+                    fontFamily: "Inter, system-ui, sans-serif",
                     fontSize: "42px",
-                    fontWeight: 800,
+                    fontWeight: 600,
                     lineHeight: "normal",
                   }}
                 >
@@ -84,7 +97,7 @@ export default function LoginPage() {
                     id="userType"
                     value={userType}
                     onChange={(e) => setUserType(e.target.value as "superadmin" | "partner")}
-                    className="flex w-full max-w-[470px] px-3 flex-col items-start border border-[#CED4DA] bg-white rounded"
+                    className="flex w-full max-w-[470px] px-3 flex-col items-start border border-[#CED4DA] bg-white rounded focus:border-[#56C6FF] focus:outline-none focus:ring-2 focus:ring-[#56C6FF]/20 hover:border-[#56C6FF] transition-colors"
                     style={{
                       padding: "7.52px 12px",
                     }}
@@ -106,7 +119,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Write Here..."
-                    className="flex w-full max-w-[470px] px-3 flex-col items-start border border-[#CED4DA] bg-white rounded"
+                    className="flex w-full max-w-[470px] px-3 flex-col items-start border border-[#CED4DA] bg-white rounded focus:border-[#56C6FF] focus:outline-none focus:ring-2 focus:ring-[#56C6FF]/20 hover:border-[#56C6FF] transition-colors"
                     style={{
                       padding: "7.52px 12px",
                     }}
@@ -126,7 +139,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••"
-                      className="flex w-full px-3 pr-10 flex-col items-start border border-[#CED4DA] bg-white rounded"
+                      className="flex w-full px-3 pr-10 flex-col items-start border border-[#CED4DA] bg-white rounded focus:border-[#56C6FF] focus:outline-none focus:ring-2 focus:ring-[#56C6FF]/20 hover:border-[#56C6FF] transition-colors"
                       style={{
                         padding: "7.52px 12px",
                         paddingRight: "40px",
@@ -188,11 +201,14 @@ export default function LoginPage() {
           {/* Footer pinned bottom */}
           <div className="w-full flex justify-between items-center">
               {/* Logo */}
-              <div className="flex items-center gap-2">
-                <span className="text-[#1F2A44] text-2xl font-bold">Luxeli</span>
-                <div className="w-8 h-8 bg-[#60D5FA] rounded-full flex items-center justify-center">
-                  <div className="w-3 h-3 bg-white rounded-sm" />
-                </div>
+              <div className="flex items-center">
+                <Image
+                  src="/assets/icons/lexelisidebarlogo.svg"
+                  alt="Luxeli Logo"
+                  width={120}
+                  height={32}
+                  className="w-auto h-8"
+                />
               </div>
 
               {/* Copyright */}

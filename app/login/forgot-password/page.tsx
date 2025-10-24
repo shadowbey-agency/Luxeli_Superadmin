@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { FiEye, FiEyeOff, FiLock, FiMail, FiCheck } from "react-icons/fi"
+import { FiEye, FiEyeOff } from "react-icons/fi"
 import { FiArrowLeft } from "react-icons/fi"
 
 export default function ForgotPasswordPage() {
@@ -120,11 +120,11 @@ export default function ForgotPasswordPage() {
         {/* Logo - Centered */}
         <div className="flex items-center justify-center mb-[40px] mt-[50px]">
           <Image
-            src="/logo/luxeli-logo.svg"
+            src="/assets/icons/lexelisidebarlogo.svg"
             alt="Luxeli Logo"
-            width={100}
-            height={40}
-            className="w-auto"
+            width={120}
+            height={32}
+            className="w-auto h-8"
           />
         </div>
         
@@ -150,12 +150,17 @@ export default function ForgotPasswordPage() {
                 <div 
                   className="flex items-center justify-center rounded-full mb-3"
                   style={{
-                    background: "#56C6FF",
                     width: "50px",
                     height: "50px"
                   }}
                 >
-                  <FiLock className="w-6 h-6 text-white" />
+                  <Image
+                    src="/assets/icons/passwordlock.svg"
+                    alt="Password Lock"
+                    width={40}
+                    height={40}
+                    className="w-10 h-10"
+                  />
                 </div>
 
                 {/* Heading */}
@@ -241,12 +246,17 @@ export default function ForgotPasswordPage() {
                 <div 
                   className="flex items-center justify-center rounded-full"
                   style={{
-                    background: "#56C6FF",
                     width: "50px",
                     height: "50px"
                   }}
                 >
-                  <FiMail className="w-6 h-6 text-white" />
+                  <Image
+                    src="/assets/icons/passwordverifymail.svg"
+                    alt="Verify Mail"
+                    width={40}
+                    height={40}
+                    className="w-10 h-10"
+                  />
                 </div>
 
                 {/* Heading */}
@@ -459,12 +469,17 @@ export default function ForgotPasswordPage() {
                 <div 
                   className="flex items-center justify-center rounded-full"
                   style={{
-                    background: "#17B26A",
                     width: "50px",
                     height: "50px"
                   }}
                 >
-                  <FiCheck className="w-6 h-6 text-white" />
+                  <Image
+                    src="/assets/icons/passwordresetok.svg"
+                    alt="Password Reset OK"
+                    width={40}
+                    height={40}
+                    className="w-10 h-10"
+                  />
                 </div>
 
                 {/* Heading */}

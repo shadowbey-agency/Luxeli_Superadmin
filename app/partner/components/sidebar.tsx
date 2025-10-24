@@ -1,10 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
-  RiMenuFoldLine,
-  RiMenuUnfoldLine,
   RiArrowUpSLine,
   RiArrowDownSLine,
   RiHome4Line,
@@ -149,19 +148,36 @@ export default function Sidebar() {
         }}
       >
         {!isCollapsed && (
-          <Link href="/partner/pages/dashboard" className="flex items-center gap-1">
-            <span className="text-2xl font-bold text-primary">Luxeli</span>
-            <span className="text-2xl font-bold text-info">P</span>
+          <Link href="/partner/pages/dashboard" className="flex items-center gap-2">
+            <Image
+              src="/assets/icons/lexelisidebarlogo.svg"
+              alt="Luxeli Logo"
+              width={120}
+              height={32}
+              className="w-auto h-8"
+            />
           </Link>
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 hover:bg-muted rounded-lg transition-colors"
+          className={`hover:bg-muted rounded-lg transition-colors flex items-center justify-center ${isCollapsed ? 'p-2 w-10 h-10' : 'p-2'}`}
         >
           {isCollapsed ? (
-            <RiMenuUnfoldLine className="w-5 h-5 text-muted-foreground" />
+            <Image
+              src="/assets/icons/lexelibluelogo.svg"
+              alt="Luxeli Logo"
+              width={24}
+              height={24}
+              className="w-6 h-6"
+            />
           ) : (
-            <RiMenuFoldLine className="w-5 h-5 text-muted-foreground" />
+            <Image
+              src="/assets/icons/sidebarclosing.svg"
+              alt="Toggle Sidebar"
+              width={20}
+              height={20}
+              className="w-5 h-5"
+            />
           )}
         </button>
       </div>
@@ -315,25 +331,25 @@ export default function Sidebar() {
                           style={{ borderRadius: "8px" }}
                         >
                           {subItem.isReactIcon ? (
-                            <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                            <div style={{ width: "22px", height: "22px", display: "flex", justifyContent: "center", alignItems: "center" }}>
                               <SubIcon 
                                 className="flex-shrink-0" 
                                 style={{ 
-                                  width: "20px", 
-                                  height: "20px",
+                                  width: "22px", 
+                                  height: "22px",
                                   strokeWidth: "1.5px",
                                   color: subStrokeColor
                                 }}
                               />
                             </div>
                           ) : subItem.isPublicIcon ? (
-                            <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                            <div style={{ width: "22px", height: "22px", display: "flex", justifyContent: "center", alignItems: "center" }}>
                               <SubIcon 
                                 {...subItem.iconProps}
                                 className="flex-shrink-0"
                                 style={{ 
-                                  width: "20px", 
-                                  height: "20px",
+                                  width: "22px", 
+                                  height: "22px",
                                   filter: isSubActive ? "brightness(0) invert(1)" : "brightness(0) saturate(100%) invert(45%) sepia(7%) saturate(1000%) hue-rotate(184deg) brightness(94%) contrast(86%)"
                                 }}
                               />
