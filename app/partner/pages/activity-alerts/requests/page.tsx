@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { RiNotification3Line, RiArrowDownSLine } from "react-icons/ri"
+import { RiArrowDownSLine } from "react-icons/ri"
 import PublicIcon from "@/app/partner/components/public-icon"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
 import ViewActivityAlertModal from "../../../components/view-activity-alert-modal"
