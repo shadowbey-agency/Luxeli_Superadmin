@@ -13,7 +13,7 @@ const data = [
   { month: "Sep 28", thisYear: 820, lastYear: 660 },
 ]
 
-export default function RevenueChart() {
+export default function PartnerRevenueChart() {
   return (
     <div className="flex flex-col w-full">
       <style jsx>{`
@@ -44,7 +44,7 @@ export default function RevenueChart() {
           borderRadius: "12px 12px 0 0"
         }}
       >
-        <h3 className="text-sm font-semibold text-[#212121]">Revenue-This year vs last year</h3>
+        <h3 className="text-sm font-semibold text-[#212121]">Empty vs Full Room</h3>
       </div>
 
       {/* Content */}
@@ -69,11 +69,11 @@ export default function RevenueChart() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="w-[10px] h-[10px] rounded-full bg-[#4195BF]"></div>
-              <span className="text-medium text-muted-foreground">Last year (2024)</span>
+              <span className="text-medium text-muted-foreground">Empty Room</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-[10px] h-[10px] rounded-full bg-[#1F2A44]"></div>
-              <span className="text-medium text-muted-foreground">This year (2025)</span>
+              <span className="text-medium text-muted-foreground">Full Room</span>
             </div>
           </div>
         </div>
@@ -124,7 +124,8 @@ export default function RevenueChart() {
               value: 'Nbr', 
               angle: -90, 
               position: 'insideLeft', 
-              style: {  
+              style: { 
+                textAnchor: 'middle', 
                 fontSize: '12px', 
                 fill: '#535862', 
                 fontWeight: '500',

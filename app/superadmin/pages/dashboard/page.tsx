@@ -14,6 +14,34 @@ import { useState, useEffect } from "react"
 export default function DashboardPage() {
   const [activeSection, setActiveSection] = useState("subscriptions")
 
+  // Order Time Data Array
+  const orderTimeData = [
+    {
+      name: "Morning",
+      percentage: 65,
+      color: "#56C6FF",
+      position: { x: 0, y: 70 }, // Bottom center
+      strokeDasharray: "285.6 439.6",
+      strokeDashoffset: "0"
+    },
+    {
+      name: "Afternoon", 
+      percentage: 23,
+      color: "#1F2A44",
+      position: { x: -50, y: -50 }, // Top left
+      strokeDasharray: "101.1 439.6",
+      strokeDashoffset: "-285.6"
+    },
+    {
+      name: "Evening",
+      percentage: 20,
+      color: "#2C4DED", 
+      position: { x: 50, y: -50 }, // Top right
+      strokeDasharray: "87.9 439.6",
+      strokeDashoffset: "-386.7"
+    }
+  ]
+
   // Scroll detection to update active section
   useEffect(() => {
     const handleScroll = () => {
@@ -231,57 +259,73 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Total Requests Card */}
-        <div className="flex flex-col w-full max-w-[390px]">
+        <div className="flex flex-col w-full justify-between">
           {/* Header */}
-          <div className="h-[64px] flex items-center px-4 bg-[#FCFCFC] border border-[#E9EAEB] " style={{ borderRadius: "12px 12px 0 0"}}>
+          <div 
+            className="flex py-[12px] px-4 w-full"
+            style={{
+              height: "65px",
+              flexShrink: 0,
+              fill: "#FCFCFC",
+              strokeWidth: "1px",
+              stroke: "#E9EAEB",
+              background: "#FCFCFC",
+              border: "1px solid #E9EAEB",
+              borderRadius: "12px 12px 0 0"
+            }}
+          >
             <h3 className="text-sm font-semibold text-[#212121]">Total requests</h3>
           </div>
           {/* Content */}
-          <div className="h-[400px] flex flex-col items-center justify-center p-6 bg-white border border-[#E9EAEB]  rounded-[14px] mt-[-15px]">
-            <div className="text-center mb-6">
-              <div className="flex items-baseline justify-center gap-2 mb-2">
-                <p className="text-5xl font-bold text-[#212121]">1565</p>
-                <span className="text-lg font-medium text-[#6B7280]">Client</span>
-              </div>
-              <p className="text-sm font-medium text-[#10B981]">+31% vs yesterday</p>
+          <div className="h-[370px] flex flex-col  pt-[120px] bg-white border border-[#E9EAEB] rounded-[14px] mt-[-15px]">
+            <div className="text-center items-center">
+              <p className="text-4xl font-semibold text-[#212121] mb-3">1503 Clients</p>
+              <p className="text-medium font-medium text-[#10B981]"><span>+31%</span> vs yesterday</p>
             </div>
 
-            {/* Circular Progress */}
-            <div className="relative w-40 h-40">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
-                {/* Background circle */}
-                <circle cx="80" cy="80" r="70" fill="none" stroke="#E5E7EB" strokeWidth="12" />
-                {/* Progress circle */}
-                <circle
-                  cx="80"
-                  cy="80"
-                  r="70"
+            {/* Half Circle Progress Chart with Legend Inside */}
+            <div className="w-full flex flex-col justify-center items-center relative" style={{ marginTop: '24px' }}>
+              <svg className="w-4/5 h-40" viewBox="0 0 400 180">
+                {/* Background semicircle */}
+                <path
+                  d="M 50 160 A 150 150 0 0 1 350 160"
+                  fill="none"
+                  stroke="#E5E7EB"
+                  strokeWidth="20"
+                />
+                {/* Left segment (85% = 12,000/15,903) */}
+                <path
+                  d="M 50 160 A 150 150 0 0 1 350 160"
                   fill="none"
                   stroke="#56C6FF"
-                  strokeWidth="12"
-                  strokeDasharray="439.6"
-                  strokeDashoffset="109.9"
+                  strokeWidth="20"
+                  strokeDasharray="471.2"
+                  strokeDashoffset="70.7"
+                  strokeLinecap="round"
+                />
+                {/* Right segment (15% = 3,903/15,903) */}
+                <path
+                  d="M 50 160 A 150 150 0 0 1 350 160"
+                  fill="none"
+                  stroke="#EFEFEF"
+                  strokeWidth="20"
+                  strokeDasharray="70.7 471.2"
+                  strokeDashoffset="-400.5"
                   strokeLinecap="round"
                 />
               </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-xl font-bold text-[#212121]">15,903</p>
-                  <p className="text-xs text-[#6B7280]">Requests</p>
-                </div>
-              </div>
+              <p className="text-center text-[#000000] mt-[-80px]">1503 Requests</p>
             </div>
           </div>
         </div>
 
         {/* Services Card */}
-        <div className="flex flex-col w-full max-w-[400px]">
+        <div className="flex flex-col w-full">
           {/* Header */}
           <div 
-            className=" flex items-center px-4"
+            className="flex py-[12px] px-4 w-full"
             style={{
-              width: "390px",
-              height: "64px",
+              height: "65px",
               flexShrink: 0,
               fill: "#FCFCFC",
               strokeWidth: "1px",
@@ -296,10 +340,9 @@ export default function DashboardPage() {
           
           {/* Content */}
           <div 
-            className="flex flex-col p-4"
+            className="flex flex-col p-4 w-full overflow-y-auto"
             style={{
-              width: "390px",
-              height: "400px",
+              height: "370px",
               marginTop: "-15px",
               flexShrink: 0,
               background: "#FFF",
@@ -310,46 +353,40 @@ export default function DashboardPage() {
             <div className="space-y-0">
               {[
                 {
-                  name: "Hotel Atlas (Marrakech)",
+                  name: "Kayaking Adventure",
                   requests: 80,
                   archived: 55,
-                  image:
-                    "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/1c12354876432ef7989dd8089db33dee54bc5a38-SVv8DKm93FBf9pa9zRq6uXwknKdcMB.png",
+                  image: "https://cf.bstatic.com/xdata/images/hotel/max1024x768/587978734.jpg?k=2e9f4bc2a6a8f574e14cb70b1392ece864fa25e4042172dcf3b0ce83315a3b87&o=&hp=1"
                 },
                 {
-                  name: "Riad Bahia (Fes)",
+                  name: "Relaxing Massage",
                   requests: 80,
                   archived: 55,
-                  image:
-                    "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/1c12354876432ef7989dd8089db33dee54bc5a38-SVv8DKm93FBf9pa9zRq6uXwknKdcMB.png",
+                  image: "https://img.freepik.com/free-photo/forehead-massage_23-2147638154.jpg"
                 },
                 {
-                  name: "Sun Hotel (Agadir)",
+                  name: "Facial Treatment",
                   requests: 80,
                   archived: 55,
-                  image:
-                    "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/1c12354876432ef7989dd8089db33dee54bc5a38-SVv8DKm93FBf9pa9zRq6uXwknKdcMB.png",
+                  image: "https://img.grouponcdn.com/iam_raw/tVdtift3qfeHqDLvAZE6/zs-5616x3744/v1/t2124x1284.webp"
                 },
                 {
-                  name: "Marina Bay (Tangier)",
+                  name: "Room Service Dinner",
                   requests: 80,
                   archived: 55,
-                  image:
-                    "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/1c12354876432ef7989dd8089db33dee54bc5a38-SVv8DKm93FBf9pa9zRq6uXwknKdcMB.png",
+                  image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoV7hzmu6HKh30hkUevHJeecGWNiY254TyCA&s"
                 },
                 {
-                  name: "Palm Resort (Casablanca)",
+                  name: "Wine Tasting",
                   requests: 80,
                   archived: 55,
-                  image:
-                    "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/1c12354876432ef7989dd8089db33dee54bc5a38-SVv8DKm93FBf9pa9zRq6uXwknKdcMB.png",
+                  image: "https://images.squarespace-cdn.com/content/v1/5f24290fd0d0910ecab2b02e/b2b65c78-ad81-42a1-a304-8b696750716d/shutterstock_611011652-222.jpg"
                 },
                 {
-                  name: "Riad Joyade (Agadir)",
+                  name: "Hot Stone Therapy",
                   requests: 80,
                   archived: 55,
-                  image:
-                    "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/1c12354876432ef7989dd8089db33dee54bc5a38-SVv8DKm93FBf9pa9zRq6uXwknKdcMB.png",
+                  image: "https://img.freepik.com/free-photo/person-enjoying-time-nature_23-2151262753.jpg?semt=ais_hybrid&w=740&q=80"
                 },
               ].map((service, index) => (
                 <div key={index}>
@@ -383,11 +420,10 @@ export default function DashboardPage() {
                   </div>
                   {index < 5 && (
                     <div 
+                      className="w-full"
                       style={{
-                        width: "422px",
                         height: "0.5px",
-                        background: "#E9ECF1",
-                        margin: "0 auto"
+                        background: "#E9ECF1"
                       }}
                     />
                   )}
@@ -398,49 +434,42 @@ export default function DashboardPage() {
         </div>
 
         {/* Order Time Card */}
-        <div className="flex flex-col w-full max-w-[390px]">
+        <div className="flex flex-col w-full">
           {/* Header */}
-          <div className="h-[64px] flex items-center px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0"}}>
+          <div 
+            className="flex py-[12px] px-4 w-full"
+            style={{
+              height: "65px",
+              flexShrink: 0,
+              fill: "#FCFCFC",
+              strokeWidth: "1px",
+              stroke: "#E9EAEB",
+              background: "#FCFCFC",
+              border: "1px solid #E9EAEB",
+              borderRadius: "12px 12px 0 0"
+            }}
+          >
             <h3 className="text-sm font-semibold text-[#212121]">Order Time</h3>
           </div>
           {/* Content */}
-          <div className="h-[400px] flex flex-col items-center justify-center p-6 bg-white border border-[#E9EAEB] rounded-[14px] mt-[-15px]">
+          <div className="h-[370px] flex flex-col items-center justify-center p-6 bg-white border border-[#E9EAEB] rounded-[14px] mt-[-15px]">
             {/* Donut Chart */}
-            <div className="relative w-48 h-48 mb-6">
+            <div className="relative w-48 h-48 mb-6 group">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
-                {/* Morning segment (65%) - Blue */}
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="70"
-                  fill="none"
-                  stroke="#2563EB"
-                  strokeWidth="35"
-                  strokeDasharray="285.6 439.6"
-                  strokeDashoffset="0"
-                />
-                {/* Afternoon segment (23%) - Dark Blue */}
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="70"
-                  fill="none"
-                  stroke="#1E3A8A"
-                  strokeWidth="35"
-                  strokeDasharray="101.1 439.6"
-                  strokeDashoffset="-285.6"
-                />
-                {/* Evening segment (20%) - Light Blue */}
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="70"
-                  fill="none"
-                  stroke="#60A5FA"
-                  strokeWidth="35"
-                  strokeDasharray="87.9 439.6"
-                  strokeDashoffset="-386.7"
-                />
+                {orderTimeData.map((segment, index) => (
+                  <circle
+                    key={index}
+                    cx="100"
+                    cy="100"
+                    r="70"
+                    fill="none"
+                    stroke={segment.color}
+                    strokeWidth="35"
+                    strokeDasharray={segment.strokeDasharray}
+                    strokeDashoffset={segment.strokeDashoffset}
+                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                  />
+                ))}
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
@@ -448,31 +477,39 @@ export default function DashboardPage() {
                   <p className="text-xs text-[#6B7280]">Total Requests</p>
                 </div>
               </div>
+              
+              {/* Individual Circular Percentage Labels - Show on hover */}
+              {orderTimeData.map((segment, index) => (
+                <div 
+                  key={index}
+                  className="absolute flex items-center justify-center rounded-full text-white font-semibold text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{
+                    width: "60.75px",
+                    height: "60.75px",
+                    backgroundColor: "#FFFFFF",
+                    boxShadow: "0px 0.49px 26.33px 0px rgba(0, 0, 0, 0.1)",
+                    left: "50%",
+                    top: "50%",
+                    transform: `translate(-50%, -50%) translate(${segment.position.x}px, ${segment.position.y}px)`,
+                    color: "#000000"
+                  }}
+                >
+                  {segment.percentage}%
+                </div>
+              ))}
             </div>
 
             {/* Legend */}
             <div className="space-y-2 w-full">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#1E3A8A]"></div>
-                  <span className="text-sm text-[#6B7280]">Afternoon</span>
+              {orderTimeData.map((segment, index) => (
+                <div key={index} className="flex items-center justify-center gap-2">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: segment.color }}
+                  ></div>
+                  <span className="text-sm text-[#6B7280]">{segment.name}</span>
                 </div>
-                <span className="text-sm font-semibold text-[#212121]">23%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#60A5FA]"></div>
-                  <span className="text-sm text-[#6B7280]">Evening</span>
-                </div>
-                <span className="text-sm font-semibold text-[#212121]">20%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#2563EB]"></div>
-                  <span className="text-sm text-[#6B7280]">Morning</span>
-                </div>
-                <span className="text-sm font-semibold text-[#212121]">65%</span>
-              </div>
+              ))}
             </div>
           </div>
         </div>
@@ -562,28 +599,49 @@ export default function DashboardPage() {
         <StatCard label="Resolved Tickets" value="1124" change="+2%" changeType="positive" changeLabel="vs yesterday" />
         <StatCard label="Canceled Tickets" value="10" change="+2%" changeType="positive" changeLabel="vs yesterday" />
         <div className="flex p-[19px_16px] flex-col justify-center items-start gap-2.5 flex-1 rounded-lg bg-white shadow-[0_12px_24px_0_rgba(18,38,63,0.03)]">
-          <h3 className="text-sm font-medium text-[#6B7280] pb-3 border-b border-[rgba(0,0,0,0.06)] self-stretch">
+          <h3 className="text-sm font-medium text-[#000000] pb-3 border-b border-[rgba(0,0,0,0.06)] self-stretch">
             Tickets Priority
           </h3>
           <div className="space-y-2 w-full">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-warning"></div>
-                <span className="text-sm text-[#6B7280]">Low</span>
+                <div 
+                  className="rounded-full"
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    backgroundColor: "#56C6FF"
+                  }}
+                ></div>
+                <span className="text-sm" style={{ color: "#535862" }}>Low</span>
               </div>
               <span className="text-sm font-semibold text-[#212121]">385</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-info"></div>
-                <span className="text-sm text-[#6B7280]">Medium</span>
+                <div 
+                  className="rounded-full"
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    backgroundColor: "#D1924F"
+                  }}
+                ></div>
+                <span className="text-sm" style={{ color: "#535862" }}>Medium</span>
               </div>
               <span className="text-sm font-semibold text-[#212121]">124</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-error"></div>
-                <span className="text-sm text-[#6B7280]">Urgent</span>
+                <div 
+                  className="rounded-full"
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    backgroundColor: "#FE0D19"
+                  }}
+                ></div>
+                <span className="text-sm" style={{ color: "#535862" }}>Urgent</span>
               </div>
               <span className="text-sm font-semibold text-[#212121]">658</span>
             </div>

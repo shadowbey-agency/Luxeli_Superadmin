@@ -73,6 +73,7 @@ export default function TeamPage() {
   const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
   const [memberForPermissions, setMemberForPermissions] = useState<TeamMember | null>(null)
 
@@ -101,6 +102,11 @@ export default function TeamPage() {
   const handleEditMember = (member: TeamMember) => {
     setSelectedMember(member)
     setShowEditModal(true)
+  }
+
+  const handleAddMember = () => {
+    setSelectedMember(null)
+    setShowAddModal(true)
   }
 
   const handleUserPermissions = (member: TeamMember) => {
@@ -186,7 +192,11 @@ export default function TeamPage() {
               className="focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
 
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 text-sm font-medium transition-colors" style={{ borderRadius: "6px" }}>
+            <button 
+              onClick={handleAddMember}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 text-sm font-medium transition-colors" 
+              style={{ borderRadius: "6px" }}
+            >
               <RiAddLine className="w-5 h-5" />
               Add Member
             </button>
@@ -327,7 +337,9 @@ export default function TeamPage() {
                       items={[
                         {
                           label: "Edit",
-                          icon: <RiEditLine className="w-4 h-4" />,
+                          icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>,
                           onClick: () => handleEditMember(member),
                         },
                         {
@@ -603,6 +615,224 @@ export default function TeamPage() {
               </button>
               <button 
                 onClick={handleSaveEdit}
+                className="px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors"
+                style={{ 
+                  padding: "8.52px 20px", 
+                  borderRadius: "6px", 
+                  background: "#1F2A44" 
+                }}
+              >
+                Add member
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+          <div className="bg-white rounded-xl w-[50vw] mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div 
+              className="flex justify-between items-center border-b"
+              style={{
+                padding: "20px 16px",
+                borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
+                borderRadius: "10px 10px 0 0",
+                background: "#FFF"
+              }}
+            >
+              <h2 className="text-lg font-semibold text-black">Add Member</h2>
+              <button 
+                onClick={() => setShowAddModal(false)}
+                className="flex items-center justify-center"
+                style={{ width: "24px", height: "24px", aspectRatio: "1/1" }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
+                  <path d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244" stroke="#525866" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-8">
+              {/* General Information Section */}
+              <div className="space-y-4">
+                <h3 
+                  className="font-semibold"
+                  style={{ 
+                    color: "#000",
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    lineHeight: "normal"
+                  }}
+                >
+                  General information
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Left Column */}
+                  <div className="space-y-4">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium text-[#212121]">Member Name</label>
+                      <input
+                        type="text"
+                        placeholder="Write Here..."
+                        className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        style={{
+                          padding: "7.52px 12px",
+                          border: "1px solid #CED4DA",
+                          borderRadius: "4px",
+                          background: "#FFF"
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium text-[#212121]">Phone number</label>
+                      <input
+                        type="text"
+                        placeholder="Write Here..."
+                        className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        style={{
+                          padding: "7.52px 12px",
+                          border: "1px solid #CED4DA",
+                          borderRadius: "4px",
+                          background: "#FFF"
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="space-y-4">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium text-[#212121]">Email</label>
+                      <input
+                        type="email"
+                        placeholder="Write Here..."
+                        className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        style={{
+                          padding: "7.52px 12px",
+                          border: "1px solid #CED4DA",
+                          borderRadius: "4px",
+                          background: "#FFF"
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium text-[#212121]">Permissions</label>
+                      <div className="relative">
+                        <select
+                          className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
+                          style={{
+                            padding: "7.52px 12px",
+                            border: "1px solid #CED4DA",
+                            borderRadius: "4px",
+                            background: "#FFF"
+                          }}
+                        >
+                          <option value="">Select</option>
+                          <option value="admin">Admin</option>
+                          <option value="manager">Manager</option>
+                          <option value="user">User</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                          <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                            <path d="M1 1.5L6 6.5L11 1.5" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account & Access Section */}
+              <div className="space-y-4">
+                <h3 
+                  className="font-semibold"
+                  style={{ 
+                    color: "#000",
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    lineHeight: "normal"
+                  }}
+                >
+                  Account & access
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Left Column */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-[#212121]">Username</label>
+                    <input
+                      type="text"
+                      placeholder="Write Here..."
+                      className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      style={{
+                        padding: "7.52px 12px",
+                        border: "1px solid #CED4DA",
+                        borderRadius: "4px",
+                        background: "#FFF"
+                      }}
+                    />
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-[#212121]">Password</label>
+                    <div className="relative">
+                      <input
+                        type="password"
+                        placeholder="Enter password"
+                        className="w-full px-3 py-2 pr-10 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        style={{
+                          padding: "7.52px 12px",
+                          border: "1px solid #CED4DA",
+                          borderRadius: "4px",
+                          background: "#FFF"
+                        }}
+                      />
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M14.3623 5.21847C14.565 5.50268 14.6663 5.64479 14.6663 5.85514C14.6663 6.0655 14.565 6.20761 14.3623 6.49182C13.4516 7.76885 11.1258 10.5218 7.99968 10.5218C4.87353 10.5218 2.54774 7.76885 1.63704 6.49182C1.43435 6.20761 1.33301 6.0655 1.33301 5.85514C1.33301 5.64479 1.43435 5.50268 1.63703 5.21847C2.54774 3.94144 4.87353 1.18848 7.99968 1.18848C11.1258 1.18848 13.4516 3.94144 14.3623 5.21847Z" stroke="#141B34"/>
+                          <path d="M10 5.85547C10 4.7509 9.10457 3.85547 8 3.85547C6.89543 3.85547 6 4.7509 6 5.85547C6 6.96004 6.89543 7.85547 8 7.85547C9.10457 7.85547 10 6.96004 10 5.85547Z" stroke="#121212"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div 
+              className="flex justify-end items-center border-t"
+              style={{
+                padding: "20px 16px",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                gap: "10px",
+                alignSelf: "stretch",
+                borderTop: "1px solid rgba(0, 0, 0, 0.04)",
+                borderRadius: "0 0 10px 10px",
+                background: "#FFF"
+              }}
+            >
+              <button 
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                style={{ 
+                  padding: "8.52px 10px", 
+                  borderRadius: "6px", 
+                  background: "#FBFAFA",
+                  border: "1px solid #CED4DA",
+                  color: "#525866"
+                }}
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={() => setShowAddModal(false)}
                 className="px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors"
                 style={{ 
                   padding: "8.52px 20px", 

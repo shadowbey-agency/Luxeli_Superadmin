@@ -51,11 +51,11 @@ export default function StatCard({
 
       {/* Third row: Change percentage */}
       {change && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <span 
             className={`text-sm font-medium px-1 py-0.5 rounded ${changeColor} ${changeBgColor}`}
             style={{
-              width: "31px",
+              
               height: "20px",
               gap: "10px",
               paddingRight: "4px",
@@ -68,6 +68,7 @@ export default function StatCard({
           >
             {change}
           </span>
+          <span className="text-[#535862]">vs last month</span>
           {subtitle && <span className="text-sm text-[#6B7280]">{subtitle}</span>}
           {changeLabel && <span className="text-sm text-[#6B7280]">{changeLabel}</span>}
         </div>

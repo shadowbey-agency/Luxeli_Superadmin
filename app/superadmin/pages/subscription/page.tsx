@@ -257,14 +257,14 @@ export default function SubscriptionPage() {
               icon={<RevenueIcon />}
               label="Total Plans Revenue"
               value="1900.000 MAD"
-              change="+2% vs last mounth"
+              change="+2%"
                 changeType="positive"
               />
               <StatCard
               icon={<StaffIcon />}
               label="Total Users"
                 value="42"
-              change="+2% vs last mounth"
+              change="+2% "
                 changeType="positive"
             />
           </div>
@@ -421,25 +421,38 @@ export default function SubscriptionPage() {
             </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between py-3 border-t">
           <p className="text-sm text-muted-foreground">
-            Displaying 8 results out of 03
+            Displaying {startIndex + 1}-{Math.min(endIndex, subscriptions.length)} results out of {subscriptions.length}
           </p>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-2 border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <LeftArrow />
             </button>
-            <button className="px-3 py-1 bg-primary text-white rounded text-sm font-medium">1</button>
-            <button className="px-3 py-1 text-muted-foreground hover:bg-muted rounded text-sm font-medium">2</button>
-            <button className="px-3 py-1 text-muted-foreground hover:bg-muted rounded text-sm font-medium">3</button>
-            <button 
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+
+            {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+              const page = i + 1
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
+                    currentPage === page ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {page}
+                </button>
+              )
+            })}
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-2 border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RightArrow />
             </button>
@@ -630,33 +643,247 @@ export default function SubscriptionPage() {
         </div>
 
         {/* Pagination */}
-          <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between py-3 border-t">
           <p className="text-sm text-muted-foreground">
-              Displaying 8 results out of 03
+            Displaying {startIndex + 1}-{Math.min(endIndex, subscriptions.length)} results out of {subscriptions.length}
           </p>
           <div className="flex items-center gap-2">
             <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-                className="p-2 border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                <LeftArrow />
+              <LeftArrow />
             </button>
-              <button className="px-3 py-1 bg-primary text-white rounded text-sm font-medium">1</button>
-              <button className="px-3 py-1 text-muted-foreground hover:bg-muted rounded text-sm font-medium">2</button>
-              <button className="px-3 py-1 text-muted-foreground hover:bg-muted rounded text-sm font-medium">3</button>
+
+            {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+              const page = i + 1
+              return (
                 <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
+                    currentPage === page ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {page}
+                </button>
+              )
+            })}
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-                className="p-2 border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RightArrow />
+            </button>
+          </div>
+        </div>
+        </div>
+      )}
+
+      {/* Edit End Date Modal */}
+      {showEditModal && selectedSubscription && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+          <div className="bg-white rounded-xl w-[50vw] mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div 
+              className="flex justify-between items-center border-b"
+              style={{
+                padding: "20px 16px",
+                borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
+                borderRadius: "10px 10px 0 0",
+                background: "#FFF"
+              }}
+            >
+              <h2 className="text-lg font-semibold text-black">Edit End Date</h2>
+              <button 
+                onClick={() => setShowEditModal(false)}
+                className="flex items-center justify-center"
+                style={{ width: "24px", height: "24px", aspectRatio: "1/1" }}
               >
-                <RightArrow />
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
+                  <path d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244" stroke="#525866" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-[#212121]">Plan</label>
+                  <select
+                    value={plan}
+                    onChange={(e) => setPlan(e.target.value)}
+                    className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    style={{
+                      padding: "7.52px 12px",
+                      border: "1px solid #CED4DA",
+                      borderRadius: "4px",
+                      background: "#FFF"
+                    }}
+                  >
+                    <option value="Pack Gold">Pack Gold</option>
+                    <option value="Starter pack">Starter pack</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-[#212121]">End Date</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    style={{
+                      padding: "7.52px 12px",
+                      border: "1px solid #CED4DA",
+                      borderRadius: "4px",
+                      background: "#FFF"
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div 
+              className="flex justify-end items-center border-t"
+              style={{
+                padding: "20px 16px",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                gap: "10px",
+                alignSelf: "stretch",
+                borderRadius: "0 0 10px 10px",
+                borderTop: "1px solid rgba(0, 0, 0, 0.04)",
+                background: "#FFF"
+              }}
+            >
+              <button 
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                style={{ 
+                  padding: "8.52px 10px", 
+                  borderRadius: "6px", 
+                  background: "#FBFAFA",
+                  border: "1px solid #CED4DA",
+                  color: "#525866"
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSave}
+                className="px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors"
+                style={{ 
+                  padding: "8.52px 20px", 
+                  borderRadius: "6px", 
+                  background: "#1F2A44" 
+                }}
+              >
+                Save Changes
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Subscription History Modal - Right Side Slide */}
+      {showHistorySlide && selectedHistorySubscription && (
+        <div className="fixed inset-0 z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+          <div className="flex justify-end h-full">
+            <div 
+              className="bg-white w-[50vw] h-full overflow-y-auto"
+              style={{
+                boxShadow: "-4px 0 24px 0 rgba(0, 0, 0, 0.15)",
+                animation: "slideInRight 0.3s ease-out"
+              }}
+            >
+              {/* Main Header */}
+              <div 
+                className="flex justify-between items-center border-b sticky top-0 bg-white z-10"
+                style={{
+                  padding: "20px 24px",
+                  borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
+                  background: "#FFF"
+                }}
+              >
+                <h2 className="text-lg font-semibold text-black">Subscription History</h2>
+                <button 
+                  onClick={() => setShowHistorySlide(false)}
+                  className="flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors"
+                  style={{ width: "32px", height: "32px" }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M15 5L5 15M5 5L15 15" stroke="#525866" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+
+              {/* Secondary Header */}
+              <div 
+                className="flex justify-between items-center border-b"
+                style={{
+                  padding: "16px 24px",
+                  borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
+                  background: "#FFF"
+                }}
+              >
+                <h3 className="text-sm font-medium text-gray-600">Subscription History</h3>
+                <button className="flex items-center justify-center hover:bg-gray-100 rounded transition-colors p-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M2 4h12M2 8h12M2 12h8" stroke="#525866" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content - 2 cards per row */}
+              <div className="p-6">
+                <div className="grid grid-cols-2 gap-4">
+                  {subscriptionHistoryData.map((history) => (
+                    <SubscriptionCard key={history.id} history={history} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer with Pagination */}
+              <div 
+                className="flex justify-between items-center border-t sticky bottom-0 bg-white"
+                style={{
+                  padding: "16px 24px",
+                  borderTop: "1px solid rgba(0, 0, 0, 0.04)",
+                  background: "#FFF"
+                }}
+              >
+                <p className="text-sm text-muted-foreground">
+                  Displaying 6 results out of 6
+                </p>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <LeftArrow />
+                  </button>
+                  <button className="px-3 py-1 bg-primary text-white rounded text-sm font-medium">1</button>
+                  <button className="px-3 py-1 text-muted-foreground hover:bg-muted rounded text-sm font-medium">2</button>
+                  <button className="px-3 py-1 text-muted-foreground hover:bg-muted rounded text-sm font-medium">3</button>
+                  <button 
+                    onClick={() => setCurrentPage(Math.min(3, currentPage + 1))}
+                    disabled={currentPage === 3}
+                    className="p-2 border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <RightArrow />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

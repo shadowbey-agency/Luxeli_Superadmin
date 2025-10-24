@@ -1,7 +1,7 @@
 "use client"
 
 import StatCard from "@/app/superadmin/components/stat-card"
-import RevenueChart from "@/app/superadmin/components/revenue-chart"
+import PartnerRevenueChart from "@/app/partner/components/partner-revenue-chart"
 import PublicIcon from "@/app/partner/components/public-icon"
 import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
@@ -285,7 +285,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-6">
         {/* Revenue Chart - Takes 2 columns */}
         <div className="lg:col-span-2">
-          <RevenueChart />
+          <PartnerRevenueChart />
         </div>
 
         {/* Requests Card */}

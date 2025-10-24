@@ -10,8 +10,27 @@ import {
   RiCheckboxCircleLine,
   RiDeleteBinLine,
 } from "react-icons/ri"
-import StatusBadge from "@/app/superadmin/components/status-badge"
-import PriorityBadge from "@/app/superadmin/components/priority-badge"
+// Helper functions to get status and priority styles matching the partner dashboard
+const getStatusStyle = (status: string) => {
+  const styles = {
+    open: { bg: "#56C6FF0D", border: "#56C6FF40", color: "#56C6FF" },
+    reopened: { bg: "#6457D30D", border: "#6457D340", color: "#6457D3" },
+    pending: { bg: "#D1924F0D", border: "#D1924F40", color: "#D1924F" },
+    resolved: { bg: "#17B26A0D", border: "#17B26A40", color: "#17B26A" },
+    canceled: { bg: "#FF0D0D0D", border: "#FF0D0D40", color: "#FF0D0D" },
+    sent: { bg: "#D1924F0D", border: "#D1924F40", color: "#D1924F" },
+  }
+  return styles[status as keyof typeof styles] || styles.open
+}
+
+const getPriorityStyle = (priority: string) => {
+  const styles = {
+    low: { bg: "#56C6FF0D", border: "#56C6FF40", color: "#56C6FF" },
+    medium: { bg: "#D1924F0D", border: "#D1924F40", color: "#D1924F" },
+    urgent: { bg: "#FF0D0D0D", border: "#FF0D0D40", color: "#FF0D0D" },
+  }
+  return styles[priority as keyof typeof styles] || styles.low
+}
 import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 import DropdownArrow from "@/app/superadmin/components/dropdown-arrow"
 import SortArrows from "@/app/superadmin/components/sort-arrows"
@@ -33,7 +52,7 @@ interface Ticket {
   id: string
   ticketId: string
   title: string
-  status: "open" | "reopened" | "pending" | "resolved" | "canceled"
+  status: "open" | "reopened" | "pending" | "resolved" | "canceled" | "sent"
   priority: "low" | "medium" | "urgent"
   assignee: {
     name: string
@@ -64,9 +83,9 @@ const mockTickets: Ticket[] = [
   },
   {
     id: "2",
-    ticketId: "#22232",
+    ticketId: "#22233",
     title: "Login issues with ...",
-    status: "open",
+    status: "sent",
     priority: "medium",
     assignee: { name: "Full Name", avatar: "FN" },
     dateCreated: "Jan 15, 2024, 10:30 AM",
@@ -134,9 +153,9 @@ const mockTickets: Ticket[] = [
   },
   {
     id: "7",
-    ticketId: "#22232",
+    ticketId: "#22238",
     title: "Login issues with ...",
-    status: "canceled",
+    status: "sent",
     priority: "urgent",
     assignee: { name: "Full Name", avatar: "FN" },
     dateCreated: "Jan 15, 2024, 10:30 AM",
@@ -376,6 +395,7 @@ export default function SupportPage() {
                 <option>Open</option>
                 <option>Pending</option>
                 <option>Resolved</option>
+                <option>Sent</option>
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <DropdownArrow />
@@ -429,7 +449,7 @@ export default function SupportPage() {
               </div>
             </div>
 
-            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors">
+            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="14"
@@ -629,10 +649,40 @@ export default function SupportPage() {
                       {ticket.title}
                     </td>
                     <td className="px-4 py-4">
-                      <StatusBadge status={ticket.status} />
+                      <span 
+                        className="inline-flex items-center justify-center text-xs font-medium capitalize"
+                        style={{
+                          width: "80px",
+                          height: "22px",
+                          gap: "4px",
+                          borderRadius: "4px",
+                          borderWidth: "0.5px",
+                          padding: "10px",
+                          background: getStatusStyle(ticket.status).bg,
+                          border: `0.5px solid ${getStatusStyle(ticket.status).border}`,
+                          color: getStatusStyle(ticket.status).color
+                        }}
+                      >
+                        {ticket.status}
+                      </span>
                     </td>
                     <td className="px-4 py-4">
-                      <PriorityBadge priority={ticket.priority} />
+                      <span 
+                        className="inline-flex items-center justify-center text-xs font-medium capitalize"
+                        style={{
+                          width: "80px",
+                          height: "22px",
+                          gap: "4px",
+                          borderRadius: "4px",
+                          borderWidth: "0.5px",
+                          padding: "10px",
+                          background: getPriorityStyle(ticket.priority).bg,
+                          border: `0.5px solid ${getPriorityStyle(ticket.priority).border}`,
+                          color: getPriorityStyle(ticket.priority).color
+                        }}
+                      >
+                        {ticket.priority}
+                      </span>
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">

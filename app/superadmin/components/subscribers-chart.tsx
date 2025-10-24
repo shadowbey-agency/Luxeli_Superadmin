@@ -15,9 +15,9 @@ export default function SubscribersChart() {
     <div className="flex flex-col w-full">
       {/* Header */}
       <div 
-        className="flex items-center px-4 w-full"
+        className="flex py-[12px] px-4 w-full"
         style={{
-          height: "64px",
+          height: "65px",
           flexShrink: 0,
           fill: "#FCFCFC",
           strokeWidth: "1px",
@@ -34,7 +34,7 @@ export default function SubscribersChart() {
       <div 
         className="flex flex-col justify-between p-4 w-full"
         style={{
-          height: "350px",
+          height: "280px",
           flexShrink: 0,
           fill: "#FFF",
           strokeWidth: "1px",
