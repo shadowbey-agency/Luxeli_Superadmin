@@ -68,7 +68,7 @@ export default function StatCard({
           >
             {change}
           </span>
-          <span className="text-[#535862]">vs last month</span>
+          
           {subtitle && <span className="text-sm text-[#6B7280]">{subtitle}</span>}
           {changeLabel && <span className="text-sm text-[#6B7280]">{changeLabel}</span>}
         </div>
