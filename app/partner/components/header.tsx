@@ -3,12 +3,14 @@
 import { useState, useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import { RiSearchLine, RiNotification3Line } from "react-icons/ri"
+import { useAuth } from "@/lib/auth-context"
 import Image from "next/image"
 
 export default function Header() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
+  const { logout } = useAuth()
 
   // Get page name and description based on pathname
   const getPageInfo = () => {
@@ -206,7 +208,7 @@ export default function Header() {
                </button>
 
                {/* Logout Item */}
-               <button 
+              <button 
                  className="w-full hover:bg-gray-50 transition-colors"
                  style={{
                    display: "flex",
@@ -216,6 +218,7 @@ export default function Header() {
                    alignSelf: "stretch",
                    borderTop: "1px solid rgba(0, 0, 0, 0.06)"
                  }}
+                onClick={logout}
                >
                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ width: "16px", height: "16px", aspectRatio: "1/1" }}>
                    <path d="M12.0007 5.33333L14.6673 8M14.6673 8L12.0007 10.6667M14.6673 8H6.00065M10.0007 2.80269C9.15082 2.29218 8.16415 2 7.11176 2C3.92078 2 1.33398 4.68629 1.33398 8C1.33398 11.3137 3.92078 14 7.11176 14C8.16415 14 9.15082 13.7078 10.0007 13.1973" stroke="#FF0D0D" strokeWidth="1.11333" strokeLinecap="round" strokeLinejoin="round"/>

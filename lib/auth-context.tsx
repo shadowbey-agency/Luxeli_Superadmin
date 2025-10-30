@@ -10,7 +10,7 @@ interface AuthContextType {
   token: string | null
   logout: () => void
   loading: boolean
-  userType: 'superadmin' | 'member' | null
+  userType: 'superadmin' | 'member' | 'partner' | null
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [userType, setUserType] = useState<'superadmin' | 'member' | null>(null)
+  const [userType, setUserType] = useState<'superadmin' | 'member' | 'partner' | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -38,13 +38,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false)
   }, [])
 
-  const logout = () => {
-    clearAuthData()
-    setToken(null)
-    setUser(null)
-    setUserType(null)
-    setIsAuthenticated(false)
-    router.push('/login')
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch (e) {
+      // ignore
+    } finally {
+      clearAuthData()
+      setToken(null)
+      setUser(null)
+      setUserType(null)
+      setIsAuthenticated(false)
+      router.push('/login')
+    }
   }
 
   return (

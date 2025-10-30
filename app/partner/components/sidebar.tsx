@@ -16,6 +16,7 @@ import {
 } from "react-icons/ri"
 import PublicIcon from "./public-icon"
 import { useState, useEffect } from "react"
+import React from "react"
 import DashboardSidebarIcon from "./dashboard-sidebar-icon"
 import RoomSidebarIcon from "./room-sidebar-icon"
 import SupportSidebarIcon from "./support-sidebar-icon"
@@ -202,19 +203,7 @@ export default function Sidebar() {
               }`}
               style={{ borderRadius: "8px" }}
             >
-              {item.isReactIcon ? (
-                <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                  <Icon 
-                    className="flex-shrink-0" 
-                    style={{ 
-                      width: "20px", 
-                      height: "20px",
-                      strokeWidth: "1.5px",
-                      color: strokeColor
-                    }}
-                  />
-                </div>
-              ) : item.isPublicIcon ? (
+              {item.isPublicIcon ? (
                 <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
                   <Icon 
                     {...item.iconProps}
@@ -227,10 +216,9 @@ export default function Sidebar() {
                   />
                 </div>
               ) : (
-                <Icon 
-                  color={strokeColor} 
-                  className="w-6 h-6 flex-shrink-0" 
-                />
+                <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  {React.createElement(Icon as any, { strokeColor: strokeColor, className: "w-6 h-6 flex-shrink-0" })}
+                </div>
               )}
               {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
             </Link>
@@ -266,19 +254,7 @@ export default function Sidebar() {
                   style={{ borderRadius: "8px" }}
                   onClick={toggleExpanded}
                 >
-                  {service.isReactIcon ? (
-                    <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                      <Icon 
-                        className="flex-shrink-0" 
-                        style={{ 
-                          width: "18px", 
-                          height: "18px",
-                          strokeWidth: "1.5px",
-                          color: strokeColor
-                        }}
-                      />
-                    </div>
-                  ) : service.isPublicIcon ? (
+                  {service.isPublicIcon ? (
                     <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
                       <Icon 
                         {...service.iconProps}
@@ -291,10 +267,9 @@ export default function Sidebar() {
                       />
                     </div>
                   ) : (
-                    <Icon 
-                      color={strokeColor} 
-                      className="w-6 h-6 flex-shrink-0" 
-                    />
+                    <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                      {React.createElement(Icon as any, { strokeColor: strokeColor, className: "w-6 h-6 flex-shrink-0" })}
+                    </div>
                   )}
                   {!isCollapsed && (
                     <>
@@ -328,19 +303,7 @@ export default function Sidebar() {
                           }`}
                           style={{ borderRadius: "8px" }}
                         >
-                          {subItem.isReactIcon ? (
-                            <div style={{ width: "22px", height: "22px", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                              <SubIcon 
-                                className="flex-shrink-0" 
-                                style={{ 
-                                  width: "22px", 
-                                  height: "22px",
-                                  strokeWidth: "1.5px",
-                                  color: subStrokeColor
-                                }}
-                              />
-                            </div>
-                          ) : subItem.isPublicIcon ? (
+                          {subItem.isPublicIcon ? (
                             <div style={{ width: "22px", height: "22px", display: "flex", justifyContent: "center", alignItems: "center" }}>
                               <SubIcon 
                                 {...subItem.iconProps}
@@ -353,10 +316,9 @@ export default function Sidebar() {
                               />
                             </div>
                           ) : (
-                            <SubIcon 
-                              color={subStrokeColor} 
-                              className="w-6 h-6 flex-shrink-0" 
-                            />
+                            <div style={{ width: "22px", height: "22px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                              {React.createElement(SubIcon as any, { strokeColor: subStrokeColor, className: "w-6 h-6 flex-shrink-0" })}
+                            </div>
                           )}
                           <span className="font-medium">{subItem.label}</span>
                         </Link>

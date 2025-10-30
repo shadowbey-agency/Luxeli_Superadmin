@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import type { SignOptions, Secret } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-here';
@@ -8,15 +9,16 @@ export interface TokenPayload {
   userId: string;
   email: string;
   role: string;
+  userType?: 'superadmin' | 'member' | 'partner';
+  permissions?: string[];
 }
 
 /**
  * Generate JWT token
  */
 export function generateToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-  });
+  const options = { expiresIn: JWT_EXPIRES_IN } as any;
+  return jwt.sign(payload as object, JWT_SECRET as Secret, options);
 }
 
 /**

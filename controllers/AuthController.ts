@@ -30,12 +30,20 @@ export class AuthController {
               userType: 'superadmin'
             });
 
-            return NextResponse.json({
+            const res = NextResponse.json({
               message: 'Login successful',
               token,
               user: superAdmin.toJSON(),
               userType: 'superadmin'
             });
+            res.cookies.set('auth_token', token, {
+              httpOnly: true,
+              secure: true,
+              sameSite: 'lax',
+              path: '/',
+              maxAge: 60 * 60 * 24 * 7,
+            });
+            return res;
           }
         }
 
@@ -45,20 +53,58 @@ export class AuthController {
           // Verify password for member using the member's comparePassword method
           const isPasswordValid = await member.comparePassword(data.password);
           if (isPasswordValid) {
-            // Generate token for member
+            // Generate token for member (include permissions)
             const token = generateToken({
               userId: member._id.toString(),
               email: member.email,
               role: 'member',
-              userType: 'member'
+              userType: 'member',
+              permissions: Array.isArray(member.permissions) ? member.permissions : [],
             });
 
-            return NextResponse.json({
+            const res = NextResponse.json({
               message: 'Login successful',
               token,
               user: member.toJSON(),
               userType: 'member'
             });
+            res.cookies.set('auth_token', token, {
+              httpOnly: true,
+              secure: true,
+              sameSite: 'lax',
+              path: '/',
+              maxAge: 60 * 60 * 24 * 7,
+            });
+            return res;
+          }
+        }
+
+        // If not found as member, try as partner by hotel email using the same email field
+        const partnerByEmail = await Partner.findOne({ hotelAddressEmail: data.email.toLowerCase() });
+        if (partnerByEmail) {
+          const isPasswordValid = await comparePassword(data.password, partnerByEmail.password);
+          if (isPasswordValid) {
+            const token = generateToken({
+              userId: partnerByEmail._id.toString(),
+              email: partnerByEmail.hotelAddressEmail,
+              role: 'partner',
+              userType: 'partner'
+            });
+
+            const res = NextResponse.json({
+              message: 'Login successful',
+              token,
+              user: partnerByEmail.toJSON(),
+              userType: 'partner'
+            });
+            res.cookies.set('auth_token', token, {
+              httpOnly: true,
+              secure: true,
+              sameSite: 'lax',
+              path: '/',
+              maxAge: 60 * 60 * 24 * 7,
+            });
+            return res;
           }
         }
       }
@@ -78,12 +124,20 @@ export class AuthController {
               userType: 'partner'
             });
 
-            return NextResponse.json({
+            const res = NextResponse.json({
               message: 'Login successful',
               token,
               user: partner.toJSON(),
               userType: 'partner'
             });
+            res.cookies.set('auth_token', token, {
+              httpOnly: true,
+              secure: true,
+              sameSite: 'lax',
+              path: '/',
+              maxAge: 60 * 60 * 24 * 7,
+            });
+            return res;
           }
         }
       }
