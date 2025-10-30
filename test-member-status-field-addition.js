@@ -165,3 +165,4 @@ The status field is now properly implemented!
 // Uncomment to run the test guide
 // testMemberStatusFieldAddition();
 
+

@@ -48,7 +48,6 @@ const SuperAdminSchema = new Schema<ISuperAdmin>({
 });
 
 // Index for better query performance
-SuperAdminSchema.index({ email: 1 });
 SuperAdminSchema.index({ phoneNumber: 1 });
 
 // Transform the output to remove sensitive data

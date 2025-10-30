@@ -171,3 +171,4 @@ Members should now be automatically assigned the "member" role!
 // Uncomment the line below to run the test automatically
 // testAutomaticMemberRole();
 
+
