@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useRef } from "react"
 import {
   RiHotelBedLine,
   RiTeamLine,
@@ -20,17 +20,19 @@ import StaffIcon from "@/app/superadmin/components/staff-icon"
 import ActivePartnerIcon from "@/app/superadmin/components/active-partner-icon"
 import SortArrows from "@/app/superadmin/components/sort-arrows"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
+import { getAuthToken } from "@/lib/auth-utils"
 
 interface Partner {
   id: string
   hotelName: string
-  email: string
+  hotelAddressEmail: string
+  username: string
   phone: string
   city: string
   services: string[]
   plan: string
   createdAt: string
-  isActive: boolean
+  status: string
 }
 
 interface SubscriptionHistory {
@@ -48,35 +50,38 @@ const mockPartners: Partner[] = [
   {
     id: "1",
     hotelName: "Hotel Name",
-    email: "Hotel@email.com",
+    hotelAddressEmail: "Hotel@email.com",
+    username: "hotel_user1",
     phone: "+212 532-002529",
     city: "Casablanca",
     services: ["Housekeeping", "Bookings interns", "Customized Services"],
     plan: "Plan name",
     createdAt: "15 juin 2025",
-    isActive: true,
+    status: "active",
   },
   {
     id: "2",
     hotelName: "Hotel Name",
-    email: "Hotel@email.com",
+    hotelAddressEmail: "Hotel@email.com",
+    username: "hotel_user2",
     phone: "+212 532-002529",
     city: "Casablanca",
     services: ["Housekeeping", "Bookings interns"],
     plan: "Plan name",
     createdAt: "15 juin 2025",
-    isActive: false,
+    status: "disable",
   },
   {
     id: "3",
     hotelName: "Hotel Name",
-    email: "Hotel@email.com",
+    hotelAddressEmail: "Hotel@email.com",
+    username: "hotel_user3",
     phone: "+212 532-002529",
     city: "Casablanca",
     services: ["Housekeeping"],
     plan: "Plan name",
     createdAt: "15 juin 2025",
-    isActive: true,
+    status: "active",
   },
 ]
 
@@ -225,22 +230,352 @@ const SubscriptionCard = ({ subscription }: { subscription: SubscriptionHistory 
 )
 
 export default function PartnersPage() {
-  const [partners, setPartners] = useState<Partner[]>(mockPartners)
+  const [partners, setPartners] = useState<Partner[]>([])
   const [selectedPartners, setSelectedPartners] = useState<string[]>([])
   const [showAddPartnerModal, setShowAddPartnerModal] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [showSuccessCard, setShowSuccessCard] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(8)
-  const [showServicesDropdown, setShowServicesDropdown] = useState<string | null>(null)
+  // Services popover now uses DropdownMenu (portal) like 3-dot menu
+  const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingPartners, setIsLoadingPartners] = useState(true)
+  const [formData, setFormData] = useState({
+    hotelName: '',
+    hotelCity: '',
+    hotelAddressEmail: '',
+    phoneNumber: '',
+    RC: '',
+    ICE: '',
+    identifiantFiscal: '',
+    taxeProfessionnelle: '',
+    hotelImage: null as File | null,
+    username: '',
+    password: '',
+    startDate: '',
+    endDate: '',
+    plan: 'starter pack' as 'starter pack' | 'gold pack',
+    services: [] as string[]
+  })
+  const [serviceOptions, setServiceOptions] = useState<string[]>([])
+  const [servicesLoading, setServicesLoading] = useState(false)
+  const startDateRef = useRef<HTMLInputElement | null>(null)
+  const endDateRef = useRef<HTMLInputElement | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [partnerToDelete, setPartnerToDelete] = useState<Partner | null>(null)
   const [showViewDetail, setShowViewDetail] = useState(false)
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null)
   const [activeTab, setActiveTab] = useState<'partner-info' | 'subscription' | 'room-api'>('partner-info')
+  const [showPasswordDetails, setShowPasswordDetails] = useState(false)
+  const [partnerStats, setPartnerStats] = useState<{ totalPartners: number; activePartners: number } | null>(null)
+  const [statsLoading, setStatsLoading] = useState(true)
 
-  const handleToggleActive = (id: string) => {
-    setPartners(partners.map((p) => (p.id === id ? { ...p, isActive: !p.isActive } : p)))
+  // Fetch partners from API
+  const fetchPartners = async () => {
+    try {
+      setIsLoadingPartners(true)
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        setIsLoadingPartners(false)
+        return
+      }
+
+      console.log('Fetching partners from API...')
+      const response = await fetch('/api/superadmin/partners', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      console.log('Partners API response status:', response.status)
+      console.log('Partners API response ok:', response.ok)
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('Partners API result:', result)
+        
+        if (result.partners && Array.isArray(result.partners)) {
+          // Transform API data to match Partner interface
+          const transformedPartners: Partner[] = result.partners.map((partner: any) => ({
+            id: partner._id,
+            hotelName: partner.hotelName,
+            hotelAddressEmail: partner.hotelAddressEmail,
+            username: partner.username,
+            phone: partner.phoneNumber,
+            city: partner.hotelCity,
+            services: partner.services || [],
+            plan: partner.plan || 'starter pack',
+            createdAt: new Date(partner.createdAt).toLocaleDateString('fr-FR', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
+            }),
+            status: partner.status || 'active'
+          }))
+          
+          console.log('Transformed partners:', transformedPartners)
+          setPartners(transformedPartners)
+        } else {
+          console.error('Partners API returned no partners data:', result)
+          // Fallback to mock data if API fails
+          setPartners(mockPartners)
+        }
+      } else {
+        const errorResult = await response.json()
+        console.error('Partners API error response:', errorResult)
+        // Fallback to mock data if API fails
+        setPartners(mockPartners)
+      }
+    } catch (error) {
+      console.error('Error fetching partners:', error)
+      // Fallback to mock data if API fails
+      setPartners(mockPartners)
+    } finally {
+      setIsLoadingPartners(false)
+    }
+  }
+
+  // Load partners on component mount
+  React.useEffect(() => {
+    fetchPartners()
+  }, [])
+
+  // Fetch partner stats
+  React.useEffect(() => {
+    const loadStats = async () => {
+      try {
+        setStatsLoading(true)
+        const token = getAuthToken()
+        if (!token) {
+          setStatsLoading(false)
+          return
+        }
+        const res = await fetch('/api/superadmin/partners/stats', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!res.ok) {
+          setStatsLoading(false)
+          return
+        }
+        const data = await res.json().catch(() => ({}))
+        const stats = data.stats || data // controller returns {stats: {...}}
+        if (stats) {
+          setPartnerStats({
+            totalPartners: stats.totalPartners ?? 0,
+            activePartners: stats.activePartners ?? 0,
+          })
+        }
+      } catch (e) {
+        console.error('Error fetching partner stats:', e)
+      } finally {
+        setStatsLoading(false)
+      }
+    }
+    loadStats()
+  }, [])
+
+  // Calculate stats from local partners array as fallback
+  const localStats = React.useMemo(() => {
+    if (partnerStats) return partnerStats
+    if (statsLoading) return null
+    
+    const total = partners.length
+    const active = partners.filter(p => p.status === 'active').length
+    return { totalPartners: total, activePartners: active }
+  }, [partners, partnerStats, statsLoading])
+
+  // Load services options 3 seconds after opening Add Partner modal
+  React.useEffect(() => {
+    if (showAddPartnerModal) {
+      setServicesLoading(true)
+      setServiceOptions([])
+      const timer = setTimeout(() => {
+        setServiceOptions(["Housekeeping", "Bookings interns", "Customized Services"])
+        setServicesLoading(false)
+      }, 3000)
+      return () => clearTimeout(timer)
+    } else {
+      setServicesLoading(false)
+      setServiceOptions([])
+    }
+  }, [showAddPartnerModal])
+
+  // Services dropdown handled via portal in DropdownMenu
+
+  // Handle form input changes
+  const handleInputChange = (field: string, value: string | File | string[]) => {
+    console.log(`Updating field ${field} with value:`, value)
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  // Save partner function
+  const savePartner = async () => {
+    console.log('Form data before sending:', formData)
+    console.log('Email being sent:', formData.hotelAddressEmail)
+    console.log('Username being sent:', formData.username)
+    
+    // Validate required fields
+    const requiredFields = [
+      'hotelName', 'hotelCity', 'hotelAddressEmail', 'phoneNumber',
+      'RC', 'ICE', 'identifiantFiscal', 'taxeProfessionnelle',
+      'username', 'password', 'startDate', 'endDate', 'plan'
+    ]
+    
+    const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData])
+    
+    if (missingFields.length > 0) {
+      alert(`Please fill in all required fields: ${missingFields.join(', ')}`)
+      return
+    }
+    
+    setIsLoading(true)
+    try {
+      // Get authentication token using the proper utility
+      const token = getAuthToken()
+      console.log('Token found:', token ? 'Yes' : 'No')
+      console.log('localStorage token:', localStorage.getItem('superadmin_token'))
+      console.log('sessionStorage token:', sessionStorage.getItem('superadmin_token'))
+      
+      // Fallback: try to get token directly if utility function fails
+      const fallbackToken = localStorage.getItem('superadmin_token') || sessionStorage.getItem('superadmin_token')
+      const finalToken = token || fallbackToken
+      
+      if (!finalToken) {
+        alert('Please log in to create a partner')
+        setIsLoading(false)
+        return
+      }
+
+      const response = await fetch('/api/superadmin/partners', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${finalToken}`
+        },
+        body: JSON.stringify(formData)
+      })
+
+      const result = await response.json()
+      console.log('API Response:', result)
+
+      if (result.success) {
+        // Add the new partner to the list
+        const newPartner: Partner = {
+          id: result.data._id,
+          hotelName: result.data.hotelName,
+          hotelAddressEmail: result.data.hotelAddressEmail,
+          username: result.data.username,
+          phone: result.data.phoneNumber,
+          city: result.data.hotelCity,
+          services: result.data.services || [],
+          plan: result.data.plan,
+          createdAt: new Date(result.data.createdAt).toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          }),
+          status: result.data.status
+        }
+        
+        // Refresh the partners list
+        await fetchPartners()
+        setShowAddPartnerModal(false)
+        setCurrentStep(1)
+        setShowSuccessCard(true)
+        
+        // Reset form data
+        setFormData({
+          hotelName: '',
+          hotelCity: '',
+          hotelAddressEmail: '',
+          phoneNumber: '',
+          RC: '',
+          ICE: '',
+          identifiantFiscal: '',
+          taxeProfessionnelle: '',
+          hotelImage: null,
+          username: '',
+          password: '',
+          startDate: '',
+          endDate: '',
+          plan: 'starter pack',
+          services: []
+        })
+        
+        // Auto hide success card after 5 seconds
+        setTimeout(() => {
+          setShowSuccessCard(false)
+        }, 5000)
+      } else {
+        console.error('API Error:', result.error)
+        
+        // Handle specific error types
+        if (result.error && result.error.includes('already registered')) {
+          alert(`❌ Email Error: ${result.error}`)
+        } else if (result.error && result.error.includes('already taken')) {
+          alert(`❌ Username Error: ${result.error}`)
+        } else if (result.error && result.error.includes('required fields')) {
+          alert(`❌ Validation Error: ${result.error}`)
+        } else {
+          alert(`❌ Error: ${result.error}`)
+        }
+      }
+    } catch (error) {
+      console.error('Error saving partner:', error)
+      alert('Failed to save partner. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleToggleActive = async (id: string) => {
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to update partner status')
+        return
+      }
+
+      const partner = partners.find(p => p.id === id)
+      if (!partner) return
+
+      const newStatus = partner.status === 'active' ? 'disable' : 'active'
+      
+      const response = await fetch(`/api/superadmin/partners/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success) {
+          // Update local state
+          setPartners(partners.map((p) => 
+            p.id === id ? { ...p, status: newStatus } : p
+          ))
+          console.log(`Partner status updated to: ${newStatus}`)
+          alert(`✅ Partner status updated to: ${newStatus}`)
+        } else {
+          console.error('API Error:', result.error)
+          alert(`Error: ${result.error}`)
+        }
+      } else {
+        const errorResult = await response.json()
+        console.error('API Error:', errorResult.error)
+        alert(`Error: ${errorResult.error}`)
+      }
+    } catch (error) {
+      console.error('Error updating partner status:', error)
+      alert('Failed to update partner status. Please try again.')
+    }
   }
 
   const handleDeletePartner = (partner: Partner) => {
@@ -248,9 +583,41 @@ export default function PartnersPage() {
     setShowDeleteModal(true)
   }
 
-  const confirmDelete = () => {
-    if (partnerToDelete) {
-      setPartners(partners.filter((p) => p.id !== partnerToDelete.id))
+  const confirmDelete = async () => {
+    if (!partnerToDelete) return
+    
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('❌ Authentication required. Please login again.')
+        return
+      }
+
+      const response = await fetch(`/api/superadmin/partners/${partnerToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const result = await response.json().catch(() => ({} as any))
+        if ((result as any).error) {
+          alert(`❌ Error: ${(result as any).error}`)
+        } else {
+          // Remove from local state
+          setPartners(partners.filter((p) => p.id !== partnerToDelete.id))
+          alert('✅ Partner deleted successfully')
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({} as any))
+        alert(`❌ Error: ${errorData.error || 'Failed to delete partner'}`)
+      }
+    } catch (error) {
+      console.error('Error deleting partner:', error)
+      alert('❌ Failed to delete partner. Please try again.')
+    } finally {
       setShowDeleteModal(false)
       setPartnerToDelete(null)
     }
@@ -304,7 +671,8 @@ export default function PartnersPage() {
         <StatCard
           icon={<CarIcon />}
           label="Total Partners"
-          value="65"
+          value={localStats ? localStats.totalPartners : 0}
+          isLoading={statsLoading}
           change="+2%"
           changeType="positive"
           subtitle="vs last week"
@@ -320,7 +688,8 @@ export default function PartnersPage() {
         <StatCard
           icon={<ActivePartnerIcon />}
           label="Active Partners"
-          value="23"
+          value={localStats ? localStats.activePartners : 0}
+          isLoading={statsLoading}
           change="+2%"
           changeType="positive"
           subtitle="vs last week"
@@ -555,7 +924,16 @@ export default function PartnersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {currentPartners.length === 0 ? (
+              {isLoadingPartners ? (
+                <tr>
+                  <td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      Loading partners...
+                    </div>
+                  </td>
+                </tr>
+              ) : currentPartners.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-4 py-16">
                     <div style={{
@@ -612,7 +990,7 @@ export default function PartnersPage() {
                       fontWeight: "400",
                       lineHeight: "19.5px"
                     }}>
-                      {partner.email}
+                      {partner.hotelAddressEmail}
                     </td>
                     <td className="px-4 py-4" style={{
                       color: "#525866",
@@ -631,27 +1009,22 @@ export default function PartnersPage() {
                       {partner.city}
                     </td>
                     <td className="px-4 py-4">
-                      <div className="relative">
-                        <button
-                          onClick={() =>
-                            setShowServicesDropdown(showServicesDropdown === partner.id ? null : partner.id)
-                          }
-                          className="text-sm text-primary hover:underline"
-                        >
-                          {partner.services.length} ~
-                        </button>
-                        {showServicesDropdown === partner.id && (
-                          <div className="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-border z-50">
-                            <div className="py-2 px-3">
-                              {partner.services.map((service, index) => (
-                                <div key={index} className="py-1 text-sm text-foreground">
-                                  {service}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      <DropdownMenu
+                        trigger={
+                          <button className="flex items-center gap-1 text-sm text-primary hover:underline">
+                            <span>{partner.services.length}</span>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        }
+                        items={
+                          (partner.services.length === 0
+                            ? [{ label: 'No services', onClick: () => {} }]
+                            : partner.services.map((s) => ({ label: s, onClick: () => {} }))
+                          )
+                        }
+                      />
                     </td>
                     <td className="px-4 py-4" style={{
                       color: "#525866",
@@ -670,7 +1043,7 @@ export default function PartnersPage() {
                       {partner.createdAt}
                     </td>
                     <td className="px-4 py-4">
-                      <ToggleSwitch checked={partner.isActive} onChange={() => handleToggleActive(partner.id)} />
+                      <ToggleSwitch checked={partner.status === 'active'} onChange={() => handleToggleActive(partner.id)} />
                     </td>
                     <td className="px-4 py-4">
                       <DropdownMenu
@@ -1094,7 +1467,7 @@ export default function PartnersPage() {
                           </svg>
                           <span className="text-sm text-gray-700">Hotel address email</span>
                         </div>
-                        <span className="text-sm text-black">{selectedPartner.email}</span>
+                        <span className="text-sm text-black">{selectedPartner.hotelAddressEmail}</span>
                       </div>
 
                       <div className="flex items-center justify-between">
@@ -1158,7 +1531,7 @@ export default function PartnersPage() {
                           </svg>
                           <span className="text-sm text-gray-700">Username</span>
                         </div>
-                        <span className="text-sm text-black">{selectedPartner.email}</span>
+                        <span className="text-sm text-black">{selectedPartner.username}</span>
                       </div>
 
                       <div className="flex items-center justify-between">
@@ -1169,11 +1542,26 @@ export default function PartnersPage() {
                           <span className="text-sm text-gray-700">Password</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-black">***********</span>
-                          <svg className="w-4 h-4 text-gray-500 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
+                          <span className="text-sm text-black">
+                            {showPasswordDetails ? 'Password cannot be displayed. Use Reset password.' : '***********'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowPasswordDetails((v) => !v)}
+                            className="p-1"
+                            aria-label={showPasswordDetails ? 'Hide password' : 'Show password'}
+                          >
+                            {showPasswordDetails ? (
+                              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9-4-9-7 0-1.088.41-2.164 1.157-3.142m3.087-2.62A9.967 9.967 0 0112 5c5 0 9 4 9 7 0 1.093-.413 2.173-1.165 3.154M4 4l16 16" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
+                            )}
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -1704,12 +2092,13 @@ export default function PartnersPage() {
                         placeholder="Write Here..."
                         className="w-full px-3 py-2 border rounded"
                         style={{
-                          width: "326px",
                           padding: "7.52px 12px",
                           borderRadius: "4px",
                           border: "1px solid #CED4DA",
                           background: "#FFF"
                         }}
+                        value={formData.hotelName}
+                        onChange={(e) => handleInputChange('hotelName', e.target.value)}
                       />
                     </div>
                     <div className="flex flex-col gap-2 flex-1">
@@ -1724,18 +2113,36 @@ export default function PartnersPage() {
                       >
                         Hotel city
                       </label>
+                      <div className="relative">
                       <select
-                        className="w-full px-3 py-2 border rounded"
+                          className="w-full px-3 py-2 border rounded pr-10 appearance-none"
                         style={{
-                          width: "326px",
                           padding: "7.52px 12px",
                           borderRadius: "4px",
                           border: "1px solid #CED4DA",
                           background: "#FFF"
                         }}
-                      >
-                        <option>Select</option>
+                          value={formData.hotelCity}
+                          onChange={(e) => handleInputChange('hotelCity', e.target.value)}
+                        >
+                          <option value="">Select</option>
+                          <option value="Casablanca">Casablanca</option>
+                          <option value="Rabat">Rabat</option>
+                          <option value="Marrakech">Marrakech</option>
+                          <option value="Fez">Fez</option>
+                          <option value="Tangier">Tangier</option>
+                          <option value="Agadir">Agadir</option>
                       </select>
+                        <svg 
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none"
+                          style={{ color: "#D9D9D9" }}
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
                     </div>
                   </div>
 
@@ -1765,12 +2172,13 @@ export default function PartnersPage() {
                         placeholder="Write Here..."
                         className="w-full px-3 py-2 border rounded"
                         style={{
-                          width: "326px",
                           padding: "7.52px 12px",
                           borderRadius: "4px",
                           border: "1px solid #CED4DA",
                           background: "#FFF"
                         }}
+                        value={formData.hotelAddressEmail}
+                        onChange={(e) => handleInputChange('hotelAddressEmail', e.target.value)}
                       />
                     </div>
                     <div className="flex flex-col gap-2 flex-1">
@@ -1790,12 +2198,13 @@ export default function PartnersPage() {
                         placeholder="Write Here..."
                         className="w-full px-3 py-2 border rounded"
                         style={{
-                          width: "326px",
                           padding: "7.52px 12px",
                           borderRadius: "4px",
                           border: "1px solid #CED4DA",
                           background: "#FFF"
                         }}
+                        value={formData.phoneNumber}
+                        onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                       />
                     </div>
                   </div>
@@ -1826,12 +2235,13 @@ export default function PartnersPage() {
                         placeholder="Write Here..."
                         className="w-full px-3 py-2 border rounded"
                         style={{
-                          width: "326px",
                           padding: "7.52px 12px",
                           borderRadius: "4px",
                           border: "1px solid #CED4DA",
                           background: "#FFF"
                         }}
+                        value={formData.RC}
+                        onChange={(e) => handleInputChange('RC', e.target.value)}
                       />
                     </div>
                     <div className="flex flex-col gap-2 flex-1">
@@ -1851,12 +2261,13 @@ export default function PartnersPage() {
                         placeholder="Write Here..."
                         className="w-full px-3 py-2 border rounded"
                         style={{
-                          width: "326px",
                           padding: "7.52px 12px",
                           borderRadius: "4px",
                           border: "1px solid #CED4DA",
                           background: "#FFF"
                         }}
+                        value={formData.ICE}
+                        onChange={(e) => handleInputChange('ICE', e.target.value)}
                       />
                     </div>
                   </div>
@@ -1887,12 +2298,13 @@ export default function PartnersPage() {
                         placeholder="Write Here..."
                         className="w-full px-3 py-2 border rounded"
                         style={{
-                          width: "326px",
                           padding: "7.52px 12px",
                           borderRadius: "4px",
                           border: "1px solid #CED4DA",
                           background: "#FFF"
                         }}
+                        value={formData.identifiantFiscal}
+                        onChange={(e) => handleInputChange('identifiantFiscal', e.target.value)}
                       />
                     </div>
                     <div className="flex flex-col gap-2 flex-1">
@@ -1912,12 +2324,13 @@ export default function PartnersPage() {
                         placeholder="Write Here..."
                         className="w-full px-3 py-2 border rounded"
                         style={{
-                          width: "326px",
                           padding: "7.52px 12px",
                           borderRadius: "4px",
                           border: "1px solid #CED4DA",
                           background: "#FFF"
                         }}
+                        value={formData.taxeProfessionnelle}
+                        onChange={(e) => handleInputChange('taxeProfessionnelle', e.target.value)}
                       />
                     </div>
                   </div>
@@ -2020,12 +2433,13 @@ export default function PartnersPage() {
                         placeholder="Write Here..."
                         className="w-full px-3 py-2 border rounded"
                         style={{
-                          width: "326px",
                           padding: "7.52px 12px",
                           borderRadius: "4px",
                           border: "1px solid #CED4DA",
                           background: "#FFF"
                         }}
+                        value={formData.username}
+                        onChange={(e) => handleInputChange('username', e.target.value)}
                       />
                     </div>
                     <div className="flex flex-col gap-2 flex-1">
@@ -2046,12 +2460,13 @@ export default function PartnersPage() {
                           placeholder="Enter password"
                           className="w-full px-3 py-2 border rounded pr-10"
                           style={{
-                            width: "326px",
                             padding: "7.52px 12px",
                             borderRadius: "4px",
                             border: "1px solid #CED4DA",
                             background: "#FFF"
                           }}
+                          value={formData.password}
+                          onChange={(e) => handleInputChange('password', e.target.value)}
                         />
                         <button className="absolute right-3 top-1/2 transform -translate-y-1/2">
                           <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2097,18 +2512,20 @@ export default function PartnersPage() {
                       </label>
                       <div className="relative">
                         <input
-                          type="text"
+                          type="date"
                           placeholder="mm/dd/yyyy"
-                          className="w-full px-3 py-2 border rounded pr-10"
+                          className="w-full px-3 py-2 border rounded pr-10 calendar-input"
                           style={{
-                            width: "326px",
                             padding: "7.52px 12px",
                             borderRadius: "4px",
                             border: "1px solid #CED4DA",
                             background: "#FFF"
                           }}
+                          ref={startDateRef}
+                          value={formData.startDate}
+                          onChange={(e) => handleInputChange('startDate', e.target.value)}
                         />
-                        <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg onClick={() => startDateRef.current?.showPicker()} className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                       </div>
@@ -2127,18 +2544,20 @@ export default function PartnersPage() {
                       </label>
                       <div className="relative">
                         <input
-                          type="text"
+                          type="date"
                           placeholder="mm/dd/yyyy"
-                          className="w-full px-3 py-2 border rounded pr-10"
+                          className="w-full px-3 py-2 border rounded pr-10 calendar-input"
                           style={{
-                            width: "326px",
                             padding: "7.52px 12px",
                             borderRadius: "4px",
                             border: "1px solid #CED4DA",
                             background: "#FFF"
                           }}
+                          ref={endDateRef}
+                          value={formData.endDate}
+                          onChange={(e) => handleInputChange('endDate', e.target.value)}
                         />
-                        <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg onClick={() => endDateRef.current?.showPicker()} className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                       </div>
@@ -2165,18 +2584,31 @@ export default function PartnersPage() {
                       >
                         Plan
                       </label>
+                      <div className="relative">
                       <select
-                        className="w-full px-3 py-2 border rounded"
+                          className="w-full px-3 py-2 border rounded pr-10 appearance-none"
                         style={{
-                          width: "326px",
                           padding: "7.52px 12px",
                           borderRadius: "4px",
                           border: "1px solid #CED4DA",
                           background: "#FFF"
                         }}
+                          value={formData.plan}
+                          onChange={(e) => handleInputChange('plan', e.target.value as 'starter pack' | 'gold pack')}
                       >
-                        <option>Select</option>
+                          <option value="starter pack">Starter pack</option>
+                          <option value="gold pack">Gold pack</option>
                       </select>
+                        <svg 
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none"
+                          style={{ color: "#D9D9D9" }}
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
                     </div>
                     <div className="flex flex-col gap-2 flex-1">
                       <label 
@@ -2190,18 +2622,37 @@ export default function PartnersPage() {
                       >
                         Services
                       </label>
-                      <select
-                        className="w-full px-3 py-2 border rounded"
-                        style={{
-                          width: "326px",
-                          padding: "7.52px 12px",
-                          borderRadius: "4px",
-                          border: "1px solid #CED4DA",
-                          background: "#FFF"
-                        }}
-                      >
-                        <option>Select</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={formData.services[0] || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            handleInputChange('services', value ? [value] : [])
+                          }}
+                          disabled={servicesLoading}
+                          className="w-full px-3 py-2 border rounded pr-10 appearance-none"
+                          style={{
+                            padding: "7.52px 12px",
+                            borderRadius: "4px",
+                            border: "1px solid #CED4DA",
+                            background: "#FFF"
+                          }}
+                        >
+                          <option value="" disabled>{servicesLoading ? 'Loading services...' : 'Select'}</option>
+                          {!servicesLoading && serviceOptions.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                        <svg 
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none"
+                          style={{ color: "#D9D9D9" }}
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2357,24 +2808,19 @@ export default function PartnersPage() {
                   if (currentStep < 4) {
                     setCurrentStep(currentStep + 1)
                   } else {
-                    // Save logic here
-                    setShowAddPartnerModal(false)
-                    setCurrentStep(1)
-                    setShowSuccessCard(true)
-                    // Auto hide success card after 5 seconds
-                    setTimeout(() => {
-                      setShowSuccessCard(false)
-                    }, 5000)
+                    // Save partner
+                    savePartner()
                   }
                 }}
-                className="px-4 py-2 rounded text-white font-medium hover:opacity-90 transition-opacity"
+                disabled={isLoading}
+                className="px-4 py-2 rounded text-white font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
                 style={{
                   padding: "8.52px 20px",
                   borderRadius: "6px",
                   background: "#1F2A44"
                 }}
               >
-                {currentStep === 4 ? 'Save' : 'Next'}
+                {isLoading ? 'Saving...' : (currentStep === 4 ? 'Save' : 'Next')}
               </button>
             </div>
           </div>

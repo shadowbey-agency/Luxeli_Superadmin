@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { DashboardIcon, PartnersIcon, SupportIcon, ServicesIcon, BillingFinanceIcon } from "./icons"
+import { DashboardIcon, SupportIcon, ServicesIcon, BillingFinanceIcon } from "./icons"
 import EditPermissionsModal from "./edit-permissions-modal"
 
 interface TeamMember {
@@ -26,11 +26,6 @@ const permissions = [
     id: "dashboard",
     name: "Dashboard",
     icon: <DashboardIcon />,
-  },
-  {
-    id: "partners",
-    name: "Partners", 
-    icon: <PartnersIcon />,
   },
   {
     id: "support",

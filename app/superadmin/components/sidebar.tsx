@@ -7,6 +7,7 @@ import {
   RiSettings4Line,
 } from "react-icons/ri"
 import { useState } from "react"
+import { useAuth } from "@/lib/auth-context"
 import DashboardSidebarIcon from "./dashboard-sidebar-icon"
 import PartnersSidebarIcon from "./partners-sidebar-icon"
 import SupportSidebarIcon from "./support-sidebar-icon"
@@ -14,17 +15,56 @@ import TeamSidebarIcon from "./team-sidebar-icon"
 import SubscriptionSidebarIcon from "./subscription-sidebar-icon"
 
 const menuItems = [
-  { icon: DashboardSidebarIcon, label: "Dashboard", href: "/superadmin/pages/dashboard" },
-  { icon: PartnersSidebarIcon, label: "Partners", href: "/superadmin/pages/partners" },
-  { icon: SupportSidebarIcon, label: "Support", href: "/superadmin/pages/support" },
-  { icon: TeamSidebarIcon, label: "Team", href: "/superadmin/pages/team" },
-  { icon: SubscriptionSidebarIcon, label: "Subscription", href: "/superadmin/pages/subscription" },
-  { icon: RiSettings4Line, label: "Settings", href: "/superadmin/pages/settings" },
+  { icon: DashboardSidebarIcon, label: "Dashboard", href: "/superadmin/pages/dashboard", permission: "dashboard" },
+  { icon: PartnersSidebarIcon, label: "Partners", href: "/superadmin/pages/partners", permission: "partners" },
+  { icon: SupportSidebarIcon, label: "Support", href: "/superadmin/pages/support", permission: "support" },
+  { icon: TeamSidebarIcon, label: "Team", href: "/superadmin/pages/team", permission: "team" },
+  { icon: SubscriptionSidebarIcon, label: "Subscription", href: "/superadmin/pages/subscription", permission: "billingFinance" },
+  { icon: RiSettings4Line, label: "Settings", href: "/superadmin/pages/settings", permission: "settings" },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const { user, userType } = useAuth()
+
+  // Filter menu items based on user permissions
+  const getFilteredMenuItems = () => {
+    // If user is superadmin, show all items
+    if (userType === 'superadmin') {
+      return menuItems
+    }
+    
+    // If user is member, filter based on permissions
+    if (userType === 'member' && user && user.permissions) {
+      return menuItems.filter(item => {
+        // Always show settings
+        if (item.permission === 'settings') {
+          return true
+        }
+        // Check if user has the required permission
+        return user.permissions.includes(item.permission)
+      })
+    }
+    
+    // Default: show only settings
+    return menuItems.filter(item => 
+      item.permission === 'settings'
+    )
+  }
+
+  const filteredMenuItems = getFilteredMenuItems()
+
+  // Get the first available page for logo link
+  const getDefaultPage = () => {
+    if (userType === 'superadmin') {
+      return '/superadmin/pages/dashboard'
+    }
+    if (filteredMenuItems.length > 0) {
+      return filteredMenuItems[0].href
+    }
+    return '/superadmin/pages/settings'
+  }
 
   return (
     <aside
@@ -44,7 +84,7 @@ export default function Sidebar() {
         }}
       >
         {!isCollapsed && (
-          <Link href="/superadmin/pages/dashboard" className="flex items-center gap-2">
+          <Link href={getDefaultPage()} className="flex items-center gap-2">
             <Image
               src="/assets/icons/lexelisidebarlogo.svg"
               alt="Luxeli Logo"
@@ -86,7 +126,7 @@ export default function Sidebar() {
           gap: "10px",
         }}
       >
-        {menuItems.map((item) => {
+        {filteredMenuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
           const strokeColor = isActive ? "white" : "#141B34"
@@ -100,7 +140,8 @@ export default function Sidebar() {
               }`}
             >
               <Icon 
-                strokeColor={strokeColor} 
+                color={strokeColor} 
+                strokeColor={strokeColor}
                 className="w-6 h-6 flex-shrink-0" 
               />
               {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}

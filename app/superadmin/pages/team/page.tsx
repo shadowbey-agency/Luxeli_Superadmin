@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import {
   RiMoreLine,
   RiEditLine,
@@ -15,6 +15,7 @@ import UserPermissionsModal from "@/app/superadmin/components/user-permissions-m
 import DropdownArrow from "@/app/superadmin/components/dropdown-arrow"
 import SortArrows from "@/app/superadmin/components/sort-arrows"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
+import { getAuthToken } from "@/lib/auth-utils"
 
 interface TeamMember {
   id: string
@@ -22,7 +23,7 @@ interface TeamMember {
   email: string
   phone: string
   dateAdded: string
-  isActive: boolean
+  status: string
   avatar: string
 }
 
@@ -33,7 +34,7 @@ const mockTeamMembers: TeamMember[] = [
     email: "contact@maghrebcom.store",
     phone: "+212 632-002529",
     dateAdded: "15 juin 2025",
-    isActive: true,
+    status: "active",
     avatar: "FN",
   },
   {
@@ -42,7 +43,7 @@ const mockTeamMembers: TeamMember[] = [
     email: "contact@maghrebcom.store",
     phone: "+212 632-002529",
     dateAdded: "15 juin 2025",
-    isActive: true,
+    status: "active",
     avatar: "FN",
   },
   {
@@ -51,7 +52,7 @@ const mockTeamMembers: TeamMember[] = [
     email: "contact@maghrebcom.store",
     phone: "+212 632-002529",
     dateAdded: "15 juin 2025",
-    isActive: true,
+    status: "active",
     avatar: "FN",
   },
   {
@@ -60,25 +61,149 @@ const mockTeamMembers: TeamMember[] = [
     email: "contact@maghrebcom.store",
     phone: "+212 632-002529",
     dateAdded: "15 juin 2025",
-    isActive: false,
+    status: "disable",
     avatar: "FN",
   },
 ]
 
 export default function TeamPage() {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(mockTeamMembers)
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
+  const [resetForm, setResetForm] = useState({ password: '', confirm: '', showPassword: false, showConfirm: false })
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '' })
   const [showAddModal, setShowAddModal] = useState(false)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
   const [memberForPermissions, setMemberForPermissions] = useState<TeamMember | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true)
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    username: '',
+    password: '',
+    permissions: [] as string[]
+  })
 
-  const handleToggleActive = (id: string) => {
-    setTeamMembers(teamMembers.map((m) => (m.id === id ? { ...m, isActive: !m.isActive } : m)))
+  // Fetch members from API
+  const fetchMembers = async () => {
+    try {
+      setIsLoadingMembers(true)
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        setIsLoadingMembers(false)
+        return
+      }
+
+      console.log('Fetching members from API...')
+      const response = await fetch('/api/superadmin/members', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      console.log('Members API response status:', response.status)
+      console.log('Members API response ok:', response.ok)
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('Members API result:', result)
+        
+        if (result.success && result.data && result.data.members) {
+          // Transform API data to match TeamMember interface
+          const transformedMembers: TeamMember[] = result.data.members.map((member: any) => ({
+            id: member._id,
+            name: member.name,
+            email: member.email,
+            phone: member.phone,
+            dateAdded: new Date(member.createdAt).toLocaleDateString('fr-FR', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
+            }),
+            status: member.status || 'active',
+            avatar: member.name ? member.name.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'M'
+          }))
+          
+          console.log('Transformed members:', transformedMembers)
+          setTeamMembers(transformedMembers)
+        } else {
+          console.error('Members API returned error:', result.error)
+          // Fallback to mock data if API fails
+          setTeamMembers(mockTeamMembers)
+        }
+      } else {
+        const errorResult = await response.json()
+        console.error('Members API error response:', errorResult)
+        // Fallback to mock data if API fails
+        setTeamMembers(mockTeamMembers)
+      }
+    } catch (error) {
+      console.error('Error fetching members:', error)
+      // Fallback to mock data if API fails
+      setTeamMembers(mockTeamMembers)
+    } finally {
+      setIsLoadingMembers(false)
+    }
+  }
+
+  // Load members on component mount
+  React.useEffect(() => {
+    fetchMembers()
+  }, [])
+
+  const handleToggleActive = async (id: string) => {
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to update member status')
+        return
+      }
+
+      const member = teamMembers.find(m => m.id === id)
+      if (!member) return
+
+      // Fix: Toggle should save the opposite of current status
+      const newStatus = member.status === 'active' ? 'disable' : 'active'
+      
+      const response = await fetch(`/api/superadmin/members/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success) {
+          // Update local state
+          setTeamMembers(teamMembers.map((m) => 
+            m.id === id ? { ...m, status: newStatus } : m
+          ))
+          console.log(`Member status updated to: ${newStatus}`)
+          alert(`✅ Member status updated to: ${newStatus}`)
+        } else {
+          console.error('API Error:', result.error)
+          alert(`❌ Error updating status: ${result.error}`)
+        }
+      } else {
+        const errorResult = await response.json()
+        console.error('API Error:', errorResult.error)
+        alert(`❌ Error updating status: ${errorResult.error}`)
+      }
+    } catch (error) {
+      console.error('Error updating member status:', error)
+      alert('Failed to update member status. Please try again.')
+    }
   }
 
   const handleDeleteMember = (member: TeamMember) => {
@@ -86,9 +211,38 @@ export default function TeamPage() {
     setShowDeleteModal(true)
   }
 
-  const confirmDelete = () => {
-    if (memberToDelete) {
-      setTeamMembers(teamMembers.filter((m) => m.id !== memberToDelete.id))
+  const confirmDelete = async () => {
+    if (!memberToDelete) return
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to delete a member')
+        return
+      }
+
+      const response = await fetch(`/api/superadmin/members/${memberToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json().catch(() => ({} as any))
+        if ((result as any).success !== false) {
+          setTeamMembers(teamMembers.filter((m) => m.id !== memberToDelete.id))
+          alert('✅ Member deleted successfully')
+        } else {
+          alert(`❌ Error: ${(result as any).error || 'Failed to delete member'}`)
+        }
+      } else {
+        const err = await response.json().catch(() => ({}))
+        alert(`❌ Error: ${err.error || 'Failed to delete member'}`)
+      }
+    } catch (error) {
+      console.error('Error deleting member:', error)
+      alert('Failed to delete member. Please try again.')
+    } finally {
       setShowDeleteModal(false)
       setMemberToDelete(null)
     }
@@ -102,6 +256,13 @@ export default function TeamPage() {
   const handleEditMember = (member: TeamMember) => {
     setSelectedMember(member)
     setShowEditModal(true)
+    setEditForm({ name: member.name, email: member.email, phone: member.phone })
+  }
+
+  const handleResetPassword = (member: TeamMember) => {
+    setSelectedMember(member)
+    setResetForm({ password: '', confirm: '', showPassword: false, showConfirm: false })
+    setShowResetPasswordModal(true)
   }
 
   const handleAddMember = () => {
@@ -114,6 +275,111 @@ export default function TeamPage() {
     setShowPermissionsModal(true)
   }
 
+  // Handle form input changes
+  const handleInputChange = (field: string, value: string | string[]) => {
+    console.log(`Updating field ${field} with value:`, value)
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  // Save member function
+  const saveMember = async () => {
+    console.log('Form data before sending:', formData)
+    
+    // Validate required fields
+    const requiredFields = ['name', 'email', 'phone', 'username', 'password']
+    const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData])
+    
+    if (missingFields.length > 0) {
+      alert(`Please fill in all required fields: ${missingFields.join(', ')}`)
+      return
+    }
+    
+    setIsLoading(true)
+    try {
+      // Get authentication token using the proper utility
+      const token = getAuthToken()
+      console.log('Token found:', token ? 'Yes' : 'No')
+      
+      // Fallback: try to get token directly if utility function fails
+      const fallbackToken = localStorage.getItem('superadmin_token') || sessionStorage.getItem('superadmin_token')
+      const finalToken = token || fallbackToken
+      
+      if (!finalToken) {
+        alert('Please log in to create a member')
+        setIsLoading(false)
+        return
+      }
+
+      const response = await fetch('/api/superadmin/members', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${finalToken}`
+        },
+        body: JSON.stringify(formData)
+      })
+
+      const result = await response.json()
+      console.log('API Response:', result)
+
+      if (result.success) {
+        // Add the new member to the list
+        const memberData = result.data.member || result.data; // Handle both response structures
+        const newMember: TeamMember = {
+          id: memberData._id,
+          name: memberData.name,
+          email: memberData.email,
+          phone: memberData.phone,
+          dateAdded: new Date(memberData.createdAt).toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          }),
+          status: memberData.status || "active",
+          avatar: memberData.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+        }
+        
+        setTeamMembers(prev => [newMember, ...prev])
+        setShowAddModal(false)
+        
+        // Reset form data
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          username: '',
+          password: '',
+          permissions: []
+        })
+        
+        alert('Member created successfully!')
+        // Refresh the members list
+        await fetchMembers()
+      } else {
+        console.error('API Error:', result.error)
+        
+        // Handle specific error types
+        if (result.error && result.error.includes('already registered')) {
+          alert(`❌ Email Error: ${result.error}`)
+        } else if (result.error && result.error.includes('already taken')) {
+          alert(`❌ Username Error: ${result.error}`)
+        } else if (result.error && result.error.includes('required fields')) {
+          alert(`❌ Validation Error: ${result.error}`)
+        } else {
+          alert(`❌ Error: ${result.error}`)
+        }
+      }
+    } catch (error) {
+      console.error('Error saving member:', error)
+      alert('Failed to save member. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const closePermissionsModal = () => {
     setShowPermissionsModal(false)
     setMemberForPermissions(null)
@@ -124,11 +390,82 @@ export default function TeamPage() {
     // is now handled directly within the UserPermissionsModal component
   }
 
-  const handleSaveEdit = () => {
-    // Handle save logic here
-    console.log("Saving changes for:", selectedMember?.id)
-    setShowEditModal(false)
-    setSelectedMember(null)
+  const handleSaveEdit = async () => {
+    if (!selectedMember) return
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to update member')
+        return
+      }
+      const response = await fetch(`/api/superadmin/members/${selectedMember.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editForm.name,
+          email: editForm.email,
+          phone: editForm.phone
+        })
+      })
+      if (response.ok) {
+        const result = await response.json().catch(() => ({}))
+        if ((result as any).success === false) {
+          alert(`❌ Error: ${(result as any).error || 'Failed to update member'}`)
+        } else {
+          setTeamMembers(prev => prev.map(m => m.id === selectedMember.id ? { ...m, name: editForm.name, email: editForm.email, phone: editForm.phone } : m))
+          alert('✅ Member updated successfully')
+          setShowEditModal(false)
+          setSelectedMember(null)
+        }
+      } else {
+        const err = await response.json().catch(() => ({}))
+        alert(`❌ Error: ${err.error || 'Failed to update member'}`)
+      }
+    } catch (e) {
+      console.error('Error updating member:', e)
+      alert('Failed to update member. Please try again.')
+    }
+  }
+
+  const handleSaveResetPassword = async () => {
+    if (!selectedMember) return
+    if (!resetForm.password || resetForm.password.length < 6) {
+      alert('Password must be at least 6 characters long')
+      return
+    }
+    if (resetForm.password !== resetForm.confirm) {
+      alert('Passwords do not match')
+      return
+    }
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to update password')
+        return
+      }
+      const response = await fetch(`/api/superadmin/members/${selectedMember.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ password: resetForm.password })
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok || (result as any).success === false) {
+        alert(`❌ Error: ${(result as any).error || 'Failed to update password'}`)
+        return
+      }
+      alert('✅ Password updated successfully')
+      setShowResetPasswordModal(false)
+      setSelectedMember(null)
+    } catch (e) {
+      console.error('Error updating password:', e)
+      alert('Failed to update password. Please try again.')
+    }
   }
 
   const totalPages = Math.ceil(teamMembers.length / itemsPerPage)
@@ -280,7 +617,23 @@ export default function TeamPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {currentMembers.map((member) => (
+              {isLoadingMembers ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      Loading members...
+                    </div>
+                  </td>
+                </tr>
+              ) : currentMembers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                    No members found
+                  </td>
+                </tr>
+              ) : (
+                currentMembers.map((member) => (
                 <tr key={member.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-4">
                     <input type="checkbox" className="rounded" />
@@ -325,7 +678,7 @@ export default function TeamPage() {
                     {member.dateAdded}
                   </td>
                   <td className="px-4 py-4">
-                    <ToggleSwitch checked={member.isActive} onChange={() => handleToggleActive(member.id)} />
+                    <ToggleSwitch checked={member.status === 'active'} onChange={() => handleToggleActive(member.id)} />
                   </td>
                   <td className="px-4 py-4">
                     <DropdownMenu
@@ -350,7 +703,7 @@ export default function TeamPage() {
                         {
                           label: "Reset password",
                           icon: <RiLockPasswordLine className="w-4 h-4" />,
-                          onClick: () => console.log("Reset password", member.id),
+                          onClick: () => handleResetPassword(member),
                         },
                         {
                           label: "Supprimer",
@@ -362,7 +715,8 @@ export default function TeamPage() {
                     />
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -456,7 +810,8 @@ export default function TeamPage() {
                       <label className="text-sm font-medium text-[#212121]">Member Name</label>
                       <input
                         type="text"
-                        defaultValue={selectedMember?.name}
+                        value={editForm.name}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
                         placeholder="Write Here..."
                         className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
@@ -471,7 +826,8 @@ export default function TeamPage() {
                       <label className="text-sm font-medium text-[#212121]">Phone number</label>
                       <input
                         type="text"
-                        defaultValue={selectedMember?.phone}
+                        value={editForm.phone}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
                         placeholder="Write Here..."
                         className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
@@ -490,7 +846,8 @@ export default function TeamPage() {
                       <label className="text-sm font-medium text-[#212121]">Email</label>
                       <input
                         type="email"
-                        defaultValue={selectedMember?.email}
+                        value={editForm.email}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
                         placeholder="Write Here..."
                         className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
@@ -514,9 +871,10 @@ export default function TeamPage() {
                           }}
                         >
                           <option value="">Select</option>
-                          <option value="admin">Admin</option>
-                          <option value="manager">Manager</option>
-                          <option value="user">User</option>
+                          <option value="dashboard">Dashboard</option>
+                          <option value="partner">Partner</option>
+                          <option value="subscription">Subscription</option>
+                          <option value="support">Support</option>
                         </select>
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                           <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
@@ -685,6 +1043,8 @@ export default function TeamPage() {
                           borderRadius: "4px",
                           background: "#FFF"
                         }}
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
                       />
                     </div>
                     <div className="flex flex-col gap-2">
@@ -699,6 +1059,8 @@ export default function TeamPage() {
                           borderRadius: "4px",
                           background: "#FFF"
                         }}
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
                       />
                     </div>
                   </div>
@@ -717,6 +1079,8 @@ export default function TeamPage() {
                           borderRadius: "4px",
                           background: "#FFF"
                         }}
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
                       />
                     </div>
                     <div className="flex flex-col gap-2">
@@ -730,11 +1094,14 @@ export default function TeamPage() {
                             borderRadius: "4px",
                             background: "#FFF"
                           }}
+                          value={formData.permissions.join(',')}
+                          onChange={(e) => handleInputChange('permissions', e.target.value ? e.target.value.split(',') : [])}
                         >
                           <option value="">Select</option>
-                          <option value="admin">Admin</option>
-                          <option value="manager">Manager</option>
-                          <option value="user">User</option>
+                          <option value="dashboard">Dashboard</option>
+                          <option value="partner">Partner</option>
+                          <option value="subscription">Subscription</option>
+                          <option value="support">Support</option>
                         </select>
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                           <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
@@ -774,6 +1141,8 @@ export default function TeamPage() {
                         borderRadius: "4px",
                         background: "#FFF"
                       }}
+                      value={formData.username}
+                      onChange={(e) => handleInputChange('username', e.target.value)}
                     />
                   </div>
 
@@ -791,6 +1160,8 @@ export default function TeamPage() {
                           borderRadius: "4px",
                           background: "#FFF"
                         }}
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
                       />
                       <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -832,15 +1203,16 @@ export default function TeamPage() {
                 Annuler
               </button>
               <button 
-                onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors"
+                onClick={saveMember}
+                disabled={isLoading}
+                className="px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
                 style={{ 
                   padding: "8.52px 20px", 
                   borderRadius: "6px", 
                   background: "#1F2A44" 
                 }}
               >
-                Add member
+                {isLoading ? 'Adding...' : 'Add member'}
               </button>
             </div>
           </div>
@@ -953,6 +1325,140 @@ export default function TeamPage() {
         onClose={closePermissionsModal}
         onEdit={handleEditFromPermissions}
       />
+
+      {/* Reset Password Modal */}
+      {showResetPasswordModal && selectedMember && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+          <div className="bg-white rounded-xl w-[40vw] mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div 
+              className="flex justify-between items-center border-b"
+              style={{
+                padding: "20px 16px",
+                borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
+                borderRadius: "10px 10px 0 0",
+                background: "#FFF"
+              }}
+            >
+              <div>
+                <h2 className="text-lg font-semibold text-black">Reset Password</h2>
+                <p className="text-sm text-[#525866]">Click save when you're done</p>
+              </div>
+              <button 
+                onClick={() => setShowResetPasswordModal(false)}
+                className="flex items-center justify-center"
+                style={{ width: "24px", height: "24px", aspectRatio: "1/1" }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
+                  <path d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244" stroke="#525866" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-[#212121]">New Password</label>
+                  <div className="relative">
+                    <input
+                      type={resetForm.showPassword ? 'text' : 'password'}
+                      placeholder="Enter new password"
+                      className="w-full px-3 py-2 pr-10 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      style={{
+                        padding: "7.52px 12px",
+                        border: "1px solid #CED4DA",
+                        borderRadius: "4px",
+                        background: "#FFF"
+                      }}
+                      value={resetForm.password}
+                      onChange={(e) => setResetForm(prev => ({ ...prev, password: e.target.value }))}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setResetForm(prev => ({ ...prev, showPassword: !prev.showPassword }))}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M14.3623 5.21847C14.565 5.50268 14.6663 5.64479 14.6663 5.85514C14.6663 6.0655 14.565 6.20761 14.3623 6.49182C13.4516 7.76885 11.1258 10.5218 7.99968 10.5218C4.87353 10.5218 2.54774 7.76885 1.63704 6.49182C1.43435 6.20761 1.33301 6.0655 1.33301 5.85514C1.33301 5.64479 1.43435 5.50268 1.63703 5.21847C2.54774 3.94144 4.87353 1.18848 7.99968 1.18848C11.1258 1.18848 13.4516 3.94144 14.3623 5.21847Z" stroke="#141B34"/>
+                        <path d="M10 5.85547C10 4.7509 9.10457 3.85547 8 3.85547C6.89543 3.85547 6 4.7509 6 5.85547C6 6.96004 6.89543 7.85547 8 7.85547C9.10457 7.85547 10 6.96004 10 5.85547Z" stroke="#121212"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-[#212121]">Confirm Password</label>
+                  <div className="relative">
+                    <input
+                      type={resetForm.showConfirm ? 'text' : 'password'}
+                      placeholder="Confirm new password"
+                      className="w-full px-3 py-2 pr-10 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      style={{
+                        padding: "7.52px 12px",
+                        border: "1px solid #CED4DA",
+                        borderRadius: "4px",
+                        background: "#FFF"
+                      }}
+                      value={resetForm.confirm}
+                      onChange={(e) => setResetForm(prev => ({ ...prev, confirm: e.target.value }))}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setResetForm(prev => ({ ...prev, showConfirm: !prev.showConfirm }))}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M14.3623 5.21847C14.565 5.50268 14.6663 5.64479 14.6663 5.85514C14.6663 6.0655 14.565 6.20761 14.3623 6.49182C13.4516 7.76885 11.1258 10.5218 7.99968 10.5218C4.87353 10.5218 2.54774 7.76885 1.63704 6.49182C1.43435 6.20761 1.33301 6.0655 1.33301 5.85514C1.33301 5.64479 1.43435 5.50268 1.63703 5.21847C2.54774 3.94144 4.87353 1.18848 7.99968 1.18848C11.1258 1.18848 13.4516 3.94144 14.3623 5.21847Z" stroke="#141B34"/>
+                        <path d="M10 5.85547C10 4.7509 9.10457 3.85547 8 3.85547C6.89543 3.85547 6 4.7509 6 5.85547C6 6.96004 6.89543 7.85547 8 7.85547C9.10457 7.85547 10 6.96004 10 5.85547Z" stroke="#121212"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div 
+              className="flex justify-end items-center border-t"
+              style={{
+                padding: "20px 16px",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                gap: "10px",
+                alignSelf: "stretch",
+                borderRadius: "0 0 10px 10px",
+                borderTop: "1px solid rgba(0, 0, 0, 0.04)",
+                background: "#FFF"
+              }}
+            >
+              <button 
+                onClick={() => setShowResetPasswordModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                style={{ 
+                  padding: "8.52px 10px", 
+                  borderRadius: "6px", 
+                  background: "#FBFAFA",
+                  border: "1px solid #CED4DA",
+                  color: "#525866"
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSaveResetPassword}
+                className="px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors"
+                style={{ 
+                  padding: "8.52px 20px", 
+                  borderRadius: "6px", 
+                  background: "#1F2A44" 
+                }}
+              >
+                Update
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

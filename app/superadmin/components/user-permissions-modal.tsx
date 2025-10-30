@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
-import { DashboardIcon, PartnersIcon, SupportIcon, ServicesIcon, BillingFinanceIcon } from "./icons"
+import React, { useEffect, useState } from "react"
+import { DashboardIcon, PartnersIcon, SupportIcon, BillingFinanceIcon } from "./icons"
+import { getAuthToken } from "@/lib/auth-utils"
 import EditPermissionsModal from "./edit-permissions-modal"
 
 interface TeamMember {
@@ -10,7 +11,7 @@ interface TeamMember {
   email: string
   phone: string
   dateAdded: string
-  isActive: boolean
+  status: string
   avatar: string
 }
 
@@ -21,41 +22,53 @@ interface UserPermissionsModalProps {
   onEdit: () => void
 }
 
-const permissions = [
-  {
-    id: "dashboard",
-    name: "Dashboard",
-    icon: <DashboardIcon />,
-  },
-  {
-    id: "partners",
-    name: "Partners", 
-    icon: <PartnersIcon />,
-  },
-  {
-    id: "support",
-    name: "Support",
-    icon: <SupportIcon />,
-  },
-  {
-    id: "services",
-    name: "Services",
-    icon: <ServicesIcon />,
-  },
-  {
-    id: "billing",
-    name: "Billing & Finance",
-    icon: <BillingFinanceIcon />,
-  },
+const availablePermissions = [
+  { id: "dashboard", name: "Dashboard", icon: <DashboardIcon /> },
+  { id: "partner", name: "Partner", icon: <PartnersIcon /> },
+  { id: "subscription", name: "Subscription", icon: <SupportIcon /> },
+  { id: "support", name: "Support", icon: <SupportIcon /> },
+  { id: "billingFinance", name: "Billing Finance", icon: <BillingFinanceIcon /> },
+  { id: "team", name: "Team", icon: <SupportIcon /> },
 ]
 
 export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }: UserPermissionsModalProps) {
   const [currentView, setCurrentView] = useState<'permissions' | 'edit'>('permissions')
+  const [memberPermissions, setMemberPermissions] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Reset to permissions view when modal opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       setCurrentView('permissions')
+      // Load current permissions
+      void (async () => {
+        if (!member) return
+        try {
+          setLoading(true)
+          setError(null)
+          const token = getAuthToken()
+          if (!token) {
+            setError('Please log in to view permissions')
+            setLoading(false)
+            return
+          }
+          const res = await fetch(`/api/superadmin/members/${member.id}` , {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+          if (!res.ok) {
+            const e = await res.json().catch(() => ({}))
+            throw new Error(e.error || 'Failed to load permissions')
+          }
+          const data = await res.json()
+          const perms: string[] = data?.data?.member?.permissions || data?.member?.permissions || data?.permissions || []
+          setMemberPermissions(perms)
+        } catch (e: any) {
+          setError(e.message || 'Failed to load permissions')
+        } finally {
+          setLoading(false)
+        }
+      })()
     }
   }, [isOpen])
 
@@ -72,10 +85,33 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
     onClose()
   }
 
-  const handleSavePermissions = (permissions: string[]) => {
-    console.log("Saving permissions:", permissions)
-    // Here you would typically update the user's permissions
-    setCurrentView('permissions') // Reset to permissions view after saving
+  const handleSavePermissions = async (permissions: string[]) => {
+    if (!member) return
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to update permissions')
+        return
+      }
+      const res = await fetch(`/api/superadmin/members/${member.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ permissions })
+      })
+      const result = await res.json().catch(() => ({}))
+      if (!res.ok || (result as any).success === false) {
+        alert(`❌ Error: ${(result as any).error || 'Failed to update permissions'}`)
+        return
+      }
+      setMemberPermissions(permissions)
+      alert('✅ Permissions updated successfully')
+      setCurrentView('permissions')
+    } catch (e) {
+      alert('Failed to update permissions. Please try again.')
+    }
   }
 
   if (!isOpen || !member) return null
@@ -147,9 +183,20 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
             flexWrap: "wrap"
           }}
         >
-          {permissions.map((permission) => (
+          {loading ? (
+            <div className="py-6 text-sm text-muted-foreground">Loading permissions...</div>
+          ) : error ? (
+            <div className="py-6 text-sm text-red-600">{error}</div>
+          ) : memberPermissions.length === 0 ? (
+            <div className="py-6 text-sm text-muted-foreground">No permissions assigned</div>
+          ) : memberPermissions.map((pid) => {
+            const normId = pid === 'partners' ? 'partner' : (pid === 'billing' ? 'billingFinance' : pid)
+            const permission = availablePermissions.find(p => p.id === normId)
+            const label = permission ? permission.name : (pid.charAt(0).toUpperCase() + pid.slice(1))
+            const Icon = permission?.icon
+            return (
             <div
-              key={permission.id}
+              key={pid}
               className="flex items-center gap-2 border rounded-[10px]"
               style={{
                 display: "flex",
@@ -180,11 +227,12 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
                   flexShrink: 0
                 }}
               >
-                {permission.icon}
+                {Icon}
               </div>
-              <span>{permission.name}</span>
+              <span>{label}</span>
             </div>
-          ))}
+            )
+          })}
         </div>
             <div className="border-b  border-black/4 w-full "></div>
             
@@ -243,6 +291,7 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
         onSave={handleSavePermissions}
             showBackButton={true}
             onBack={handleBackToPermissions}
+        initialPermissions={memberPermissions}
       />
         )}
       </div>

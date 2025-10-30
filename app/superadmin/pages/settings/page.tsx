@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { RiUserLine, RiNotification3Line, RiEyeLine, RiEyeOffLine, RiArrowDownSLine } from "react-icons/ri"
 import ToggleSwitch from "@/app/superadmin/components/toggle-switch"
 import Image from "next/image"
+import { useAuth } from "@/lib/auth-context"
+import { getAuthToken } from "@/lib/auth-utils"
 
 interface NotificationSetting {
   id: string
@@ -12,11 +14,161 @@ interface NotificationSetting {
   enabled: boolean
 }
 
+interface UserData {
+  _id: string
+  fullName?: string
+  name?: string
+  email: string
+  phoneNumber?: string
+  phone?: string
+  username?: string
+  profileImage?: string
+  role: 'superadmin' | 'member'
+  permissions?: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+interface FormData {
+  fullName: string
+  name: string
+  email: string
+  phoneNumber: string
+  phone: string
+  username: string
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+  language: string
+}
+
 export default function SettingsPage() {
+  const { user: authUser, token } = useAuth()
   const [activeTab, setActiveTab] = useState<"account" | "notifications">("account")
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [userData, setUserData] = useState<UserData | null>(null)
+  const [formData, setFormData] = useState<FormData>({
+    fullName: '',
+    name: '',
+    email: '',
+    phoneNumber: '',
+    phone: '',
+    username: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+    language: 'en'
+  })
+  const [userType, setUserType] = useState<'superadmin' | 'member' | null>(null)
+
+  // Detect user type and load user data
+  useEffect(() => {
+    const detectUserTypeAndLoadData = async () => {
+      if (!authUser) return
+
+      console.log('Auth user:', authUser)
+      
+      // Check if user has role property (superadmin) or username property (member)
+      if (authUser.role === 'superadmin') {
+        setUserType('superadmin')
+        setUserData({
+          _id: authUser._id,
+          fullName: authUser.fullName,
+          email: authUser.email,
+          phoneNumber: authUser.phoneNumber,
+          profileImage: authUser.profileImage,
+          role: 'superadmin',
+          createdAt: authUser.createdAt,
+          updatedAt: authUser.updatedAt
+        })
+        
+        // Set form data for superadmin
+        setFormData(prev => ({
+          ...prev,
+          fullName: authUser.fullName,
+          email: authUser.email,
+          phoneNumber: authUser.phoneNumber
+        }))
+      } else {
+        // Check if it's a member by looking for username or checking member API
+        setUserType('member')
+        await loadMemberData(authUser._id)
+      }
+    }
+
+    detectUserTypeAndLoadData()
+  }, [authUser])
+
+  // Load member data from API
+  const loadMemberData = async (memberId: string) => {
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        return
+      }
+
+      console.log('Loading member data for ID:', memberId)
+      console.log('Using token:', token.substring(0, 20) + '...')
+
+      const response = await fetch(`/api/superadmin/members/${memberId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      console.log('Member API response status:', response.status)
+      console.log('Member API response ok:', response.ok)
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('Member API result:', result)
+        
+        if (result.success) {
+          const member = result.data.member || result.data
+          console.log('Member data received:', member)
+          
+          setUserData({
+            _id: member._id,
+            name: member.name,
+            email: member.email,
+            phone: member.phone,
+            username: member.username,
+            role: 'member',
+            permissions: member.permissions,
+            createdAt: member.createdAt,
+            updatedAt: member.updatedAt
+          })
+          
+          // Set form data for member
+          setFormData(prev => ({
+            ...prev,
+            name: member.name || '',
+            email: member.email || '',
+            phone: member.phone || '',
+            username: member.username || ''
+          }))
+          
+          console.log('Form data set for member:', {
+            name: member.name,
+            email: member.email,
+            phone: member.phone,
+            username: member.username
+          })
+        } else {
+          console.error('Member API returned error:', result.error)
+        }
+      } else {
+        const errorResult = await response.json()
+        console.error('Member API error response:', errorResult)
+      }
+    } catch (error) {
+      console.error('Error loading member data:', error)
+    }
+  }
 
   const [notificationSettings, setNotificationSettings] = useState<NotificationSetting[]>([
     {
@@ -61,6 +213,127 @@ export default function SettingsPage() {
     setNotificationSettings(
       notificationSettings.map((setting) => (setting.id === id ? { ...setting, enabled: !setting.enabled } : setting)),
     )
+  }
+
+  // Handle form input changes
+  const handleInputChange = (field: keyof FormData, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  // Save account changes
+  const saveAccountChanges = async () => {
+    if (!userData || !token) {
+      alert('Please log in to save changes')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      let updateData: any = {}
+      let apiEndpoint = ''
+
+      if (userType === 'superadmin') {
+        apiEndpoint = `/api/superadmin/superadmins/${userData._id}`
+        updateData = {
+          fullName: formData.fullName,
+          email: formData.email,
+          phoneNumber: formData.phoneNumber
+        }
+
+        // Add password fields if provided
+        if (formData.currentPassword && formData.newPassword && formData.confirmPassword) {
+          if (formData.newPassword !== formData.confirmPassword) {
+            alert('New password and confirm password do not match')
+            setIsLoading(false)
+            return
+          }
+          if (formData.newPassword.length < 6) {
+            alert('New password must be at least 6 characters long')
+            setIsLoading(false)
+            return
+          }
+          updateData.currentPassword = formData.currentPassword
+          updateData.newPassword = formData.newPassword
+        }
+      } else if (userType === 'member') {
+        apiEndpoint = `/api/superadmin/members/${userData._id}`
+        updateData = {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          username: formData.username
+        }
+
+        console.log('Member update data:', updateData)
+
+        // Add password field if provided
+        if (formData.currentPassword && formData.newPassword && formData.confirmPassword) {
+          if (formData.newPassword !== formData.confirmPassword) {
+            alert('New password and confirm password do not match')
+            setIsLoading(false)
+            return
+          }
+          if (formData.newPassword.length < 6) {
+            alert('New password must be at least 6 characters long')
+            setIsLoading(false)
+            return
+          }
+          updateData.currentPassword = formData.currentPassword
+          updateData.newPassword = formData.newPassword
+          console.log('Password change included in update')
+        }
+      }
+
+      const response = await fetch(apiEndpoint, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updateData)
+      })
+
+      let result
+      try {
+        result = await response.json()
+      } catch (jsonError) {
+        console.error('Failed to parse JSON response:', jsonError)
+        result = { error: 'Invalid response from server' }
+      }
+      
+      console.log('Update response:', result)
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+
+      if (response.ok) {
+        alert('Account updated successfully!')
+        // Update local user data
+        if (result.superAdmin) {
+          setUserData(prev => prev ? { ...prev, ...result.superAdmin } : null)
+        } else if (result.data) {
+          setUserData(prev => prev ? { ...prev, ...result.data } : null)
+        }
+        
+        // Clear password fields after successful update
+        setFormData(prev => ({
+          ...prev,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        }))
+      } else {
+        console.error('API Error Response:', result)
+        alert(`Error: ${result.error || result.message || 'Unknown error occurred'}`)
+      }
+    } catch (error) {
+      console.error('Error updating account:', error)
+      alert('Failed to update account. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -108,8 +381,12 @@ export default function SettingsPage() {
                   date.
                 </p>
               </div>
-              <button className="px-6 py-2.5 bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90 rounded-lg text-sm font-medium transition-colors">
-                Save Changes
+              <button 
+                onClick={saveAccountChanges}
+                disabled={isLoading}
+                className="px-6 py-2.5 bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {isLoading ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
 
@@ -121,12 +398,15 @@ export default function SettingsPage() {
                     <h3 className="text-base font-semibold text-[#212121]">Personal Information</h3>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                  <div className={`grid grid-cols-1 gap-4 w-full ${userType === 'member' ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3'}`}>
                     <div>
-                      <label className="block text-sm font-medium text-[#212121] mb-2">Full name</label>
+                      <label className="block text-sm font-medium text-[#212121] mb-2">
+                        {userType === 'superadmin' ? 'Full name' : 'Name'}
+                      </label>
                       <input
                         type="text"
-                        defaultValue="MaghrebEcom"
+                        value={userType === 'superadmin' ? formData.fullName : formData.name}
+                        onChange={(e) => handleInputChange(userType === 'superadmin' ? 'fullName' : 'name', e.target.value)}
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
@@ -135,7 +415,8 @@ export default function SettingsPage() {
                       <label className="block text-sm font-medium text-[#212121] mb-2">Email Address</label>
                       <input
                         type="email"
-                        defaultValue="contact@maghrebecom.store"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
@@ -146,10 +427,23 @@ export default function SettingsPage() {
                       </label>
                       <input
                         type="tel"
-                        defaultValue="+212 632-002529"
+                        value={userType === 'superadmin' ? formData.phoneNumber : formData.phone}
+                        onChange={(e) => handleInputChange(userType === 'superadmin' ? 'phoneNumber' : 'phone', e.target.value)}
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
+
+                    {userType === 'member' && (
+                      <div>
+                        <label className="block text-sm font-medium text-[#212121] mb-2">Username</label>
+                        <input
+                          type="text"
+                          value={formData.username}
+                          onChange={(e) => handleInputChange('username', e.target.value)}
+                          className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -188,6 +482,8 @@ export default function SettingsPage() {
                       <input
                         type={showCurrentPassword ? "text" : "password"}
                         placeholder="Enter current password"
+                        value={formData.currentPassword}
+                        onChange={(e) => handleInputChange('currentPassword', e.target.value)}
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary pr-10"
                       />
                       <button
@@ -206,6 +502,8 @@ export default function SettingsPage() {
                       <input
                         type={showNewPassword ? "text" : "password"}
                         placeholder="Enter new password"
+                        value={formData.newPassword}
+                        onChange={(e) => handleInputChange('newPassword', e.target.value)}
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary pr-10"
                       />
                       <button
@@ -224,6 +522,8 @@ export default function SettingsPage() {
                       <input
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm new password"
+                        value={formData.confirmPassword}
+                        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary pr-10"
                       />
                       <button
@@ -249,7 +549,11 @@ export default function SettingsPage() {
                   </p>
 
                   <div className="relative gap-2">
-                    <select className="flex h-[37px] px-5 items-center gap-1.5 rounded-md border border-[#EFF0F6] bg-[#FBFAFA] text-sm text-[#212121] appearance-none pr-10 pl-9 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary">
+                    <select 
+                      value={formData.language}
+                      onChange={(e) => handleInputChange('language', e.target.value)}
+                      className="flex h-[37px] px-5 items-center gap-1.5 rounded-md border border-[#EFF0F6] bg-[#FBFAFA] text-sm text-[#212121] appearance-none pr-10 pl-9 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
                       <option value="en">English</option>
                       <option value="fr">French</option>
                       <option value="ar">Arabic</option>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { DashboardIcon, PartnersIcon, SupportIcon, ServicesIcon, BillingFinanceIcon } from "./icons"
+import { DashboardIcon, SupportIcon, ServicesIcon, BillingFinanceIcon } from "./icons"
 
 interface TeamMember {
   id: string
@@ -29,11 +29,6 @@ const availablePermissions = [
     icon: <DashboardIcon />,
   },
   {
-    id: "partners",
-    name: "Partners", 
-    icon: <PartnersIcon />,
-  },
-  {
     id: "support",
     name: "Support",
     icon: <SupportIcon />,
@@ -51,7 +46,7 @@ const availablePermissions = [
 ]
 
 export default function EditPermissionsModal({ member, isOpen, onClose, onSave, showBackButton = false, onBack }: EditPermissionsModalProps) {
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(["dashboard", "partners", "support"])
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(["dashboard", "support"])
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
   if (!isOpen || !member) return null

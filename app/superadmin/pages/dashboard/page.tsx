@@ -10,9 +10,12 @@ import PlanIcon from "@/app/superadmin/components/plan-icon"
 import InvoiceIcon from "@/app/superadmin/components/invoice-icon"
 import SubscriptionIcon from "@/app/superadmin/components/subscription-icon"
 import { useState, useEffect } from "react"
+import { getAuthToken } from "@/lib/auth-utils"
 
 export default function DashboardPage() {
   const [activeSection, setActiveSection] = useState("subscriptions")
+  const [partnerStats, setPartnerStats] = useState<{ totalPartners: number; activePartners: number } | null>(null)
+  const [statsLoading, setStatsLoading] = useState(true)
 
   // Order Time Data Array
   const orderTimeData = [
@@ -62,6 +65,57 @@ export default function DashboardPage() {
 
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  // Load partner stats for dashboard cards
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        setStatsLoading(true)
+        const token = getAuthToken()
+        if (!token) {
+          setStatsLoading(false)
+          return
+        }
+        // Primary: use stats endpoint
+        const res = await fetch('/api/superadmin/partners/stats', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        let totals: { totalPartners: number; activePartners: number } | null = null
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}))
+          const s = (data && (data.stats || data)) || {}
+          if (typeof s.totalPartners === 'number' && typeof s.activePartners === 'number') {
+            totals = { totalPartners: s.totalPartners, activePartners: s.activePartners }
+          }
+        }
+
+        // Fallback: derive totals from partners list pagination
+        if (!totals) {
+          const commonHeaders = { 'Authorization': `Bearer ${token}` }
+          const listRes = await fetch(`/api/superadmin/partners?limit=1`, { headers: commonHeaders })
+          const activeRes = await fetch(`/api/superadmin/partners?limit=1&isActive=true`, { headers: commonHeaders })
+          let total = 0
+          let active = 0
+          if (listRes.ok) {
+            const listData = await listRes.json().catch(() => ({}))
+            total = listData?.pagination?.total ?? 0
+          }
+          if (activeRes.ok) {
+            const activeData = await activeRes.json().catch(() => ({}))
+            active = activeData?.pagination?.total ?? 0
+          }
+          totals = { totalPartners: total, activePartners: active }
+        }
+
+        setPartnerStats(totals)
+      } catch (e) {
+        // ignore
+      } finally {
+        setStatsLoading(false)
+      }
+    }
+    loadStats()
   }, [])
   const subscriptionsContent = (
     <div className="space-y-6">
@@ -251,7 +305,7 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Partners" value="65" change="+2%" changeType="positive" changeLabel="vs yesterday" />
+        <StatCard label="Total Partners" value={partnerStats ? partnerStats.totalPartners : 0} isLoading={statsLoading} change="+2%" changeType="positive" changeLabel="vs yesterday" />
         <StatCard label="Total Staff" value="42" change="+2%" changeType="positive" changeLabel="vs yesterday" />
         <StatCard label="Total Rooms" value="654" change="+2%" changeType="positive" changeLabel="vs yesterday" />
         <StatCard label="Total Clients" value="125" change="+2%" changeType="positive" changeLabel="vs yesterday" />

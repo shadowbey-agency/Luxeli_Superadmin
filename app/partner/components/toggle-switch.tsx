@@ -20,14 +20,14 @@ export default function ToggleSwitch({ checked, onChange, label }: ToggleSwitchP
       <div
         className="relative w-11 h-6 rounded-full transition-colors cursor-pointer"
         style={{
-          backgroundColor: checked ? "#FF0D0D" : "#50BE87"
+          backgroundColor: checked ? "#50BE87" : "#FF0D0D"
         }}
         onClick={() => onChange(!checked)}
       >
         <div
           className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform"
           style={{
-            transform: checked ? "translateX(24px)" : "translateX(4px)"
+            transform: checked ? "translateX(4px)" : "translateX(24px)"
           }}
         />
       </div>

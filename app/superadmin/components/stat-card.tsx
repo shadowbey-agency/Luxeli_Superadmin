@@ -9,6 +9,7 @@ interface StatCardProps {
   subtitle?: string
   changeLabel?: string // Added changeLabel for "vs last month" text
   showHeadingBorder?: boolean // Added prop for heading border
+  isLoading?: boolean
 }
 
 export default function StatCard({
@@ -20,6 +21,7 @@ export default function StatCard({
   subtitle,
   changeLabel,
   showHeadingBorder = false,
+  isLoading = false,
 }: StatCardProps) {
   const changeColor = {
     positive: "text-[#079455]", // Using specified green color for positive changes
@@ -45,8 +47,12 @@ export default function StatCard({
       </div>
 
       {/* Second row: Value + Subtitle */}
-      <div className="flex items-baseline gap-2">
-        <p className="text-[32px] font-bold text-[#212121] leading-none">{value}</p>
+      <div className="flex items-baseline gap-2 min-h-[36px]">
+        {isLoading ? (
+          <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-label="loading" />
+        ) : (
+          <p className="text-[32px] font-bold text-[#212121] leading-none">{value}</p>
+        )}
       </div>
 
       {/* Third row: Change percentage */}

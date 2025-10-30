@@ -17,7 +17,7 @@ export default function DashboardPage() {
   // Scroll detection to update active section
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ["subscriptions", "partners"]
+      const sections = ["subscriptions", "services"]
       const scrollPosition = window.scrollY + 200 // Offset for header
 
       for (const section of sections) {
@@ -962,7 +962,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Services Section */}
-        <div id="partners">
+        <div id="services">
           {servicesContent}
         </div>
       </div>

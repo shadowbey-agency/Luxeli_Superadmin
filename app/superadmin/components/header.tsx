@@ -4,11 +4,24 @@ import { useState, useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import { RiSearchLine, RiNotification3Line } from "react-icons/ri"
 import Image from "next/image"
+import { useAuth } from "@/lib/auth-context"
 
 export default function Header() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
+  const { user, logout } = useAuth()
+
+  // Get initials from full name or name
+  const getInitials = (name: string | undefined) => {
+    if (!name) return 'U'
+    return name
+      .split(' ')
+      .map(namePart => namePart.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
 
   // Get page name and description based on pathname
   const getPageInfo = () => {
@@ -105,12 +118,16 @@ export default function Header() {
          <div className="relative" ref={dropdownRef}>
            <div className="flex  gap-3 border-border  rounded-lg">
              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-semibold">
-               YL
+               {user ? getInitials(user.role === 'superadmin' ? user.fullName : user.name) : 'SA'}
              </div>
              <div className="flex items-center gap-2">
                <div>
-                 <p className="text-sm font-semibold text-foreground">Youssef Lamari</p>
-                 <p className="text-xs text-muted-foreground">Admin</p>
+                 <p className="text-sm font-semibold text-foreground">
+                   {user ? (user.role === 'superadmin' ? user.fullName : user.name) : 'Super Admin'}
+                 </p>
+                 <p className="text-xs text-muted-foreground">
+                   {user && user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Super Admin'}
+                 </p>
                </div>
                <button 
                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
@@ -207,6 +224,7 @@ export default function Header() {
 
                {/* Logout Item */}
                <button 
+                 onClick={logout}
                  className="w-full hover:bg-gray-50 transition-colors"
                  style={{
                    display: "flex",

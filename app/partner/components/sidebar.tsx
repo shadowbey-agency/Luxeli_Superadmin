@@ -18,7 +18,6 @@ import PublicIcon from "./public-icon"
 import { useState, useEffect } from "react"
 import DashboardSidebarIcon from "./dashboard-sidebar-icon"
 import RoomSidebarIcon from "./room-sidebar-icon"
-import PartnersSidebarIcon from "./partners-sidebar-icon"
 import SupportSidebarIcon from "./support-sidebar-icon"
 import TeamSidebarIcon from "./team-sidebar-icon"
 import SubscriptionSidebarIcon from "./subscription-sidebar-icon"
@@ -26,7 +25,6 @@ import SubscriptionSidebarIcon from "./subscription-sidebar-icon"
 const menuItems = [
   { icon: DashboardSidebarIcon, label: "Dashboard", href: "/partner/pages/dashboard" },
   { icon: RoomSidebarIcon, label: "Rooms", href: "/partner/pages/room" },
-  { icon: PartnersSidebarIcon, label: "Partners", href: "/partner/pages/partners" },
   { icon: SupportSidebarIcon, label: "Support", href: "/partner/pages/support" },
   { icon: TeamSidebarIcon, label: "Team", href: "/partner/pages/team" },
   { icon: SubscriptionSidebarIcon, label: "Subscription", href: "/partner/pages/subscription" },
@@ -230,7 +228,7 @@ export default function Sidebar() {
                 </div>
               ) : (
                 <Icon 
-                  strokeColor={strokeColor} 
+                  color={strokeColor} 
                   className="w-6 h-6 flex-shrink-0" 
                 />
               )}
@@ -294,7 +292,7 @@ export default function Sidebar() {
                     </div>
                   ) : (
                     <Icon 
-                      strokeColor={strokeColor} 
+                      color={strokeColor} 
                       className="w-6 h-6 flex-shrink-0" 
                     />
                   )}
@@ -356,7 +354,7 @@ export default function Sidebar() {
                             </div>
                           ) : (
                             <SubIcon 
-                              strokeColor={subStrokeColor} 
+                              color={subStrokeColor} 
                               className="w-6 h-6 flex-shrink-0" 
                             />
                           )}

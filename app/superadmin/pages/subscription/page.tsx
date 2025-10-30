@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { RiArrowLeftLine, RiMoreLine, RiEditLine, RiEyeLine, RiHotelBedLine, RiTeamLine, RiUserLine } from "react-icons/ri"
 import Link from "next/link"
 import StatCard from "@/app/superadmin/components/stat-card"
@@ -12,6 +12,7 @@ import PlanIcon from "@/app/superadmin/components/plan-icon"
 import UsersPlanIcon from "@/app/superadmin/components/users-plan-icon"
 import RevenueIcon from "@/app/superadmin/components/revenue-icon"
 import StaffIcon from "@/app/superadmin/components/staff-icon"
+import { getAuthToken } from "@/lib/auth-utils"
 
 interface Subscription {
   id: string
@@ -19,6 +20,8 @@ interface Subscription {
   startDate: string
   endDate: string
   avatar: string
+  planApi?: 'starter pack' | 'gold pack'
+  endDateISO?: string
 }
 
 interface SubscriptionHistory {
@@ -69,7 +72,7 @@ const mockPlans: Plan[] = [
   },
   {
     id: "2", 
-    name: "Pack Gold",
+    name: "Gold pack",
     type: "gold",
     users: 200,
     revenue: "1900.000 MAD"
@@ -178,18 +181,20 @@ const SubscriptionCard = ({ history }: { history: SubscriptionHistory }) => (
 )
 
 export default function SubscriptionPage() {
-  const [subscriptions] = useState<Subscription[]>(mockSubscriptions)
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>(mockSubscriptions)
   const [plans] = useState<Plan[]>(mockPlans)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(8)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null)
-  const [plan, setPlan] = useState("Pack Gold")
-  const [endDate, setEndDate] = useState("10/01/2026")
+  const [plan, setPlan] = useState("Gold pack")
+  const [endDate, setEndDate] = useState("")
   const [showHistorySlide, setShowHistorySlide] = useState(false)
   const [selectedHistorySubscription, setSelectedHistorySubscription] = useState<Subscription | null>(null)
   const [showUsersPlanView, setShowUsersPlanView] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
+  const [isLoadingPlanPartners, setIsLoadingPlanPartners] = useState(false)
+  const [planPartnersError, setPlanPartnersError] = useState<string | null>(null)
 
   const totalPages = Math.ceil(subscriptions.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
@@ -198,14 +203,66 @@ export default function SubscriptionPage() {
 
   const handleEditEndDate = (subscription: Subscription) => {
     setSelectedSubscription(subscription)
+    // Initialize plan label from API value if available, else from selected plan context
+    const planLabel = subscription.planApi
+      ? (subscription.planApi === 'gold pack' ? 'Gold pack' : 'Starter pack')
+      : (selectedPlan ? selectedPlan.name : 'Gold pack')
+    setPlan(planLabel)
+    // Initialize end date input with ISO if available
+    if (subscription.endDateISO) {
+      const d = new Date(subscription.endDateISO)
+      const yyyy = d.getFullYear()
+      const mm = String(d.getMonth() + 1).padStart(2, '0')
+      const dd = String(d.getDate()).padStart(2, '0')
+      setEndDate(`${yyyy}-${mm}-${dd}`)
+    } else {
+      setEndDate("")
+    }
     setShowEditModal(true)
   }
 
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes for:", selectedSubscription?.id, { plan, endDate })
-    setShowEditModal(false)
-    setSelectedSubscription(null)
+  const handleSave = async () => {
+    if (!selectedSubscription) return
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to update subscription')
+        return
+      }
+      const planApi = plan.toLowerCase() as 'starter pack' | 'gold pack'
+      const body: any = { plan: planApi }
+      if (endDate) {
+        body.endDate = endDate
+      }
+      const res = await fetch(`/api/superadmin/partners/${selectedSubscription.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      })
+      const result = await res.json().catch(() => ({}))
+      if (!res.ok || (result && result.success === false)) {
+        alert(`❌ ${result?.error || 'Failed to update partner'}`)
+        return
+      }
+      // Update local table. If plan changed away from current selectedPlan, remove.
+      const changedAway = selectedPlan && planApi !== selectedPlan.name.toLowerCase()
+      if (changedAway) {
+        setSubscriptions(prev => prev.filter(s => s.id !== selectedSubscription.id))
+      } else {
+        const newEndDateDisplay = endDate ? new Date(endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : selectedSubscription.endDate
+        setSubscriptions(prev => prev.map(s => s.id === selectedSubscription.id ? { ...s, endDate: newEndDateDisplay, endDateISO: endDate ? new Date(endDate).toISOString() : s.endDateISO, planApi } : s))
+      }
+      alert('✅ Partner subscription updated')
+    } catch (e) {
+      console.error(e)
+      alert('❌ Failed to update partner')
+    } finally {
+      setShowEditModal(false)
+      setSelectedSubscription(null)
+    }
   }
 
   const handleViewHistory = (subscription: Subscription) => {
@@ -221,7 +278,50 @@ export default function SubscriptionPage() {
   const handleBackToPlans = () => {
     setShowUsersPlanView(false)
     setSelectedPlan(null)
+    setPlanPartnersError(null)
+    setSubscriptions(mockSubscriptions)
   }
+
+  // Fetch partners for selected plan
+  useEffect(() => {
+    const fetchPartnersByPlan = async () => {
+      if (!showUsersPlanView || !selectedPlan) return
+      try {
+        setIsLoadingPlanPartners(true)
+        setPlanPartnersError(null)
+        const apiPlan = selectedPlan.name.toLowerCase()
+        const token = getAuthToken()
+        if (!token) {
+          setPlanPartnersError('Please log in to view partners')
+          setIsLoadingPlanPartners(false)
+          return
+        }
+        const res = await fetch(`/api/superadmin/partners?plan=${encodeURIComponent(apiPlan)}&limit=${itemsPerPage}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          throw new Error(err.error || 'Failed to load partners')
+        }
+        const data = await res.json()
+        const partners = (data.partners || []).map((p: any, i: number) => ({
+          id: p._id || String(i + 1),
+          partnerName: p.hotelName || 'Partner',
+          startDate: p.startDate ? new Date(p.startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '-',
+          endDate: p.endDate ? new Date(p.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '-',
+          avatar: (p.hotelName ? p.hotelName.charAt(0) : 'P').toUpperCase(),
+          planApi: p.plan,
+          endDateISO: p.endDate ? new Date(p.endDate).toISOString() : undefined
+        }))
+        setSubscriptions(partners)
+      } catch (e: any) {
+        setPlanPartnersError(e.message || 'Failed to load partners')
+      } finally {
+        setIsLoadingPlanPartners(false)
+      }
+    }
+    fetchPartnersByPlan()
+  }, [showUsersPlanView, selectedPlan, itemsPerPage])
 
   return (
     <div className="p-6 ">
@@ -242,7 +342,7 @@ export default function SubscriptionPage() {
               </svg>
             </button>
             <span className="text-sm text-muted-foreground">Subscription</span>
-            <span className="text-sm text-muted-foreground">></span>
+            <span className="text-sm text-muted-foreground">&gt;</span>
             <span className="text-sm font-medium text-foreground">Users Plan</span>
           </div>
         )}
@@ -579,7 +679,28 @@ export default function SubscriptionPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {currentSubscriptions.map((subscription) => (
+              {isLoadingPlanPartners ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      Loading partners...
+                    </div>
+                  </td>
+                </tr>
+              ) : planPartnersError ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-red-600">
+                    {planPartnersError}
+                  </td>
+                </tr>
+              ) : currentSubscriptions.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                    No partners found for this plan
+                  </td>
+                </tr>
+              ) : currentSubscriptions.map((subscription) => (
                 <tr key={subscription.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-4">
                     <input type="checkbox" className="rounded" />
@@ -725,7 +846,7 @@ export default function SubscriptionPage() {
                       background: "#FFF"
                     }}
                   >
-                    <option value="Pack Gold">Pack Gold</option>
+                    <option value="Gold pack">Gold pack</option>
                     <option value="Starter pack">Starter pack</option>
                   </select>
                 </div>

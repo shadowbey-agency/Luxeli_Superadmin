@@ -1,6 +1,7 @@
 import type React from "react"
 import Sidebar from "@/app/superadmin/components/sidebar"
 import Header from "@/app/superadmin/components/header"
+import { AuthProvider } from "@/lib/auth-context"
 
 export default function SuperadminLayout({
   children,
@@ -8,12 +9,14 @@ export default function SuperadminLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <Header />
-        <main className="flex-1 overflow-auto bg-[#F9FAFB]">{children}</main>
+    <AuthProvider>
+      <div className="flex min-h-screen bg-background">
+        <Sidebar />
+        <div className="flex-1 flex flex-col">
+          <Header />
+          <main className="flex-1 overflow-auto bg-[#F9FAFB]">{children}</main>
+        </div>
       </div>
-    </div>
+    </AuthProvider>
   )
 }

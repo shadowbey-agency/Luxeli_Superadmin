@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { DashboardIcon, PartnersIcon, SupportIcon, ServicesIcon, BillingFinanceIcon } from "./icons"
+import { useEffect, useState } from "react"
+import { DashboardIcon, PartnersIcon, SupportIcon, BillingFinanceIcon } from "./icons"
 
 interface TeamMember {
   id: string
@@ -9,7 +9,7 @@ interface TeamMember {
   email: string
   phone: string
   dateAdded: string
-  isActive: boolean
+  status: string
   avatar: string
 }
 
@@ -20,6 +20,7 @@ interface EditPermissionsModalProps {
   onSave: (permissions: string[]) => void
   showBackButton?: boolean
   onBack?: () => void
+  initialPermissions?: string[]
 }
 
 const availablePermissions = [
@@ -29,30 +30,28 @@ const availablePermissions = [
     icon: <DashboardIcon />,
   },
   {
-    id: "partners",
-    name: "Partners", 
+    id: "partner",
+    name: "Partner", 
     icon: <PartnersIcon />,
   },
+  { id: "subscription", name: "Subscription", icon: <SupportIcon /> },
+  { id: "billingFinance", name: "Billing & Finance", icon: <BillingFinanceIcon /> },
   {
     id: "support",
     name: "Support",
     icon: <SupportIcon />,
   },
-  {
-    id: "services",
-    name: "Services",
-    icon: <ServicesIcon />,
-  },
-  {
-    id: "billing",
-    name: "Billing & Finance",
-    icon: <BillingFinanceIcon />,
-  },
 ]
 
-export default function EditPermissionsModal({ member, isOpen, onClose, onSave, showBackButton = false, onBack }: EditPermissionsModalProps) {
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(["dashboard", "partners", "support"])
+export default function EditPermissionsModal({ member, isOpen, onClose, onSave, showBackButton = false, onBack, initialPermissions = [] }: EditPermissionsModalProps) {
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(initialPermissions)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedPermissions(initialPermissions)
+    }
+  }, [isOpen, initialPermissions])
 
   if (!isOpen || !member) return null
 
@@ -220,7 +219,9 @@ export default function EditPermissionsModal({ member, isOpen, onClose, onSave, 
                   background: "#FFF"
                 }}
               >
-                {availablePermissions.map((permission) => (
+                {availablePermissions
+                  .filter((permission) => !selectedPermissions.includes(permission.id))
+                  .map((permission) => (
                   <button
                     key={permission.id}
                     onClick={() => handlePermissionToggle(permission.id)}
