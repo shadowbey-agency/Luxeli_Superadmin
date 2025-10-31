@@ -3,24 +3,17 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import {
-  RiSettings4Line,
-} from "react-icons/ri"
 import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
-import DashboardSidebarIcon from "./dashboard-sidebar-icon"
-import PartnersSidebarIcon from "./partners-sidebar-icon"
-import SupportSidebarIcon from "./support-sidebar-icon"
-import TeamSidebarIcon from "./team-sidebar-icon"
-import SubscriptionSidebarIcon from "./subscription-sidebar-icon"
+// Using public folder icons instead of inline SVG components
 
 const menuItems = [
-  { icon: DashboardSidebarIcon, label: "Dashboard", href: "/superadmin/pages/dashboard", permission: "dashboard" },
-  { icon: PartnersSidebarIcon, label: "Partners", href: "/superadmin/pages/partners", permission: "partners" },
-  { icon: SupportSidebarIcon, label: "Support", href: "/superadmin/pages/support", permission: "support" },
-  { icon: TeamSidebarIcon, label: "Team", href: "/superadmin/pages/team", permission: "team" },
-  { icon: SubscriptionSidebarIcon, label: "Subscription", href: "/superadmin/pages/subscription", permission: "billingFinance" },
-  { icon: RiSettings4Line, label: "Settings", href: "/superadmin/pages/settings", permission: "settings" },
+  { isPublicIcon: true, iconProps: { src: "/assets/icons/dashboard.svg", alt: "Dashboard", width: 20, height: 20 }, label: "Dashboard", href: "/superadmin/pages/dashboard", permission: "dashboard" },
+  { isPublicIcon: true, iconProps: { src: "/assets/icons/partner.svg", alt: "Partners", width: 20, height: 20 }, label: "Partners", href: "/superadmin/pages/partners", permission: "partners" },
+  { isPublicIcon: true, iconProps: { src: "/assets/icons/support.svg", alt: "Support", width: 20, height: 20 }, label: "Support", href: "/superadmin/pages/support", permission: "support" },
+  { isPublicIcon: true, iconProps: { src: "/assets/icons/team.svg", alt: "Team", width: 20, height: 20 }, label: "Team", href: "/superadmin/pages/team", permission: "team" },
+  { isPublicIcon: true, iconProps: { src: "/assets/icons/star.svg", alt: "Subscription", width: 20, height: 20 }, label: "Subscription", href: "/superadmin/pages/subscription", permission: "billingFinance" },
+  { isPublicIcon: true, iconProps: { src: "/assets/icons/settings.svg", alt: "Settings", width: 20, height: 20 }, label: "Settings", href: "/superadmin/pages/settings", permission: "settings" },
 ]
 
 export default function Sidebar() {
@@ -127,7 +120,6 @@ export default function Sidebar() {
         }}
       >
         {filteredMenuItems.map((item) => {
-          const Icon = item.icon
           const isActive = pathname === item.href
           const strokeColor = isActive ? "white" : "#141B34"
 
@@ -135,15 +127,34 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all ${
+              className={`group flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all ${
                 isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
-              <Icon 
-                color={strokeColor} 
-                strokeColor={strokeColor}
-                className="w-6 h-6 flex-shrink-0" 
-              />
+              {item.isPublicIcon && (
+                <Image
+                  src={item.iconProps.src}
+                  alt={item.iconProps.alt}
+                  width={item.iconProps.width}
+                  height={item.iconProps.height}
+                  className="flex-shrink-0 transition-all"
+                  style={{ 
+                    filter: isActive 
+                      ? "brightness(0) invert(1)" 
+                      : "brightness(0) saturate(100%) invert(20%) sepia(7%) saturate(1000%) hue-rotate(184deg) brightness(94%) contrast(86%)"
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.filter = "brightness(0) saturate(100%) invert(15%) sepia(7%) saturate(1000%) hue-rotate(184deg) brightness(94%) contrast(86%)"
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.filter = "brightness(0) saturate(100%) invert(20%) sepia(7%) saturate(1000%) hue-rotate(184deg) brightness(94%) contrast(86%)"
+                    }
+                  }}
+                />
+              )}
               {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
             </Link>
           )

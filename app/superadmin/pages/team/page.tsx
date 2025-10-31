@@ -68,6 +68,7 @@ const mockTeamMembers: TeamMember[] = [
 
 export default function TeamPage() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -468,10 +469,22 @@ export default function TeamPage() {
     }
   }
 
-  const totalPages = Math.ceil(teamMembers.length / itemsPerPage)
+  const norm = (v: string) => v.toLowerCase()
+  const filteredMembers = teamMembers.filter((m) => {
+    if (!searchTerm) return true
+    const q = norm(searchTerm)
+    return (
+      norm(m.name).includes(q) ||
+      norm(m.email).includes(q) ||
+      norm(m.phone).includes(q) ||
+      ((m as any).username && norm((m as any).username).includes(q))
+    )
+  })
+
+  const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentMembers = teamMembers.slice(startIndex, endIndex)
+  const currentMembers = filteredMembers.slice(startIndex, endIndex)
 
   return (
     <div className="p-6">
@@ -516,6 +529,8 @@ export default function TeamPage() {
             <input
               type="text"
               placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => { setCurrentPage(1); setSearchTerm(e.target.value) }}
               style={{
                 padding: "7.52px 12px",
                 borderRadius: "4px",
@@ -549,69 +564,29 @@ export default function TeamPage() {
                   <input type="checkbox" className="rounded" />
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Member Name
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Member Name
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Email
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Email
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Phone number
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Phone number
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Date added
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Date added
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Complete
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Complete
+                  </span>
                 </th>
                 <th className="w-12 px-4 py-4"></th>
               </tr>

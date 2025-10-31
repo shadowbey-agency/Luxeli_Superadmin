@@ -211,6 +211,9 @@ const mockTickets: Ticket[] = [
 
 export default function SupportPage() {
   const [tickets, setTickets] = useState<Ticket[]>(mockTickets)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState<"all" | Ticket["status"]>("all")
+  const [priorityFilter, setPriorityFilter] = useState<"all" | Ticket["priority"]>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null)
@@ -227,10 +230,27 @@ export default function SupportPage() {
   const [showDeleteTicketModal, setShowDeleteTicketModal] = useState(false)
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null)
 
-  const totalPages = Math.ceil(tickets.length / itemsPerPage)
+  const norm = (v: string) => v.toLowerCase()
+  const filteredTickets = tickets.filter((t) => {
+    if (statusFilter !== "all" && t.status !== statusFilter) return false
+    if (priorityFilter !== "all" && t.priority !== priorityFilter) return false
+    if (!searchTerm) return true
+    const q = norm(searchTerm)
+    return (
+      norm(t.title).includes(q) ||
+      norm(t.ticketId).includes(q) ||
+      norm(t.status).includes(q) ||
+      norm(t.priority).includes(q) ||
+      norm(t.assignee.name).includes(q) ||
+      norm(t.hotelName).includes(q) ||
+      norm(t.hotelEmail).includes(q)
+    )
+  })
+
+  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentTickets = tickets.slice(startIndex, endIndex)
+  const currentTickets = filteredTickets.slice(startIndex, endIndex)
 
   const handleStatusChange = (ticketId: string, newStatus: Ticket["status"]) => {
     setTickets(tickets.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)))
@@ -363,6 +383,8 @@ export default function SupportPage() {
             <input
               type="text"
               placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => { setCurrentPage(1); setSearchTerm(e.target.value) }}
               style={{
                 padding: "7.52px 12px",
                 borderRadius: "4px",
@@ -378,6 +400,8 @@ export default function SupportPage() {
 
             <div className="relative">
               <select 
+                value={statusFilter}
+                onChange={(e) => { setCurrentPage(1); setStatusFilter((e.target.value.toLowerCase() as any) || "all") }}
                 className="appearance-none"
                 style={{
                   padding: "7.52px 12px",
@@ -391,11 +415,11 @@ export default function SupportPage() {
                   lineHeight: "19.5px"
                 }}
               >
-                <option>Status</option>
-                <option>Open</option>
-                <option>Pending</option>
-                <option>Resolved</option>
-                <option>Sent</option>
+                <option value="all">Status</option>
+                <option value="open">Open</option>
+                <option value="pending">Pending</option>
+                <option value="resolved">Resolved</option>
+                <option value="sent">Sent</option>
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <DropdownArrow />
@@ -404,6 +428,8 @@ export default function SupportPage() {
 
             <div className="relative">
               <select 
+                value={priorityFilter}
+                onChange={(e) => { setCurrentPage(1); setPriorityFilter((e.target.value.toLowerCase() as any) || "all") }}
                 className="appearance-none"
                 style={{
                   padding: "7.52px 12px",
@@ -417,10 +443,10 @@ export default function SupportPage() {
                   lineHeight: "19.5px"
                 }}
               >
-                <option>Priority</option>
-                <option>Low</option>
-                <option>Medium</option>
-                <option>Urgent</option>
+                <option value="all">Priority</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="urgent">Urgent</option>
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <DropdownArrow />
@@ -491,95 +517,39 @@ export default function SupportPage() {
                   <input type="checkbox" className="rounded" />
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Title
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Title
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Ticket ID
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Ticket ID
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Status
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Status
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Priority
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Priority
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Assignee
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Assignee
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Date Created
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Date Created
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Date Update
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Date Update
+                  </span>
                 </th>
                 <th className="w-12 px-4 py-4"></th>
               </tr>
@@ -765,10 +735,10 @@ export default function SupportPage() {
         </div>
 
         {/* Pagination */}
-        {tickets.length > 0 && (
+        {filteredTickets.length > 0 && (
           <div className="flex items-center justify-between  py-3 border-t border-border">
             <p className="text-sm text-muted-foreground">
-              Displaying {startIndex + 1}-{Math.min(endIndex, tickets.length)} results out of {tickets.length}
+              Displaying {filteredTickets.length === 0 ? 0 : startIndex + 1}-{Math.min(endIndex, filteredTickets.length)} results out of {filteredTickets.length}
             </p>
 
             <div className="flex items-center gap-2">

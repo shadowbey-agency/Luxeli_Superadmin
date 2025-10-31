@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   RiMoreLine,
   RiDeleteBinLine,
@@ -13,6 +13,7 @@ import PublicIcon from "@/app/partner/components/public-icon"
 import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 import StatCard from "@/app/superadmin/components/stat-card"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
+import { getAuthToken } from "@/lib/auth-utils"
 
 interface Room {
   id: string
@@ -59,7 +60,7 @@ const mockRoomHistory: RoomHistoryEntry[] = Array.from({ length: 105 }, (_, i) =
 }))
 
 export default function RoomPage() {
-  const [rooms, setRooms] = useState<Room[]>(mockRooms)
+  const [rooms, setRooms] = useState<Room[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -79,6 +80,16 @@ export default function RoomPage() {
   const [newRoomStatus, setNewRoomStatus] = useState<"Full" | "Empty">("Empty")
   // Selection state
   const [selectedRooms, setSelectedRooms] = useState<Set<string>>(new Set())
+  // Form state for full room details
+  const [newResident, setNewResident] = useState("")
+  const [newCheckInDate, setNewCheckInDate] = useState("")
+  const [newCheckInTime, setNewCheckInTime] = useState("")
+  const [newCheckOutDate, setNewCheckOutDate] = useState("")
+  const [newCheckOutTime, setNewCheckOutTime] = useState("")
+  // Loading state
+  const [isLoadingRooms, setIsLoadingRooms] = useState(true)
+  // Pagination state
+  const [totalRooms, setTotalRooms] = useState(0)
 
   const handleRoomSelection = (roomId: string, isSelected: boolean) => {
     const newSelectedRooms = new Set(selectedRooms)
@@ -98,16 +109,103 @@ export default function RoomPage() {
     }
   }
 
+  // Map API room to UI Room interface
+  const mapApiRoomToRoom = (apiRoom: any): Room => {
+    const formatDate = (date: Date | string | null) => {
+      if (!date) return undefined
+      const d = new Date(date)
+      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+    }
+    const formatDateTime = (date: Date | string | null, time: string | null) => {
+      if (!date) return undefined
+      const d = new Date(date)
+      const dateStr = formatDate(date)
+      return time ? `${dateStr}, ${time}` : dateStr
+    }
+    return {
+      id: apiRoom._id || apiRoom.id,
+      roomNumber: apiRoom.roomId || apiRoom.roomName || '',
+      hotelName: "Hotel Name", // Could come from API if available
+      roomType: "Standard", // Default
+      capacity: "2", // Default
+      status: apiRoom.roomStatus === 'full' ? 'Occupied' : 'Available',
+      price: "500 MAD", // Default
+      dateAdded: apiRoom.createdAt ? formatDate(apiRoom.createdAt) : new Date().toLocaleDateString(),
+      avatar: (apiRoom.roomId || apiRoom.roomName || 'R').charAt(0).toUpperCase(),
+      resident: apiRoom.resident || undefined,
+      checkIn: formatDateTime(apiRoom.checkInDate, apiRoom.checkInTime),
+      checkOut: formatDateTime(apiRoom.checkOutDate, apiRoom.checkOutTime),
+    }
+  }
+
+  // Fetch rooms from API
+  const fetchRooms = async () => {
+    try {
+      setIsLoadingRooms(true)
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        setIsLoadingRooms(false)
+        return
+      }
+      const response = await fetch(`/api/partner/rooms?page=${currentPage}&limit=${itemsPerPage}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      if (response.ok) {
+        const result = await response.json()
+        const mappedRooms = (result.items || []).map(mapApiRoomToRoom)
+        setRooms(mappedRooms)
+        setTotalRooms(result.total || 0)
+      } else {
+        console.error('Failed to fetch rooms')
+        setRooms([])
+        setTotalRooms(0)
+      }
+    } catch (error) {
+      console.error('Error fetching rooms:', error)
+      setRooms([])
+    } finally {
+      setIsLoadingRooms(false)
+    }
+  }
+
+  // Fetch rooms on mount and when page/limit changes
+  useEffect(() => {
+    fetchRooms()
+  }, [currentPage, itemsPerPage])
+
   const handleDeleteRoom = (room: Room) => {
     setRoomToDelete(room)
     setShowDeleteModal(true)
   }
 
-  const confirmDelete = () => {
-    if (roomToDelete) {
-      setRooms(rooms.filter((r) => r.id !== roomToDelete.id))
-      setShowDeleteModal(false)
-      setRoomToDelete(null)
+  const confirmDelete = async () => {
+    if (!roomToDelete) return
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to delete room')
+        return
+      }
+      const response = await fetch(`/api/partner/rooms/${roomToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const result = await response.json()
+      if (response.ok && result.success) {
+        await fetchRooms()
+        setShowDeleteModal(false)
+        setRoomToDelete(null)
+      } else {
+        alert(result.error || 'Failed to delete room')
+      }
+    } catch (error) {
+      console.error('Error deleting room:', error)
+      alert('Failed to delete room. Please try again.')
     }
   }
 
@@ -118,14 +216,43 @@ export default function RoomPage() {
 
   const handleEditRoom = (room: Room) => {
     setSelectedRoom(room)
+    // Pre-fill fields using the same inputs as Add modal
+    setNewRoomName(room.roomNumber)
+    setNewRoomStatus(room.status === "Occupied" ? "Full" : "Empty")
     setShowEditModal(true)
   }
 
-  const handleSaveEdit = () => {
-    // Handle save logic here
-    console.log("Saving changes for:", selectedRoom?.id)
-    setShowEditModal(false)
-    setSelectedRoom(null)
+  const handleSaveEdit = async () => {
+    if (!selectedRoom) return
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to edit room')
+        return
+      }
+      const response = await fetch(`/api/partner/rooms/${selectedRoom.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          roomName: newRoomName.trim(),
+          roomStatus: newRoomStatus.toLowerCase(),
+        })
+      })
+      const result = await response.json()
+      if (response.ok && result.success) {
+        await fetchRooms()
+        setShowEditModal(false)
+        setSelectedRoom(null)
+      } else {
+        alert(result.error || 'Failed to update room')
+      }
+    } catch (error) {
+      console.error('Error updating room:', error)
+      alert('Failed to update room. Please try again.')
+    }
   }
 
   const handleRoomQRCode = (room: Room) => {
@@ -189,7 +316,7 @@ export default function RoomPage() {
     setNewRoomStatus("Empty")
   }
 
-  const handleSaveStepOne = () => {
+  const handleSaveStepOne = async () => {
     if (!newRoomName.trim()) {
       alert("Please enter a room name")
       return
@@ -197,23 +324,34 @@ export default function RoomPage() {
 
     if (newRoomStatus === "Empty") {
       // Save room with empty status immediately (no resident data)
-      const newRoom: Room = {
-        id: `${rooms.length + 1}`,
-        roomNumber: newRoomName,
-        hotelName: "Hotel Name",
-        roomType: "Standard",
-        capacity: "2",
-        status: "Available",
-        price: "500 MAD",
-        dateAdded: new Date().toLocaleDateString(),
-        avatar: `R${rooms.length + 1}`,
-        resident: undefined,
-        checkIn: undefined,
-        checkOut: undefined,
+      try {
+        const token = getAuthToken()
+        if (!token) {
+          alert('Please log in to add a room')
+          return
+        }
+        const response = await fetch('/api/partner/rooms', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            roomName: newRoomName.trim(),
+            roomStatus: 'empty',
+          })
+        })
+        const result = await response.json()
+        if (response.ok && result.success) {
+          await fetchRooms()
+          closeAddStepOne()
+        } else {
+          alert(result.error || 'Failed to add room')
+        }
+      } catch (error) {
+        console.error('Error adding room:', error)
+        alert('Failed to add room. Please try again.')
       }
-      setRooms([...rooms, newRoom])
-      console.log("Room added with empty status:", newRoom)
-      closeAddStepOne()
     } else {
       // Status is Full, proceed to full modal
       setShowAddStepOne(false)
@@ -225,33 +363,69 @@ export default function RoomPage() {
     setShowAddModal(false)
     setNewRoomName("")
     setNewRoomStatus("Empty")
+    setNewResident("")
+    setNewCheckInDate("")
+    setNewCheckInTime("")
+    setNewCheckOutDate("")
+    setNewCheckOutTime("")
   }
 
-  const handleSaveAddRoom = () => {
-    // Save room with full details (including resident data)
-    const newRoom: Room = {
-      id: `${rooms.length + 1}`,
-      roomNumber: newRoomName,
-      hotelName: "Hotel Name",
-      roomType: "Standard",
-      capacity: "2",
-      status: "Occupied",
-      price: "500 MAD",
-      dateAdded: new Date().toLocaleDateString(),
-      avatar: `R${rooms.length + 1}`,
-      resident: "New Resident", // This should be from form input
-      checkIn: new Date().toLocaleDateString(), // This should be from form input
-      checkOut: new Date().toLocaleDateString(), // This should be from form input
+  const handleSaveAddRoom = async () => {
+    if (!newRoomName.trim()) {
+      alert("Please enter a room name")
+      return
     }
-    setRooms([...rooms, newRoom])
-    console.log("Room added with full details:", newRoom)
-    closeAddModal()
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to add a room')
+        return
+      }
+      const response = await fetch('/api/partner/rooms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          roomName: newRoomName.trim(),
+          roomStatus: 'full',
+          resident: newResident.trim() || null,
+          checkInDate: newCheckInDate || null,
+          checkInTime: newCheckInTime || null,
+          checkOutDate: newCheckOutDate || null,
+          checkOutTime: newCheckOutTime || null,
+        })
+      })
+      const result = await response.json()
+      if (response.ok && result.success) {
+        await fetchRooms()
+        closeAddModal()
+        setNewResident("")
+        setNewCheckInDate("")
+        setNewCheckInTime("")
+        setNewCheckOutDate("")
+        setNewCheckOutTime("")
+      } else {
+        alert(result.error || 'Failed to add room')
+      }
+    } catch (error) {
+      console.error('Error adding room:', error)
+      alert('Failed to add room. Please try again.')
+    }
   }
 
-  const totalPages = Math.ceil(rooms.length / itemsPerPage)
+  const totalPages = Math.ceil(totalRooms / itemsPerPage)
+  // Rooms are already paginated from API, no need to slice
+  const currentRooms = rooms
+  // Calculate display range for pagination info
   const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentRooms = rooms.slice(startIndex, endIndex)
+  const endIndex = Math.min(startIndex + itemsPerPage, totalRooms)
+  
+  // Calculate stats from current rooms data
+  // Note: For accurate totals, a separate stats endpoint would be better
+  const fullRoomsCount = rooms.filter(r => r.status === 'Occupied').length
+  const emptyRoomsCount = rooms.filter(r => r.status === 'Available').length
 
   const getStatusStyle = (status: Room["status"]) => {
     switch (status) {
@@ -389,7 +563,7 @@ export default function RoomPage() {
             </div>
           }
           label="Total Rooms"
-          value="150"
+          value={totalRooms.toString()}
           change="+5%"
           changeType="positive"
           subtitle="vs last month"
@@ -404,11 +578,11 @@ export default function RoomPage() {
                 backgroundColor: "#EEF2FB"
               }}
             >
-              <PublicIcon src="/assets/icons/users-01.svg" alt="Occupied Rooms" width={20} height={20} />
+              <PublicIcon src="/assets/icons/users-01.svg" alt="Full Rooms" width={20} height={20} />
             </div>
           }
-          label="Occupied Rooms"
-          value="98"
+          label="Full Rooms"
+          value={fullRoomsCount.toString()}
           change="+12%"
           changeType="positive"
           subtitle="vs last month"
@@ -427,7 +601,7 @@ export default function RoomPage() {
             </div>
           }
           label="Empty Rooms"
-          value="52"
+          value={emptyRoomsCount.toString()}
           change="-8%"
           changeType="negative"
           subtitle="vs last month"
@@ -709,11 +883,21 @@ export default function RoomPage() {
                        }}
                      />
                    </td>
-                   <td className="px-4 py-4">
-                     <span className="text-sm" style={{ color: "#525866" }}>#{room.roomNumber}</span>
+                   <td className="px-4 py-4" style={{
+                     color: "#525866",
+                     fontSize: "12px",
+                     fontWeight: "400",
+                     lineHeight: "19.5px"
+                   }}>
+                     #{room.roomNumber}
                    </td>
-                   <td className="px-4 py-4">
-                     <span className="text-sm" style={{ color: "#525866" }}>{`R${room.id}`}</span>
+                   <td className="px-4 py-4" style={{
+                     color: "#525866",
+                     fontSize: "12px",
+                     fontWeight: "400",
+                     lineHeight: "19.5px"
+                   }}>
+                     {`R${room.id}`}
                    </td>
                    <td className="px-4 py-4">
                      <div
@@ -731,13 +915,28 @@ export default function RoomPage() {
                        {room.status === "Available" ? "Empty" : "Full"}
                      </div>
                    </td>
-                  <td className="px-4 py-4 text-sm" style={{ color: "#525866" }}>
+                  <td className="px-4 py-4" style={{
+                    color: "#525866",
+                    fontSize: "12px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
+                  }}>
                     {room.status === "Available" ? "-" : (room.resident || "Lindsey Stroud")}
                   </td>
-                  <td className="px-4 py-4 text-sm" style={{ color: "#525866" }}>
+                  <td className="px-4 py-4" style={{
+                    color: "#525866",
+                    fontSize: "12px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
+                  }}>
                     {room.status === "Available" ? "-" : (room.checkIn || "Jan 15, 10:30 AM")}
                   </td>
-                  <td className="px-4 py-4 text-sm" style={{ color: "#525866" }}>
+                  <td className="px-4 py-4" style={{
+                    color: "#525866",
+                    fontSize: "12px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
+                  }}>
                     {room.status === "Available" ? "-" : (room.checkOut || "Jan 15, 10:30 AM")}
                   </td>
                    <td className="px-4 py-4">
@@ -803,7 +1002,7 @@ export default function RoomPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between py-3 border-t">
           <p className="text-sm text-muted-foreground">
-            Displaying {startIndex + 1}-{Math.min(endIndex, rooms.length)} results out of {rooms.length}
+            Displaying {startIndex + 1}-{endIndex} results out of {totalRooms}
           </p>
 
           <div className="flex items-center gap-2">
@@ -841,121 +1040,60 @@ export default function RoomPage() {
         </div>
       </div>
 
-      {/* Edit Room Modal */}
-      {showEditModal && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
-        >
-          <div className="bg-white rounded-xl w-[50vw] mx-4 max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div
-              className="flex justify-between items-center border-b"
-              style={{
-                padding: "20px 16px",
-                borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
-                borderRadius: "10px 10px 0 0",
-                background: "#FFF",
-              }}
-            >
-              <h2 className="text-lg font-semibold text-black">Edit Room</h2>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="flex items-center justify-center"
-                style={{ width: "24px", height: "24px", aspectRatio: "1/1" }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
-                  <path
-                    d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244"
-                    stroke="#525866"
-                    strokeWidth="1.67"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-[#212121]">Room Number</label>
-                  <input
-                    type="text"
-                    defaultValue={selectedRoom?.roomNumber}
-                    className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-[#212121]">Room Type</label>
-                  <input
-                    type="text"
-                    defaultValue={selectedRoom?.roomType}
-                    className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-[#212121]">Capacity</label>
-                  <input
-                    type="text"
-                    defaultValue={selectedRoom?.capacity}
-                    className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-[#212121]">Price</label>
-                  <input
-                    type="text"
-                    defaultValue={selectedRoom?.price}
-                    className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div
-              className="flex justify-end items-center border-t"
-              style={{
-                padding: "20px 16px",
-                justifyContent: "flex-end",
-                alignItems: "center",
-                gap: "10px",
-                alignSelf: "stretch",
-                borderRadius: "0 0 10px 10px",
-                borderTop: "1px solid rgba(0, 0, 0, 0.04)",
-                background: "#FFF",
-              }}
-            >
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                style={{
-                  padding: "8.52px 10px",
-                  borderRadius: "6px",
-                  background: "#FBFAFA",
-                  border: "1px solid #CED4DA",
-                  color: "#525866",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveEdit}
-                className="px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors"
-                style={{
-                  padding: "8.52px 20px",
-                  borderRadius: "6px",
-                  background: "#1F2A44",
-                }}
-              >
-                Save
-              </button>
-            </div>
-          </div>
+      {/* Edit Room Modal - reuse the same modal UI as Add Room */}
+      <RoomModal
+        isOpen={showEditModal}
+        title="Edit Room"
+        onClose={() => { setShowEditModal(false); setSelectedRoom(null) }}
+        onSave={handleSaveEdit}
+      >
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">Room name</label>
+          <input
+            type="text"
+            placeholder="Write Here..."
+            value={newRoomName}
+            onChange={(e) => setNewRoomName(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
         </div>
-      )}
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">Status</label>
+          <select 
+            value={newRoomStatus}
+            onChange={(e) => setNewRoomStatus(e.target.value as "Full" | "Empty")}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="Full">Full</option>
+            <option value="Empty">Empty</option>
+          </select>
+        </div>
+        <div className="col-span-2 flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">The resident</label>
+          <input
+            type="text"
+            placeholder="Write Here..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            defaultValue={selectedRoom?.resident || ""}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">Check in</label>
+          <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">Check in</label>
+          <input type="time" defaultValue="00:00" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">Check out</label>
+          <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">Check out</label>
+          <input type="time" defaultValue="00:00" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+      </RoomModal>
 
        {/* Delete Room Modal */}
        {showDeleteModal && (
@@ -1929,6 +2067,8 @@ export default function RoomPage() {
            <input
              type="text"
              placeholder="Write Here..."
+             value={newResident}
+             onChange={(e) => setNewResident(e.target.value)}
              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
            />
          </div>
@@ -1938,6 +2078,8 @@ export default function RoomPage() {
            <label className="text-sm font-medium text-gray-700">Check in</label>
            <input
              type="date"
+             value={newCheckInDate}
+             onChange={(e) => setNewCheckInDate(e.target.value)}
              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
            />
          </div>
@@ -1945,7 +2087,8 @@ export default function RoomPage() {
            <label className="text-sm font-medium text-gray-700">Check in</label>
            <input
              type="time"
-             defaultValue="00:00"
+             value={newCheckInTime}
+             onChange={(e) => setNewCheckInTime(e.target.value)}
              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
            />
          </div>
@@ -1955,6 +2098,8 @@ export default function RoomPage() {
            <label className="text-sm font-medium text-gray-700">Check out</label>
            <input
              type="date"
+             value={newCheckOutDate}
+             onChange={(e) => setNewCheckOutDate(e.target.value)}
              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
            />
          </div>
@@ -1962,7 +2107,8 @@ export default function RoomPage() {
            <label className="text-sm font-medium text-gray-700">Check out</label>
            <input
              type="time"
-             defaultValue="00:00"
+             value={newCheckOutTime}
+             onChange={(e) => setNewCheckOutTime(e.target.value)}
              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
            />
          </div>

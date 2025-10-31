@@ -233,6 +233,8 @@ export default function PartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([])
   const [selectedPartners, setSelectedPartners] = useState<string[]>([])
   const [showAddPartnerModal, setShowAddPartnerModal] = useState(false)
+  const [isEditingPartner, setIsEditingPartner] = useState(false)
+  const [editingPartnerId, setEditingPartnerId] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState(1)
   const [showSuccessCard, setShowSuccessCard] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -269,6 +271,7 @@ export default function PartnersPage() {
   const [showPasswordDetails, setShowPasswordDetails] = useState(false)
   const [partnerStats, setPartnerStats] = useState<{ totalPartners: number; activePartners: number } | null>(null)
   const [statsLoading, setStatsLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
 
   // Fetch partners from API
   const fetchPartners = async () => {
@@ -412,6 +415,31 @@ export default function PartnersPage() {
     }))
   }
 
+  // Open Edit Partner using the same modal with prefilled data
+  const handleEditPartner = (partner: Partner) => {
+    setIsEditingPartner(true)
+    setEditingPartnerId(partner.id)
+    setFormData({
+      hotelName: partner.hotelName || '',
+      hotelCity: partner.city || '',
+      hotelAddressEmail: partner.hotelAddressEmail || '',
+      phoneNumber: partner.phone || '',
+      RC: '',
+      ICE: '',
+      identifiantFiscal: '',
+      taxeProfessionnelle: '',
+      hotelImage: null,
+      username: partner.username || '',
+      password: '',
+      startDate: '',
+      endDate: '',
+      plan: (partner.plan as any) || 'starter pack',
+      services: partner.services || [],
+    })
+    setCurrentStep(1)
+    setShowAddPartnerModal(true)
+  }
+
   // Save partner function
   const savePartner = async () => {
     console.log('Form data before sending:', formData)
@@ -419,11 +447,13 @@ export default function PartnersPage() {
     console.log('Username being sent:', formData.username)
     
     // Validate required fields
-    const requiredFields = [
-      'hotelName', 'hotelCity', 'hotelAddressEmail', 'phoneNumber',
-      'RC', 'ICE', 'identifiantFiscal', 'taxeProfessionnelle',
-      'username', 'password', 'startDate', 'endDate', 'plan'
-    ]
+    const requiredFields = isEditingPartner
+      ? ['hotelName', 'hotelCity', 'hotelAddressEmail', 'phoneNumber', 'plan']
+      : [
+          'hotelName', 'hotelCity', 'hotelAddressEmail', 'phoneNumber',
+          'RC', 'ICE', 'identifiantFiscal', 'taxeProfessionnelle',
+          'username', 'password', 'startDate', 'endDate', 'plan'
+        ]
     
     const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData])
     
@@ -450,8 +480,12 @@ export default function PartnersPage() {
         return
       }
 
-      const response = await fetch('/api/superadmin/partners', {
-        method: 'POST',
+      const endpoint = isEditingPartner && editingPartnerId
+        ? `/api/superadmin/partners/${editingPartnerId}`
+        : '/api/superadmin/partners'
+      const method = isEditingPartner ? 'PATCH' : 'POST'
+      const response = await fetch(endpoint, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${finalToken}`
@@ -486,6 +520,8 @@ export default function PartnersPage() {
         setShowAddPartnerModal(false)
         setCurrentStep(1)
         setShowSuccessCard(true)
+        setIsEditingPartner(false)
+        setEditingPartnerId(null)
         
         // Reset form data
         setFormData({
@@ -640,10 +676,24 @@ export default function PartnersPage() {
     setActiveTab('partner-info')
   }
 
-  const totalPages = Math.ceil(partners.length / itemsPerPage)
+  const normalized = (v: string) => v.toLowerCase()
+  const filteredPartners = partners.filter((p) => {
+    if (!searchTerm) return true
+    const q = normalized(searchTerm)
+    return (
+      normalized(p.hotelName).includes(q) ||
+      normalized(p.hotelAddressEmail).includes(q) ||
+      normalized(p.username).includes(q) ||
+      normalized(p.phone).includes(q) ||
+      normalized(p.city).includes(q) ||
+      normalized(p.plan).includes(q)
+    )
+  })
+
+  const totalPages = Math.ceil(filteredPartners.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentPartners = partners.slice(startIndex, endIndex)
+  const currentPartners = filteredPartners.slice(startIndex, endIndex)
 
   const overviewContent = (
     <div className="space-y-6">
@@ -733,6 +783,8 @@ export default function PartnersPage() {
             <input
               type="text"
               placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => { setCurrentPage(1); setSearchTerm(e.target.value) }}
               style={{
                 padding: "7.52px 12px",
                 borderRadius: "4px",
@@ -817,108 +869,44 @@ export default function PartnersPage() {
                   <input type="checkbox" className="rounded" />
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Hotel Name
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Hotel Name
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Email
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Email
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Phone number
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Phone number
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      City
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    City
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Services
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Services
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Plan
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Plan
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Create at
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Create at
+                  </span>
                 </th>
                 <th className="px-4 py-4 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Account
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Account
+                  </span>
                 </th>
                 <th className="w-12 px-4 py-3"></th>
               </tr>
@@ -1054,7 +1042,7 @@ export default function PartnersPage() {
                         }
                         items={[
                           { label: "View Details", icon: <RiEyeLine className="w-4 h-4" />, onClick: () => handleViewDetails(partner) },
-                          { label: "Edit Partner", icon: <RiEditLine className="w-4 h-4" />, onClick: () => console.log("Edit", partner.id) },
+                          { label: "Edit Partner", icon: <RiEditLine className="w-4 h-4" />, onClick: () => handleEditPartner(partner) },
                           { label: "Supprimer", icon: <RiDeleteBinLine className="w-4 h-4 text-error" />, onClick: () => handleDeletePartner(partner), variant: "danger" },
                         ]}
                       />
@@ -1070,7 +1058,7 @@ export default function PartnersPage() {
         {partners.length > 0 && (
           <div className="flex items-center justify-between  py-3 border-t border-border">
             <p className="text-sm text-muted-foreground">
-              Displaying {startIndex + 1}-{Math.min(endIndex, partners.length)} results out of {partners.length}
+              Displaying {filteredPartners.length === 0 ? 0 : startIndex + 1}-{Math.min(endIndex, filteredPartners.length)} results out of {filteredPartners.length}
             </p>
 
             <div className="flex items-center gap-2">
@@ -1861,7 +1849,7 @@ export default function PartnersPage() {
               }}
             >
               <div>
-                <h2 className="text-lg font-semibold text-black">Add new Partner</h2>
+                <h2 className="text-lg font-semibold text-black">{isEditingPartner ? 'Edit Partner' : 'Add new Partner'}</h2>
                 <p className="text-sm text-gray-600 mt-1">Make changes to your profile here. Click save when you're done.</p>
               </div>
               <button 

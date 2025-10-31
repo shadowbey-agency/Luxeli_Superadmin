@@ -151,7 +151,7 @@ const SubscriptionCard = ({ history }: { history: SubscriptionHistory }) => (
           }}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M6.00016 7.52214L6.00016 0.855469M6.00016 7.52214C5.53334 7.52214 4.66118 6.1926 4.3335 5.85547M6.00016 7.52214C6.46698 7.52214 7.33914 6.1926 7.66683 5.85547" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M6.00016 7.52214L6.00016 0.855469M6.00016 7.52214C5.53334 7.52214 4.66118 6.1926 4.33350 5.85547M6.00016 7.52214C6.46698 7.52214 7.33914 6.1926 7.66683 5.85547" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M11.3332 8.85547C11.3332 10.5101 10.9878 10.8555 9.33317 10.8555H2.6665C1.01184 10.8555 0.666504 10.5101 0.666504 8.85547" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
@@ -182,6 +182,7 @@ const SubscriptionCard = ({ history }: { history: SubscriptionHistory }) => (
 
 export default function SubscriptionPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(mockSubscriptions)
+  const [searchTerm, setSearchTerm] = useState("")
   const [plans] = useState<Plan[]>(mockPlans)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(8)
@@ -195,11 +196,40 @@ export default function SubscriptionPage() {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
   const [isLoadingPlanPartners, setIsLoadingPlanPartners] = useState(false)
   const [planPartnersError, setPlanPartnersError] = useState<string | null>(null)
+  const [usersPlanSearchTerm, setUsersPlanSearchTerm] = useState("")
 
-  const totalPages = Math.ceil(subscriptions.length / itemsPerPage)
+  const norm = (v: string) => v.toLowerCase()
+  const filteredSubscriptions = subscriptions.filter((s) => {
+    if (!searchTerm) return true
+    const q = norm(searchTerm)
+    return (
+      norm(s.partnerName).includes(q) ||
+      (s.planApi ? norm(s.planApi) : "").includes(q) ||
+      norm(s.startDate).includes(q) ||
+      norm(s.endDate).includes(q)
+    )
+  })
+
+  const totalPages = Math.ceil(filteredSubscriptions.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentSubscriptions = subscriptions.slice(startIndex, endIndex)
+  const currentSubscriptions = filteredSubscriptions.slice(startIndex, endIndex)
+
+  // Users Plan view filtered/paginated data
+  const usersFilteredSubscriptions = subscriptions.filter((s) => {
+    if (!usersPlanSearchTerm) return true
+    const q = norm(usersPlanSearchTerm)
+    return (
+      norm(s.partnerName).includes(q) ||
+      (s.planApi ? norm(s.planApi) : "").includes(q) ||
+      norm(s.startDate).includes(q) ||
+      norm(s.endDate).includes(q)
+    )
+  })
+  const usersTotalPages = Math.ceil(usersFilteredSubscriptions.length / itemsPerPage)
+  const usersStartIndex = (currentPage - 1) * itemsPerPage
+  const usersEndIndex = usersStartIndex + itemsPerPage
+  const usersCurrentSubscriptions = usersFilteredSubscriptions.slice(usersStartIndex, usersEndIndex)
 
   const handleEditEndDate = (subscription: Subscription) => {
     setSelectedSubscription(subscription)
@@ -405,6 +435,8 @@ export default function SubscriptionPage() {
             <input
               type="text"
               placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => { setCurrentPage(1); setSearchTerm(e.target.value) }}
               style={{
                 padding: "7.52px 12px",
                 borderRadius: "4px",
@@ -429,43 +461,19 @@ export default function SubscriptionPage() {
                   <input type="checkbox" className="rounded" />
                 </th>
                 <th className="px-4 py-3 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Plan Name
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Plan Name
+                  </span>
                 </th>
                 <th className="px-4 py-3 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="down" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Users
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Users
+                  </span>
                 </th>
                 <th className="px-4 py-3 text-left">
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="down" />
-                    <span style={{ 
-                      color: "#000", 
-                      fontSize: "12px", 
-                      fontWeight: "500", 
-                      lineHeight: "19.5px" 
-                    }}>
-                      Revenue
-                    </span>
-                  </div>
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Revenue
+                  </span>
                 </th>
                 <th className="w-12 px-4 py-3"></th>
               </tr>
@@ -523,7 +531,7 @@ export default function SubscriptionPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between py-3 border-t">
           <p className="text-sm text-muted-foreground">
-            Displaying {startIndex + 1}-{Math.min(endIndex, subscriptions.length)} results out of {subscriptions.length}
+            Displaying {filteredSubscriptions.length === 0 ? 0 : startIndex + 1}-{Math.min(endIndex, filteredSubscriptions.length)} results out of {filteredSubscriptions.length}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -637,44 +645,20 @@ export default function SubscriptionPage() {
                   <input type="checkbox" className="rounded" />
                 </th>
                   <th className="px-4 py-3 text-left">
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                      <SortArrows sortDirection="none" />
-                      <span style={{ 
-                        color: "#000", 
-                        fontSize: "12px", 
-                        fontWeight: "500", 
-                        lineHeight: "19.5px" 
-                      }}>
-                  Partner Name
-                      </span>
-                    </div>
-                </th>
-                  <th className="px-4 py-3 text-left">
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                      <SortArrows sortDirection="none" />
-                      <span style={{ 
-                        color: "#000", 
-                        fontSize: "12px", 
-                        fontWeight: "500", 
-                        lineHeight: "19.5px" 
-                      }}>
-                  Start date
-                      </span>
-                    </div>
+                    <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                      Partner Name
+                    </span>
                   </th>
                   <th className="px-4 py-3 text-left">
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                      <SortArrows sortDirection="none" />
-                      <span style={{ 
-                        color: "#000", 
-                        fontSize: "12px", 
-                        fontWeight: "500", 
-                        lineHeight: "19.5px" 
-                      }}>
-                        End date
-                      </span>
-                    </div>
-                </th>
+                    <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                      Start date
+                    </span>
+                  </th>
+                  <th className="px-4 py-3 text-left">
+                    <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                      End date
+                    </span>
+                  </th>
                 <th className="w-12 px-4 py-3"></th>
               </tr>
             </thead>
@@ -694,13 +678,13 @@ export default function SubscriptionPage() {
                     {planPartnersError}
                   </td>
                 </tr>
-              ) : currentSubscriptions.length === 0 ? (
+              ) : usersCurrentSubscriptions.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                     No partners found for this plan
                   </td>
                 </tr>
-              ) : currentSubscriptions.map((subscription) => (
+              ) : usersCurrentSubscriptions.map((subscription) => (
                 <tr key={subscription.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-4">
                     <input type="checkbox" className="rounded" />
@@ -766,7 +750,7 @@ export default function SubscriptionPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between py-3 border-t">
           <p className="text-sm text-muted-foreground">
-            Displaying {startIndex + 1}-{Math.min(endIndex, subscriptions.length)} results out of {subscriptions.length}
+            Displaying {usersFilteredSubscriptions.length === 0 ? 0 : usersStartIndex + 1}-{Math.min(usersEndIndex, usersFilteredSubscriptions.length)} results out of {usersFilteredSubscriptions.length}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -777,7 +761,7 @@ export default function SubscriptionPage() {
               <LeftArrow />
             </button>
 
-            {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+            {Array.from({ length: Math.min(3, usersTotalPages) }, (_, i) => {
               const page = i + 1
               return (
                 <button
@@ -793,8 +777,8 @@ export default function SubscriptionPage() {
             })}
 
             <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(usersTotalPages, p + 1))}
+              disabled={currentPage === usersTotalPages}
               className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RightArrow />
