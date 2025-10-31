@@ -183,7 +183,7 @@ const SubscriptionCard = ({ history }: { history: SubscriptionHistory }) => (
 export default function SubscriptionPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(mockSubscriptions)
   const [searchTerm, setSearchTerm] = useState("")
-  const [plans] = useState<Plan[]>(mockPlans)
+  const [plans, setPlans] = useState<Plan[]>(mockPlans)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(8)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -197,6 +197,9 @@ export default function SubscriptionPage() {
   const [isLoadingPlanPartners, setIsLoadingPlanPartners] = useState(false)
   const [planPartnersError, setPlanPartnersError] = useState<string | null>(null)
   const [usersPlanSearchTerm, setUsersPlanSearchTerm] = useState("")
+  const [totalPartners, setTotalPartners] = useState<number>(0)
+  const [isLoadingPartners, setIsLoadingPartners] = useState(true)
+  const [isLoadingPlans, setIsLoadingPlans] = useState(true)
 
   const norm = (v: string) => v.toLowerCase()
   const filteredSubscriptions = subscriptions.filter((s) => {
@@ -286,6 +289,8 @@ export default function SubscriptionPage() {
         setSubscriptions(prev => prev.map(s => s.id === selectedSubscription.id ? { ...s, endDate: newEndDateDisplay, endDateISO: endDate ? new Date(endDate).toISOString() : s.endDateISO, planApi } : s))
       }
       alert('✅ Partner subscription updated')
+      // Refresh plan counts after update
+      fetchPlansData()
     } catch (e) {
       console.error(e)
       alert('❌ Failed to update partner')
@@ -311,6 +316,127 @@ export default function SubscriptionPage() {
     setPlanPartnersError(null)
     setSubscriptions(mockSubscriptions)
   }
+
+  // Function to fetch and update plan counts
+  const fetchPlansData = async () => {
+    try {
+      setIsLoadingPlans(true)
+      const token = getAuthToken()
+      if (!token) {
+        setIsLoadingPlans(false)
+        return
+      }
+      
+      // Fetch all partners to count by plan
+      const partnersRes = await fetch('/api/superadmin/partners?limit=1000', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      
+      if (partnersRes.ok) {
+        const partnersData = await partnersRes.json().catch(() => ({}))
+        const partners = partnersData.partners || []
+        
+        if (Array.isArray(partners)) {
+          // Count partners by plan type
+          const starterPackCount = partners.filter((p: any) => 
+            p.plan && p.plan.toLowerCase() === 'starter pack'
+          ).length
+          
+          const goldPackCount = partners.filter((p: any) => 
+            p.plan && p.plan.toLowerCase() === 'gold pack'
+          ).length
+          
+          // Update plans with actual counts
+          setPlans([
+            {
+              id: "1",
+              name: "Starter pack",
+              type: "starter",
+              users: starterPackCount,
+              revenue: "190.000 MAD"
+            },
+            {
+              id: "2", 
+              name: "Gold pack",
+              type: "gold",
+              users: goldPackCount,
+              revenue: "1900.000 MAD"
+            }
+          ])
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching plans data:', e)
+    } finally {
+      setIsLoadingPlans(false)
+    }
+  }
+
+  // Fetch partners count by plan type on mount
+  useEffect(() => {
+    fetchPlansData()
+  }, [])
+
+  // Fetch total partners count
+  useEffect(() => {
+    const fetchTotalPartners = async () => {
+      try {
+        setIsLoadingPartners(true)
+        const token = getAuthToken()
+        if (!token) {
+          console.error('No auth token found for fetching partner stats')
+          setIsLoadingPartners(false)
+          return
+        }
+        
+        // First try to get stats from stats API
+        const res = await fetch('/api/superadmin/partners/stats', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}))
+          // The API returns { stats: { totalPartners: ..., activePartners: ... } }
+          const stats = data.stats || data
+          if (stats && (stats.totalPartners !== undefined && stats.totalPartners !== null)) {
+            setTotalPartners(stats.totalPartners)
+            setIsLoadingPartners(false)
+            return
+          }
+        }
+        
+        // Fallback: fetch partners and use pagination total or count array
+        console.log('Stats API did not return valid data, fetching partners directly...')
+        const partnersRes = await fetch('/api/superadmin/partners?limit=1000', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        
+        if (partnersRes.ok) {
+          const partnersData = await partnersRes.json().catch(() => ({}))
+          // Check pagination.total first (more accurate)
+          if (partnersData.pagination && typeof partnersData.pagination.total === 'number') {
+            setTotalPartners(partnersData.pagination.total)
+          } else {
+            // Otherwise count the partners array
+            const partners = partnersData.partners || partnersData.data || []
+            if (Array.isArray(partners)) {
+              setTotalPartners(partners.length)
+            } else {
+              setTotalPartners(0)
+            }
+          }
+        } else {
+          setTotalPartners(0)
+        }
+      } catch (e) {
+        console.error('Error fetching partner stats:', e)
+        setTotalPartners(0)
+      } finally {
+        setIsLoadingPartners(false)
+      }
+    }
+    fetchTotalPartners()
+  }, [])
 
   // Fetch partners for selected plan
   useEffect(() => {
@@ -393,7 +519,8 @@ export default function SubscriptionPage() {
               <StatCard
               icon={<StaffIcon />}
               label="Total Users"
-                value="42"
+                value={isLoadingPartners ? 0 : totalPartners}
+              isLoading={isLoadingPartners}
               change="+2% "
                 changeType="positive"
             />
@@ -503,7 +630,13 @@ export default function SubscriptionPage() {
                     fontWeight: "400",
                     lineHeight: "19.5px"
                   }}>
-                    {plan.users}
+                    {isLoadingPlans ? (
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin inline-block" />
+                    ) : plan.users > 0 ? (
+                      `${plan.users} user${plan.users !== 1 ? 's' : ''}`
+                    ) : (
+                      'No users'
+                    )}
                   </td>
                   <td className="px-4 py-4" style={{
                     color: "#525866",

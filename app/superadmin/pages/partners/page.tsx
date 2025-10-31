@@ -1,6 +1,8 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useEffect } from "react"
+import Image from "next/image"
+import { createPortal } from "react-dom"
 import {
   RiHotelBedLine,
   RiTeamLine,
@@ -21,6 +23,7 @@ import ActivePartnerIcon from "@/app/superadmin/components/active-partner-icon"
 import SortArrows from "@/app/superadmin/components/sort-arrows"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
 import { getAuthToken } from "@/lib/auth-utils"
+import ExportToExcel from "@/app/exportin-excel/export-to-excel"
 
 interface Partner {
   id: string
@@ -32,6 +35,7 @@ interface Partner {
   services: string[]
   plan: string
   createdAt: string
+  createdAtDate?: Date // Store original date for filtering
   status: string
 }
 
@@ -46,7 +50,26 @@ interface SubscriptionHistory {
   status: 'paid' | 'pending'
 }
 
-const mockPartners: Partner[] = [
+// Helper to create mock partners with dates in different periods for testing
+const createMockPartners = (): Partner[] => {
+  const now = new Date()
+  const thisWeekStart = new Date(now)
+  thisWeekStart.setDate(now.getDate() - now.getDay())
+  
+  const lastWeekStart = new Date(thisWeekStart)
+  lastWeekStart.setDate(thisWeekStart.getDate() - 7)
+  
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  
+  // Create partners in different periods for realistic testing
+  const formatDate = (date: Date) => date.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+  
+  return [
   {
     id: "1",
     hotelName: "Hotel Name",
@@ -56,7 +79,8 @@ const mockPartners: Partner[] = [
     city: "Casablanca",
     services: ["Housekeeping", "Bookings interns", "Customized Services"],
     plan: "Plan name",
-    createdAt: "15 juin 2025",
+      createdAt: formatDate(new Date(thisWeekStart.getTime() + 2 * 24 * 60 * 60 * 1000)), // 2 days into this week
+      createdAtDate: new Date(thisWeekStart.getTime() + 2 * 24 * 60 * 60 * 1000),
     status: "active",
   },
   {
@@ -68,7 +92,8 @@ const mockPartners: Partner[] = [
     city: "Casablanca",
     services: ["Housekeeping", "Bookings interns"],
     plan: "Plan name",
-    createdAt: "15 juin 2025",
+      createdAt: formatDate(new Date(lastWeekStart.getTime() + 3 * 24 * 60 * 60 * 1000)), // Last week
+      createdAtDate: new Date(lastWeekStart.getTime() + 3 * 24 * 60 * 60 * 1000),
     status: "disable",
   },
   {
@@ -80,10 +105,14 @@ const mockPartners: Partner[] = [
     city: "Casablanca",
     services: ["Housekeeping"],
     plan: "Plan name",
-    createdAt: "15 juin 2025",
+      createdAt: formatDate(new Date(thisMonthStart.getTime() + 5 * 24 * 60 * 60 * 1000)), // This month
+      createdAtDate: new Date(thisMonthStart.getTime() + 5 * 24 * 60 * 60 * 1000),
     status: "active",
   },
 ]
+}
+
+const mockPartners: Partner[] = createMockPartners()
 
 const subscriptionHistoryData: SubscriptionHistory[] = [
   {
@@ -269,9 +298,24 @@ export default function PartnersPage() {
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null)
   const [activeTab, setActiveTab] = useState<'partner-info' | 'subscription' | 'room-api'>('partner-info')
   const [showPasswordDetails, setShowPasswordDetails] = useState(false)
-  const [partnerStats, setPartnerStats] = useState<{ totalPartners: number; activePartners: number } | null>(null)
+  const [partnerStats, setPartnerStats] = useState<{ 
+    totalPartners: number; 
+    activePartners: number;
+    totalStaff?: number;
+    totalPartnersChange?: number;
+    activePartnersChange?: number;
+    totalStaffChange?: number;
+    subtitle?: string;
+  } | null>(null)
   const [statsLoading, setStatsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedPeriod, setSelectedPeriod] = useState<'semaine' | 'mois' | 'date-range'>('semaine')
+  const [dateRangeStart, setDateRangeStart] = useState("")
+  const [dateRangeEnd, setDateRangeEnd] = useState("")
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const calendarIconRef = useRef<HTMLDivElement | null>(null)
+  const datePickerRef = useRef<HTMLDivElement | null>(null)
+  const [datePickerPosition, setDatePickerPosition] = useState<{ top: number; left: number } | null>(null)
 
   // Fetch partners from API
   const fetchPartners = async () => {
@@ -300,7 +344,9 @@ export default function PartnersPage() {
         
         if (result.partners && Array.isArray(result.partners)) {
           // Transform API data to match Partner interface
-          const transformedPartners: Partner[] = result.partners.map((partner: any) => ({
+          const transformedPartners: Partner[] = result.partners.map((partner: any) => {
+            const createdAtDate = new Date(partner.createdAt)
+            return {
             id: partner._id,
             hotelName: partner.hotelName,
             hotelAddressEmail: partner.hotelAddressEmail,
@@ -309,13 +355,15 @@ export default function PartnersPage() {
             city: partner.hotelCity,
             services: partner.services || [],
             plan: partner.plan || 'starter pack',
-            createdAt: new Date(partner.createdAt).toLocaleDateString('fr-FR', {
+              createdAt: createdAtDate.toLocaleDateString('fr-FR', {
               day: 'numeric',
               month: 'long',
               year: 'numeric'
             }),
+              createdAtDate: createdAtDate, // Store original date for filtering
             status: partner.status || 'active'
-          }))
+            }
+          })
           
           console.log('Transformed partners:', transformedPartners)
           setPartners(transformedPartners)
@@ -378,15 +426,185 @@ export default function PartnersPage() {
     loadStats()
   }, [])
 
-  // Calculate stats from local partners array as fallback
+  // Helper functions to calculate date ranges
+  const getWeekRange = () => {
+    const now = new Date()
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - now.getDay()) // Start of current week (Sunday)
+    weekStart.setHours(0, 0, 0, 0)
+    
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekStart.getDate() + 6)
+    weekEnd.setHours(23, 59, 59, 999)
+    
+    const lastWeekStart = new Date(weekStart)
+    lastWeekStart.setDate(weekStart.getDate() - 7)
+    
+    const lastWeekEnd = new Date(weekStart)
+    lastWeekEnd.setDate(weekStart.getDate() - 1)
+    lastWeekEnd.setHours(23, 59, 59, 999)
+    
+    return { current: { start: weekStart, end: weekEnd }, previous: { start: lastWeekStart, end: lastWeekEnd } }
+  }
+
+  const getMonthRange = () => {
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    monthStart.setHours(0, 0, 0, 0)
+    
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    monthEnd.setHours(23, 59, 59, 999)
+    
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    lastMonthStart.setHours(0, 0, 0, 0)
+    
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
+    lastMonthEnd.setHours(23, 59, 59, 999)
+    
+    return { current: { start: monthStart, end: monthEnd }, previous: { start: lastMonthStart, end: lastMonthEnd } }
+  }
+
+  // Filter partners by date range
+  const filterPartnersByDateRange = (partners: Partner[], startDate: Date, endDate: Date) => {
+    return partners.filter(p => {
+      // Use createdAtDate if available (from API), otherwise try to parse createdAt string
+      const createdAt = p.createdAtDate || (() => {
+        // Try to parse formatted date strings like "15 juin 2025"
+        const dateMatch = p.createdAt.match(/(\d+)\s+(\w+)\s+(\d+)/)
+        if (dateMatch) {
+          const [, day, monthName, year] = dateMatch
+          const monthMap: { [key: string]: number } = {
+            'janvier': 0, 'février': 1, 'mars': 2, 'avril': 3, 'mai': 4, 'juin': 5,
+            'juillet': 6, 'août': 7, 'septembre': 8, 'octobre': 9, 'novembre': 10, 'décembre': 11
+          }
+          const month = monthMap[monthName.toLowerCase()]
+          if (month !== undefined) {
+            return new Date(parseInt(year), month, parseInt(day))
+          }
+        }
+        // Fallback to new Date parsing
+        return new Date(p.createdAt)
+      })()
+      return createdAt >= startDate && createdAt <= endDate
+    })
+  }
+
+  // Calculate period-based stats
+  const calculatePeriodStats = React.useMemo(() => {
+    if (statsLoading) return null
+    
+    let currentRange: { start: Date; end: Date }
+    let previousRange: { start: Date; end: Date }
+    
+    if (selectedPeriod === 'semaine') {
+      const weekRange = getWeekRange()
+      currentRange = weekRange.current
+      previousRange = weekRange.previous
+    } else if (selectedPeriod === 'mois') {
+      const monthRange = getMonthRange()
+      currentRange = monthRange.current
+      previousRange = monthRange.previous
+    } else {
+      // For date range, use selected dates or default to all time
+      if (dateRangeStart && dateRangeEnd) {
+        const start = new Date(dateRangeStart)
+        start.setHours(0, 0, 0, 0)
+        const end = new Date(dateRangeEnd)
+        end.setHours(23, 59, 59, 999)
+        
+        // Calculate previous period (same duration before start date)
+        const duration = end.getTime() - start.getTime()
+        const prevEnd = new Date(start.getTime() - 1)
+        const prevStart = new Date(prevEnd.getTime() - duration)
+        
+        currentRange = { start, end }
+        previousRange = { start: prevStart, end: prevEnd }
+      } else {
+        // Default to all time if no date range selected
+        const total = partners.length
+        const active = partners.filter(p => p.status === 'active').length
+        return {
+          totalPartners: total,
+          activePartners: active,
+          totalStaff: 42, // Default staff
+          totalPartnersChange: 0,
+          activePartnersChange: 0,
+          totalStaffChange: 0,
+          subtitle: 'vs selected period'
+        }
+      }
+    }
+
+    // Filter partners for current and previous periods
+    const currentPeriodPartners = filterPartnersByDateRange(partners, currentRange.start, currentRange.end)
+    const previousPeriodPartners = filterPartnersByDateRange(partners, previousRange.start, previousRange.end)
+    
+    // Calculate current period stats
+    const currentTotal = currentPeriodPartners.length
+    const currentActive = currentPeriodPartners.filter(p => p.status === 'active').length
+    
+    // Calculate previous period stats
+    const previousTotal = previousPeriodPartners.length
+    const previousActive = previousPeriodPartners.filter(p => p.status === 'active').length
+    
+    // Calculate percentage changes
+    const calculatePercentageChange = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0
+      return Math.round(((current - previous) / previous) * 100)
+    }
+    
+    const totalPartnersChange = calculatePercentageChange(currentTotal, previousTotal)
+    const activePartnersChange = calculatePercentageChange(currentActive, previousActive)
+    
+    // Mock staff data - varies by period
+    // For week: simulate staff growth
+    // For month: simulate staff growth
+    const baseStaff = 40
+    const currentStaff = selectedPeriod === 'semaine' 
+      ? Math.round(baseStaff + (currentTotal * 0.5)) // More partners = more staff
+      : Math.round(baseStaff + (currentTotal * 0.3))
+    
+    const previousStaff = selectedPeriod === 'semaine'
+      ? Math.round(baseStaff + (previousTotal * 0.5))
+      : Math.round(baseStaff + (previousTotal * 0.3))
+    
+    const totalStaffChange = calculatePercentageChange(currentStaff, previousStaff)
+    
+    const subtitle = selectedPeriod === 'semaine' 
+      ? 'vs last week' 
+      : selectedPeriod === 'mois' 
+      ? 'vs last month' 
+      : 'vs selected period'
+    
+    return {
+      totalPartners: currentTotal,
+      activePartners: currentActive,
+      totalStaff: currentStaff,
+      totalPartnersChange,
+      activePartnersChange,
+      totalStaffChange,
+      subtitle
+    }
+  }, [partners, selectedPeriod, dateRangeStart, dateRangeEnd, statsLoading])
+
+  // Calculate stats from local partners array as fallback (keep for backward compatibility)
   const localStats = React.useMemo(() => {
+    if (calculatePeriodStats) return calculatePeriodStats
     if (partnerStats) return partnerStats
     if (statsLoading) return null
     
     const total = partners.length
     const active = partners.filter(p => p.status === 'active').length
-    return { totalPartners: total, activePartners: active }
-  }, [partners, partnerStats, statsLoading])
+    return { 
+      totalPartners: total, 
+      activePartners: active,
+      totalStaff: 42,
+      totalPartnersChange: 0,
+      activePartnersChange: 0,
+      totalStaffChange: 0,
+      subtitle: 'vs last week'
+    }
+  }, [calculatePeriodStats, partners, partnerStats, statsLoading])
 
   // Load services options 3 seconds after opening Add Partner modal
   React.useEffect(() => {
@@ -695,6 +913,64 @@ export default function PartnersPage() {
   const endIndex = startIndex + itemsPerPage
   const currentPartners = filteredPartners.slice(startIndex, endIndex)
 
+  // Format partners data for Excel export
+  const exportData = currentPartners.map((partner) => ({
+    "Hotel Name": partner.hotelName,
+    "Email": partner.hotelAddressEmail,
+    "Phone number": partner.phone,
+    "City": partner.city,
+    "Services": partner.services.join(", "),
+    "Plan": partner.plan,
+    "Created At": partner.createdAt,
+    "Account": partner.status === 'active' ? 'Active' : 'Inactive'
+  }))
+
+  // Position date picker relative to calendar icon
+  useEffect(() => {
+    function updateDatePickerPosition() {
+      if (!calendarIconRef.current || !showDatePicker) return
+      const rect = calendarIconRef.current.getBoundingClientRect()
+      const viewportWidth = window.innerWidth
+      const pickerWidth = 300 // approximate width of the date picker
+      
+      // Position below the icon, aligned to the right edge of the icon
+      let left = rect.left
+      // If picker would overflow right edge, align to left edge instead
+      if (left + pickerWidth > viewportWidth) {
+        left = viewportWidth - pickerWidth - 16 // 16px margin from edge
+      }
+      
+      setDatePickerPosition({ 
+        top: rect.bottom + 8, 
+        left: left
+      })
+    }
+
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        datePickerRef.current && 
+        !datePickerRef.current.contains(event.target as Node) &&
+        calendarIconRef.current &&
+        !calendarIconRef.current.contains(event.target as Node)
+      ) {
+        setShowDatePicker(false)
+      }
+    }
+
+    if (showDatePicker) {
+      updateDatePickerPosition()
+      window.addEventListener("scroll", updateDatePickerPosition, true)
+      window.addEventListener("resize", updateDatePickerPosition)
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+
+    return () => {
+      window.removeEventListener("scroll", updateDatePickerPosition, true)
+      window.removeEventListener("resize", updateDatePickerPosition)
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showDatePicker])
+
   const overviewContent = (
     <div className="space-y-6">
       {/* Header */}
@@ -704,17 +980,120 @@ export default function PartnersPage() {
           <p className="text-sm text-muted-foreground">Key indicators to monitor hotel partners and their activity.</p>
         </div>
         <div className="flex items-center " style={{ border: "0.925px solid #CED4DA" }}>
-          <button className="px-4 py-2 bg-primary text-white rounded-[1px] text-sm font-medium hover:bg-primary/90 transition-colors" style={{ borderRight: "0.925px solid #CED4DA" }}>
+          <button 
+            onClick={() => setSelectedPeriod('semaine')}
+            className={`px-4 py-2 rounded-[1px] text-sm font-medium transition-colors ${
+              selectedPeriod === 'semaine' 
+                ? 'bg-primary text-white hover:bg-primary/90' 
+                : 'bg-[#FFF] text-[rgba(33,33,33,0.60)] hover:bg-muted/80'
+            }`}
+            style={{ borderRight: "0.925px solid #CED4DA" }}
+          >
             Semaine
           </button>
-          <button className="px-4 py-2 bg-[#FFF] text-[rgba(33,33,33,0.60)] rounded-[1px] text-sm font-medium hover:bg-muted/80 transition-colors" style={{ borderRight: "0.925px solid #CED4DA" }}>
+          <button 
+            onClick={() => setSelectedPeriod('mois')}
+            className={`px-4 py-2 rounded-[1px] text-sm font-medium transition-colors ${
+              selectedPeriod === 'mois' 
+                ? 'bg-primary text-white hover:bg-primary/90' 
+                : 'bg-[#FFF] text-[rgba(33,33,33,0.60)] hover:bg-muted/80'
+            }`}
+            style={{ borderRight: "0.925px solid #CED4DA" }}
+          >
             Mois
           </button>
-          <button className="px-4 py-2 bg-[#FFF] text-[rgba(33,33,33,0.60)] rounded-[1px] text-sm font-medium hover:bg-muted/80 transition-colors" style={{ borderRight: "0.925px solid #CED4DA" }}>
+          <button 
+            onClick={() => setSelectedPeriod('date-range')}
+            className={`px-4 py-2 rounded-[1px] text-sm font-medium transition-colors flex items-center gap-2 ${
+              selectedPeriod === 'date-range' 
+                ? 'bg-primary text-white hover:bg-primary/90' 
+                : 'bg-[#FFF] text-[rgba(33,33,33,0.60)] hover:bg-muted/80'
+            }`}
+          >
             Plage de dates
+            <div ref={calendarIconRef}>
+              <Image 
+                src="/assets/icons/calendar.svg" 
+                alt="Calendar" 
+                width={16} 
+                height={16}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setSelectedPeriod('date-range')
+                  setShowDatePicker(!showDatePicker)
+                }}
+                className="cursor-pointer"
+                style={{ 
+                  filter: selectedPeriod === 'date-range' ? 'brightness(0) invert(1)' : 'none'
+                }}
+              />
+            </div>
           </button>
         </div>
       </div>
+
+      {/* Date Range Picker Popover */}
+      {showDatePicker && datePickerPosition && createPortal(
+        <div
+          ref={datePickerRef}
+          className="z-50"
+          style={{ 
+            position: "fixed", 
+            top: datePickerPosition.top, 
+            left: datePickerPosition.left 
+          }}
+        >
+          <div 
+            className="bg-white border border-border p-4" 
+            style={{ 
+              borderRadius: "10px", 
+              boxShadow: "0px 0px 32px 4px #161A1D1A",
+              minWidth: "300px"
+            }}
+          >
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Date de début</label>
+                <input
+                  type="date"
+                  value={dateRangeStart}
+                  onChange={(e) => setDateRangeStart(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Date de fin</label>
+                <input
+                  type="date"
+                  value={dateRangeEnd}
+                  onChange={(e) => setDateRangeEnd(e.target.value)}
+                  min={dateRangeStart}
+                  className="w-full px-3 py-2 border border-border rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  onClick={() => {
+                    setDateRangeStart("")
+                    setDateRangeEnd("")
+                    setShowDatePicker(false)
+                  }}
+                  className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Effacer
+                </button>
+                <button
+                  onClick={() => setShowDatePicker(false)}
+                  className="px-4 py-2 bg-primary text-white text-sm rounded hover:bg-primary/90 transition-colors"
+                >
+                  Appliquer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -723,26 +1102,38 @@ export default function PartnersPage() {
           label="Total Partners"
           value={localStats ? localStats.totalPartners : 0}
           isLoading={statsLoading}
-          change="+2%"
-          changeType="positive"
-          subtitle="vs last week"
+          change={localStats && localStats.totalPartnersChange !== undefined 
+            ? `${localStats.totalPartnersChange >= 0 ? '+' : ''}${localStats.totalPartnersChange}%` 
+            : '+0%'}
+          changeType={localStats && localStats.totalPartnersChange !== undefined
+            ? localStats.totalPartnersChange > 0 ? 'positive' : localStats.totalPartnersChange < 0 ? 'negative' : 'neutral'
+            : 'neutral'}
+          subtitle={localStats?.subtitle || 'vs last week'}
         />
         <StatCard
           icon={<StaffIcon />}
           label="Total Staff"
-          value="42"
-          change="+2%"
-          changeType="positive"
-          subtitle="vs last week"
+          value={localStats?.totalStaff || 42}
+          change={localStats && localStats.totalStaffChange !== undefined
+            ? `${localStats.totalStaffChange >= 0 ? '+' : ''}${localStats.totalStaffChange}%`
+            : '+0%'}
+          changeType={localStats && localStats.totalStaffChange !== undefined
+            ? localStats.totalStaffChange > 0 ? 'positive' : localStats.totalStaffChange < 0 ? 'negative' : 'neutral'
+            : 'neutral'}
+          subtitle={localStats?.subtitle || 'vs last week'}
         />
         <StatCard
           icon={<ActivePartnerIcon />}
           label="Active Partners"
           value={localStats ? localStats.activePartners : 0}
           isLoading={statsLoading}
-          change="+2%"
-          changeType="positive"
-          subtitle="vs last week"
+          change={localStats && localStats.activePartnersChange !== undefined
+            ? `${localStats.activePartnersChange >= 0 ? '+' : ''}${localStats.activePartnersChange}%`
+            : '+0%'}
+          changeType={localStats && localStats.activePartnersChange !== undefined
+            ? localStats.activePartnersChange > 0 ? 'positive' : localStats.activePartnersChange < 0 ? 'negative' : 'neutral'
+            : 'neutral'}
+          subtitle={localStats?.subtitle || 'vs last week'}
         />
       </div>
 
@@ -818,36 +1209,11 @@ export default function PartnersPage() {
               <span className="text-sm font-medium text-[#212121]">Filtre</span>
             </button>
 
-            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="16"
-                viewBox="0 0 14 16"
-                fill="none"
-                className="w-[14px] h-4"
-              >
-                <path
-                  d="M11.3333 10.6666C11.6705 10.9943 13 11.8665 13 12.3333M11.3333 14C11.6705 13.6723 13 12.8001 13 12.3333M13 12.3333L7.66667 12.3333"
-                  stroke="#1F2A44"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M6.33398 14.6666H6.15217C3.97803 14.6666 2.89096 14.6666 2.13603 14.1347C1.91973 13.9823 1.7277 13.8016 1.56578 13.598C1.00065 12.8875 1.00065 11.8644 1.00065 9.81814V8.12117C1.00065 6.14572 1.00065 5.158 1.31328 4.36913C1.81586 3.10091 2.87874 2.10055 4.22622 1.62753C5.0644 1.33329 6.11386 1.33329 8.21277 1.33329C9.41215 1.33329 10.0118 1.33329 10.4908 1.50143C11.2608 1.77172 11.8682 2.34336 12.1553 3.06805C12.334 3.51884 12.334 4.08325 12.334 5.21208V8.66663"
-                  stroke="#1F2A44"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M1.0013 8C1.0013 6.7727 1.99622 5.77778 3.22352 5.77778C3.66738 5.77778 4.19066 5.85555 4.62221 5.73992C5.00565 5.63718 5.30514 5.33768 5.40789 4.95424C5.52352 4.52269 5.44575 3.99941 5.44575 3.55556C5.44575 2.32826 6.44067 1.33333 7.66797 1.33333"
-                  stroke="#1F2A44"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className="text-sm font-medium text-[#212121]">Export</span>
-            </button>
+            <ExportToExcel 
+              data={exportData} 
+              fileName={`partners-export-${new Date().toISOString().split('T')[0]}.xlsx`}
+              sheetName="Partners"
+            />
 
             <button 
               className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 text-sm font-medium transition-colors"

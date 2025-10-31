@@ -63,6 +63,25 @@ export default function SettingsPage() {
     language: 'en'
   })
   const [userType, setUserType] = useState<'superadmin' | 'member' | null>(null)
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null)
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
+  const [imageError, setImageError] = useState(false)
+
+  // Get initials helper
+  const getInitials = (name: string | undefined) => {
+    if (!name) return 'U'
+    return name
+      .split(' ')
+      .map(namePart => namePart.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  // Reset image error when userData changes
+  useEffect(() => {
+    setImageError(false)
+  }, [userData?.profileImage])
 
   // Detect user type and load user data
   useEffect(() => {
@@ -243,6 +262,23 @@ export default function SettingsPage() {
           phoneNumber: formData.phoneNumber
         }
 
+        // Handle profile image upload
+        if (profileImageFile) {
+          // Convert image to base64 for now (in production, you might want to upload to a service like Cloudinary)
+          const reader = new FileReader()
+          await new Promise((resolve, reject) => {
+            reader.onloadend = () => {
+              updateData.profileImage = reader.result as string
+              resolve(null)
+            }
+            reader.onerror = reject
+            reader.readAsDataURL(profileImageFile)
+          })
+        } else if (profileImagePreview && profileImagePreview.startsWith('data:')) {
+          // If preview exists and is a data URL, use it
+          updateData.profileImage = profileImagePreview
+        }
+
         // Add password fields if provided
         if (formData.currentPassword && formData.newPassword && formData.confirmPassword) {
           if (formData.newPassword !== formData.confirmPassword) {
@@ -313,17 +349,37 @@ export default function SettingsPage() {
         // Update local user data
         if (result.superAdmin) {
           setUserData(prev => prev ? { ...prev, ...result.superAdmin } : null)
+          // Update auth context if profileImage was updated
+          if (result.superAdmin.profileImage) {
+            // Update localStorage/sessionStorage with new user data
+            const storedUser = localStorage.getItem('user_data') || sessionStorage.getItem('user_data')
+            if (storedUser) {
+              const userData = JSON.parse(storedUser)
+              userData.profileImage = result.superAdmin.profileImage
+              if (localStorage.getItem('user_data')) {
+                localStorage.setItem('user_data', JSON.stringify(userData))
+              } else {
+                sessionStorage.setItem('user_data', JSON.stringify(userData))
+              }
+            }
+          }
         } else if (result.data) {
           setUserData(prev => prev ? { ...prev, ...result.data } : null)
         }
         
-        // Clear password fields after successful update
+        // Clear password fields and image preview after successful update
         setFormData(prev => ({
           ...prev,
           currentPassword: '',
           newPassword: '',
           confirmPassword: ''
         }))
+        setProfileImageFile(null)
+        setProfileImagePreview(null)
+        setImageError(false)
+        
+        // Reload page to update header profile image
+        window.location.reload()
       } else {
         console.error('API Error Response:', result)
         alert(`Error: ${result.error || result.message || 'Unknown error occurred'}`)
@@ -449,23 +505,46 @@ export default function SettingsPage() {
 
                 <div className="flex max-w-[327px] h-[142px] p-[22px] items-center gap-5 rounded-[11px] border border-dashed border-[rgba(0,0,0,0.12)] bg-white">
                   {/* Profile Circle */}
-                  <div className="flex w-[84px] h-[84px] justify-center items-center flex-shrink-0 rounded-full overflow-hidden bg-gray-200">
-                    <Image
-                      src="/placeholder.svg?height=84&width=84"
-                      alt="Profile"
-                      width={84}
-                      height={84}
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="flex w-[84px] h-[84px] justify-center items-center flex-shrink-0 rounded-full overflow-hidden bg-primary relative">
+                    {((profileImagePreview || (userData && userData.profileImage)) && !imageError) ? (
+                      <Image
+                        src={profileImagePreview || (userData?.profileImage || '')}
+                        alt="Profile"
+                        fill
+                        className="object-cover"
+                        onError={() => setImageError(true)}
+                      />
+                    ) : (
+                      <span className="text-white font-semibold text-lg">
+                        {getInitials(userType === 'superadmin' ? userData?.fullName : userData?.name)}
+                      </span>
+                    )}
                   </div>
 
                   {/* Profile Content */}
                   <div className="flex flex-col gap-2 flex-1">
                     <h4 className="text-sm font-semibold text-[#212121]">Profile Picture</h4>
                     <p className="text-xs text-muted-foreground">Update your profile picture.</p>
-                    <button className="flex h-7 px-[11.5px] py-[1px] justify-center items-center rounded-[5px] border border-[#E5E7EB] bg-white text-sm font-medium text-[#212121] hover:bg-gray-50 transition-colors w-fit">
+                    <label className="flex h-7 px-[11.5px] py-[1px] justify-center items-center rounded-[5px] border border-[#E5E7EB] bg-white text-sm font-medium text-[#212121] hover:bg-gray-50 transition-colors w-fit cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            setProfileImageFile(file)
+                            const reader = new FileReader()
+                            reader.onloadend = () => {
+                              setProfileImagePreview(reader.result as string)
+                              setImageError(false)
+                            }
+                            reader.readAsDataURL(file)
+                          }
+                        }}
+                      />
                       Change Picture
-                    </button>
+                    </label>
                   </div>
                 </div>
               </div>

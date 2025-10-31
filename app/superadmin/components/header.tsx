@@ -8,9 +8,15 @@ import { useAuth } from "@/lib/auth-context"
 
 export default function Header() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
+  const [imageError, setImageError] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
   const { user, logout } = useAuth()
+
+  // Reset image error when user changes
+  useEffect(() => {
+    setImageError(false)
+  }, [user?.profileImage])
 
   // Get initials from full name or name
   const getInitials = (name: string | undefined) => {
@@ -117,8 +123,18 @@ export default function Header() {
          {/* User Profile */}
          <div className="relative" ref={dropdownRef}>
            <div className="flex  gap-3 border-border  rounded-lg">
-             <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-semibold">
-               {user ? getInitials(user.role === 'superadmin' ? user.fullName : user.name) : 'SA'}
+             <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-semibold overflow-hidden relative">
+               {user && user.profileImage && user.profileImage.trim() !== '' && !imageError ? (
+                 <Image
+                   src={user.profileImage}
+                   alt={user.role === 'superadmin' ? (user.fullName || 'User') : (user.name || 'User')}
+                   fill
+                   className="object-cover"
+                   onError={() => setImageError(true)}
+                 />
+               ) : (
+                 <span>{user ? getInitials(user.role === 'superadmin' ? user.fullName : user.name) : 'SA'}</span>
+               )}
              </div>
              <div className="flex items-center gap-2">
                <div>

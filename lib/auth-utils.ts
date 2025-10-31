@@ -19,6 +19,7 @@ export interface MemberData {
   email: string;
   phone: string;
   username: string;
+  profileImage?: string;
   permissions: string[];
   role: 'member';
   createdAt: string;

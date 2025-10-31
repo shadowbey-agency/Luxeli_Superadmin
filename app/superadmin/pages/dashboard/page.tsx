@@ -16,6 +16,10 @@ export default function DashboardPage() {
   const [activeSection, setActiveSection] = useState("subscriptions")
   const [partnerStats, setPartnerStats] = useState<{ totalPartners: number; activePartners: number } | null>(null)
   const [statsLoading, setStatsLoading] = useState(true)
+  const [newSubscriptionsCount, setNewSubscriptionsCount] = useState<number>(0)
+  const [newSubscriptionsLoading, setNewSubscriptionsLoading] = useState(true)
+  const [totalUsersChange, setTotalUsersChange] = useState<{ change: string; changeType: "positive" | "negative" | "neutral" } | null>(null)
+  const [newSubscriptionsChange, setNewSubscriptionsChange] = useState<{ change: string; changeType: "positive" | "negative" | "neutral" } | null>(null)
 
   // Order Time Data Array
   const orderTimeData = [
@@ -67,6 +71,22 @@ export default function DashboardPage() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  // Helper function to calculate percentage change
+  const calculatePercentageChange = (current: number, previous: number): { change: string; changeType: "positive" | "negative" | "neutral" } => {
+    if (previous === 0) {
+      return current > 0 
+        ? { change: "+100%", changeType: "positive" }
+        : { change: "0%", changeType: "neutral" }
+    }
+    const percentChange = ((current - previous) / previous) * 100
+    const rounded = Math.round(percentChange * 10) / 10 // Round to 1 decimal place
+    const sign = rounded >= 0 ? "+" : ""
+    return {
+      change: `${sign}${rounded}%`,
+      changeType: rounded > 0 ? "positive" : rounded < 0 ? "negative" : "neutral"
+    }
+  }
+
   // Load partner stats for dashboard cards
   useEffect(() => {
     const loadStats = async () => {
@@ -77,46 +97,193 @@ export default function DashboardPage() {
           setStatsLoading(false)
           return
         }
-        // Primary: use stats endpoint
-        const res = await fetch('/api/superadmin/partners/stats', {
+
+        // Fetch all partners to calculate monthly changes
+        const partnersRes = await fetch(`/api/superadmin/partners?limit=1000`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
+
         let totals: { totalPartners: number; activePartners: number } | null = null
-        if (res.ok) {
-          const data = await res.json().catch(() => ({}))
-          const s = (data && (data.stats || data)) || {}
-          if (typeof s.totalPartners === 'number' && typeof s.activePartners === 'number') {
-            totals = { totalPartners: s.totalPartners, activePartners: s.activePartners }
+        let totalUsersChangeCalc: { change: string; changeType: "positive" | "negative" | "neutral" } | null = null
+
+        if (partnersRes.ok) {
+          const partnersData = await partnersRes.json().catch(() => ({}))
+          const partners = partnersData.partners || []
+
+          // Calculate total partners
+          totals = { totalPartners: partners.length, activePartners: 0 }
+          
+          // Count active partners
+          partners.forEach((p: any) => {
+            if (p.status === 'active') {
+              totals!.activePartners++
+            }
+          })
+
+          // Calculate Total Users change (vs last month)
+          // Compare: Total users at end of last month vs Total users today
+          if (Array.isArray(partners)) {
+            const now = new Date()
+            
+            // Current date/time (end of today) - current total
+            const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+            currentDate.setHours(23, 59, 59, 999)
+            
+            // End of last month - previous total
+            const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
+            lastMonthEnd.setHours(23, 59, 59, 999)
+
+            // Count partners created up to current date (current total)
+            const currentTotal = partners.filter((p: any) => {
+              if (!p.createdAt) return false
+              try {
+                const createdAt = new Date(p.createdAt)
+                return createdAt <= currentDate
+              } catch {
+                return false
+              }
+            }).length
+
+            // Count partners created up to end of last month (previous month total)
+            const previousMonthTotal = partners.filter((p: any) => {
+              if (!p.createdAt) return false
+              try {
+                const createdAt = new Date(p.createdAt)
+                return createdAt <= lastMonthEnd
+              } catch {
+                return false
+              }
+            }).length
+
+            totalUsersChangeCalc = calculatePercentageChange(currentTotal, previousMonthTotal)
           }
         }
 
-        // Fallback: derive totals from partners list pagination
+        // Fallback: use stats endpoint if partners list fetch failed
         if (!totals) {
-          const commonHeaders = { 'Authorization': `Bearer ${token}` }
-          const listRes = await fetch(`/api/superadmin/partners?limit=1`, { headers: commonHeaders })
-          const activeRes = await fetch(`/api/superadmin/partners?limit=1&isActive=true`, { headers: commonHeaders })
-          let total = 0
-          let active = 0
-          if (listRes.ok) {
-            const listData = await listRes.json().catch(() => ({}))
-            total = listData?.pagination?.total ?? 0
+          const res = await fetch('/api/superadmin/partners/stats', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+          if (res.ok) {
+            const data = await res.json().catch(() => ({}))
+            const s = (data && (data.stats || data)) || {}
+            if (typeof s.totalPartners === 'number' && typeof s.activePartners === 'number') {
+              totals = { totalPartners: s.totalPartners, activePartners: s.activePartners }
+            }
           }
-          if (activeRes.ok) {
-            const activeData = await activeRes.json().catch(() => ({}))
-            active = activeData?.pagination?.total ?? 0
+
+          // Fallback: derive totals from partners list pagination
+          if (!totals) {
+            const commonHeaders = { 'Authorization': `Bearer ${token}` }
+            const listRes = await fetch(`/api/superadmin/partners?limit=1`, { headers: commonHeaders })
+            const activeRes = await fetch(`/api/superadmin/partners?limit=1&isActive=true`, { headers: commonHeaders })
+            let total = 0
+            let active = 0
+            if (listRes.ok) {
+              const listData = await listRes.json().catch(() => ({}))
+              total = listData?.pagination?.total ?? 0
+            }
+            if (activeRes.ok) {
+              const activeData = await activeRes.json().catch(() => ({}))
+              active = activeData?.pagination?.total ?? 0
+            }
+            totals = { totalPartners: total, activePartners: active }
           }
-          totals = { totalPartners: total, activePartners: active }
         }
 
         setPartnerStats(totals)
+        if (totalUsersChangeCalc) {
+          setTotalUsersChange(totalUsersChangeCalc)
+        }
       } catch (e) {
-        // ignore
+        console.error('Error loading stats:', e)
       } finally {
         setStatsLoading(false)
       }
     }
     loadStats()
   }, [])
+
+  // Load new subscriptions count for current month
+  useEffect(() => {
+    const loadNewSubscriptions = async () => {
+      try {
+        setNewSubscriptionsLoading(true)
+        const token = getAuthToken()
+        if (!token) {
+          setNewSubscriptionsLoading(false)
+          return
+        }
+
+        // Get current month range
+        const now = new Date()
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+        currentMonthStart.setHours(0, 0, 0, 0)
+        const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        currentMonthEnd.setHours(23, 59, 59, 999)
+
+        // Get last month range
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        lastMonthStart.setHours(0, 0, 0, 0)
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
+        lastMonthEnd.setHours(23, 59, 59, 999)
+
+        // Fetch all partners
+        const partnersRes = await fetch(`/api/superadmin/partners?limit=1000`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+
+        if (partnersRes.ok) {
+          const partnersData = await partnersRes.json().catch(() => ({}))
+          const partners = partnersData.partners || []
+
+          if (Array.isArray(partners)) {
+            // Count partners created in current month (who got plans this month)
+            const currentMonthPartners = partners.filter((p: any) => {
+              if (!p.createdAt) return false
+              try {
+                const createdAt = new Date(p.createdAt)
+                return createdAt >= currentMonthStart && createdAt <= currentMonthEnd
+              } catch {
+                return false
+              }
+            }).length
+
+            // Count partners created in last month
+            const lastMonthPartners = partners.filter((p: any) => {
+              if (!p.createdAt) return false
+              try {
+                const createdAt = new Date(p.createdAt)
+                return createdAt >= lastMonthStart && createdAt <= lastMonthEnd
+              } catch {
+                return false
+              }
+            }).length
+
+            setNewSubscriptionsCount(currentMonthPartners)
+            
+            // Calculate percentage change for new subscriptions
+            const change = calculatePercentageChange(currentMonthPartners, lastMonthPartners)
+            setNewSubscriptionsChange(change)
+          } else {
+            setNewSubscriptionsCount(0)
+            setNewSubscriptionsChange({ change: "0%", changeType: "neutral" })
+          }
+        } else {
+          setNewSubscriptionsCount(0)
+          setNewSubscriptionsChange({ change: "0%", changeType: "neutral" })
+        }
+      } catch (e) {
+        console.error('Error fetching new subscriptions:', e)
+        setNewSubscriptionsCount(0)
+        setNewSubscriptionsChange({ change: "0%", changeType: "neutral" })
+      } finally {
+        setNewSubscriptionsLoading(false)
+      }
+    }
+    loadNewSubscriptions()
+  }, [])
+
   const subscriptionsContent = (
     <div className="space-y-6">
       {/* Header */}
@@ -198,17 +365,19 @@ export default function DashboardPage() {
         <StatCard
           icon={<StaffIcon />}
           label="Total Users"
-          value="42"
-          change="+2%"
-          changeType="positive"
+          value={partnerStats ? partnerStats.totalPartners : 0}
+          isLoading={statsLoading}
+          change={totalUsersChange?.change || "0%"}
+          changeType={totalUsersChange?.changeType || "neutral"}
           changeLabel="vs last month"
         />
         <StatCard
           icon={<SubscriptionIcon />}
           label="New subscriptions"
-          value="12"
-          change="+2%"
-          changeType="positive"
+          value={newSubscriptionsCount}
+          isLoading={newSubscriptionsLoading}
+          change={newSubscriptionsChange?.change || "0%"}
+          changeType={newSubscriptionsChange?.changeType || "neutral"}
           changeLabel="vs last month"
         />
         <StatCard

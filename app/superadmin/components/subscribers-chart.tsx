@@ -1,16 +1,111 @@
 "use client"
 
-const data = [
-  { month: "Jan", starter: 40, gold: 60 },
-  { month: "Feb", starter: 45, gold: 55 },
-  { month: "Mar", starter: 50, gold: 50 },
-  { month: "Apr", starter: 35, gold: 45 },
-  { month: "May", starter: 55, gold: 60 },
-  { month: "Jun", starter: 60, gold: 70 },
-  { month: "Jul", starter: 65, gold: 75 },
-]
+import { useState, useEffect } from "react"
+import { getAuthToken } from "@/lib/auth-utils"
+
+interface ChartData {
+  month: string
+  starter: number
+  gold: number
+}
 
 export default function SubscribersChart() {
+  const [data, setData] = useState<ChartData[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const loadChartData = async () => {
+      try {
+        setIsLoading(true)
+        const token = getAuthToken()
+        if (!token) {
+          setIsLoading(false)
+          return
+        }
+
+        // Fetch all partners
+        const res = await fetch(`/api/superadmin/partners?limit=1000`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+
+        if (res.ok) {
+          const result = await res.json().catch(() => ({}))
+          const partners = result.partners || []
+
+          // Get last 7 months
+          const months: ChartData[] = []
+          const now = new Date()
+          
+          for (let i = 6; i >= 0; i--) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+            const monthStart = new Date(date.getFullYear(), date.getMonth(), 1)
+            monthStart.setHours(0, 0, 0, 0)
+            const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+            monthEnd.setHours(23, 59, 59, 999)
+
+            // Count partners by plan for this month
+            let starter = 0
+            let gold = 0
+
+            partners.forEach((p: any) => {
+              if (!p.createdAt) return
+
+              // Parse createdAt date
+              let createdAt: Date
+              try {
+                createdAt = new Date(p.createdAt)
+              } catch {
+                return
+              }
+
+              // Check if partner was created in this month
+              if (createdAt >= monthStart && createdAt <= monthEnd) {
+                const plan = (p.plan || '').toLowerCase().trim()
+                if (plan === 'starter pack') {
+                  starter++
+                } else if (plan === 'gold pack') {
+                  gold++
+                }
+              }
+            })
+
+            // Format month name (e.g., "Jan", "Feb")
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+            months.push({
+              month: monthNames[date.getMonth()],
+              starter,
+              gold
+            })
+          }
+
+          setData(months)
+        } else {
+          // Fallback to empty data
+          setData([])
+        }
+      } catch (e) {
+        console.error('Error loading chart data:', e)
+        setData([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadChartData()
+  }, [])
+
+  // Use default data if loading or no data
+  const chartData = isLoading || data.length === 0 
+    ? [
+        { month: "Jan", starter: 0, gold: 0 },
+        { month: "Feb", starter: 0, gold: 0 },
+        { month: "Mar", starter: 0, gold: 0 },
+        { month: "Apr", starter: 0, gold: 0 },
+        { month: "May", starter: 0, gold: 0 },
+        { month: "Jun", starter: 0, gold: 0 },
+        { month: "Jul", starter: 0, gold: 0 },
+      ]
+    : data
   return (
     <div className="flex flex-col w-full">
       {/* Header */}
@@ -119,10 +214,15 @@ export default function SubscribersChart() {
             gap: "4px"
           }}
         >
-          {data.map((item, index) => {
-            const maxValue = Math.max(...data.map(d => d.starter + d.gold))
-            const starterHeight = (item.starter / maxValue) * 100
-            const goldHeight = (item.gold / maxValue) * 100
+          {isLoading ? (
+            <div className="w-full flex items-center justify-center h-full">
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            chartData.map((item, index) => {
+            const maxValue = Math.max(...chartData.map(d => d.starter + d.gold), 1) // Avoid division by zero
+            const starterHeight = maxValue > 0 ? (item.starter / maxValue) * 100 : 0
+            const goldHeight = maxValue > 0 ? (item.gold / maxValue) * 100 : 0
             const totalHeight = starterHeight + goldHeight
 
             return (
@@ -182,7 +282,7 @@ export default function SubscribersChart() {
                 </div>
               </div>
             )
-          })}
+          }))}
         </div>
       </div>
     </div>
