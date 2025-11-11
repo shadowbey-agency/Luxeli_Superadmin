@@ -22,6 +22,7 @@ interface TeamMember {
   name: string
   email: string
   phone: string
+  role: string
   dateAdded: string
   status: string
   avatar: string
@@ -33,6 +34,7 @@ const mockTeamMembers: TeamMember[] = [
     name: "Full Name",
     email: "contact@maghrebcom.store",
     phone: "+212 632-002529",
+    role: "Manager",
     dateAdded: "15 juin 2025",
     status: "active",
     avatar: "FN",
@@ -42,6 +44,7 @@ const mockTeamMembers: TeamMember[] = [
     name: "Full Name",
     email: "contact@maghrebcom.store",
     phone: "+212 632-002529",
+    role: "Staff",
     dateAdded: "15 juin 2025",
     status: "active",
     avatar: "FN",
@@ -51,6 +54,7 @@ const mockTeamMembers: TeamMember[] = [
     name: "Full Name",
     email: "contact@maghrebcom.store",
     phone: "+212 632-002529",
+    role: "Staff",
     dateAdded: "15 juin 2025",
     status: "active",
     avatar: "FN",
@@ -60,6 +64,7 @@ const mockTeamMembers: TeamMember[] = [
     name: "Full Name",
     email: "contact@maghrebcom.store",
     phone: "+212 632-002529",
+    role: "Staff",
     dateAdded: "15 juin 2025",
     status: "disable",
     avatar: "FN",
@@ -84,15 +89,16 @@ export default function TeamPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingMembers, setIsLoadingMembers] = useState(true)
   const [formData, setFormData] = useState({
-    name: '',
+    staffName: '',
     email: '',
-    phone: '',
+    phoneNumber: '',
+    role: '',
     username: '',
     password: '',
-    permissions: [] as string[]
+    staffImage: ''
   })
 
-  // Fetch members from API
+  // Fetch staff from API
   const fetchMembers = async () => {
     try {
       setIsLoadingMembers(true)
@@ -103,53 +109,51 @@ export default function TeamPage() {
         return
       }
 
-      console.log('Fetching members from API...')
-      const response = await fetch('/api/superadmin/members', {
+      console.log('Fetching staff from API...')
+      const response = await fetch('/api/partner/staff', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      console.log('Members API response status:', response.status)
-      console.log('Members API response ok:', response.ok)
+      console.log('Staff API response status:', response.status)
+      console.log('Staff API response ok:', response.ok)
 
       if (response.ok) {
         const result = await response.json()
-        console.log('Members API result:', result)
+        console.log('Staff API result:', result)
         
-        if (result.success && result.data && result.data.members) {
+        if (result.success && result.data && result.data.staff) {
           // Transform API data to match TeamMember interface
-          const transformedMembers: TeamMember[] = result.data.members.map((member: any) => ({
-            id: member._id,
-            name: member.name,
-            email: member.email,
-            phone: member.phone,
-            dateAdded: new Date(member.createdAt).toLocaleDateString('fr-FR', {
+          const transformedMembers: TeamMember[] = result.data.staff.map((staff: any) => ({
+            id: staff._id,
+            name: staff.staffName,
+            email: staff.email,
+            phone: staff.phoneNumber,
+            role: staff.role || '',
+            dateAdded: new Date(staff.createdAt).toLocaleDateString('fr-FR', {
               day: 'numeric',
               month: 'long',
               year: 'numeric'
             }),
-            status: member.status || 'active',
-            avatar: member.name ? member.name.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'M'
+            status: staff.status || 'active',
+            avatar: staff.staffName ? staff.staffName.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'S'
           }))
           
-          console.log('Transformed members:', transformedMembers)
+          console.log('Transformed staff:', transformedMembers)
           setTeamMembers(transformedMembers)
         } else {
-          console.error('Members API returned error:', result.error)
-          // Fallback to mock data if API fails
-          setTeamMembers(mockTeamMembers)
+          console.error('Staff API returned error:', result.error)
+          setTeamMembers([])
         }
       } else {
         const errorResult = await response.json()
-        console.error('Members API error response:', errorResult)
-        // Fallback to mock data if API fails
-        setTeamMembers(mockTeamMembers)
+        console.error('Staff API error response:', errorResult)
+        setTeamMembers([])
       }
     } catch (error) {
-      console.error('Error fetching members:', error)
-      // Fallback to mock data if API fails
-      setTeamMembers(mockTeamMembers)
+      console.error('Error fetching staff:', error)
+      setTeamMembers([])
     } finally {
       setIsLoadingMembers(false)
     }
@@ -172,9 +176,9 @@ export default function TeamPage() {
       if (!member) return
 
       // Fix: Toggle should save the opposite of current status
-      const newStatus = member.status === 'active' ? 'disable' : 'active'
+      const newStatus = member.status === 'active' ? 'disabled' : 'active'
       
-      const response = await fetch(`/api/superadmin/members/${id}`, {
+      const response = await fetch(`/api/partner/staff/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -221,7 +225,7 @@ export default function TeamPage() {
         return
       }
 
-      const response = await fetch(`/api/superadmin/members/${memberToDelete.id}`, {
+      const response = await fetch(`/api/partner/staff/${memberToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -290,7 +294,7 @@ export default function TeamPage() {
     console.log('Form data before sending:', formData)
     
     // Validate required fields
-    const requiredFields = ['name', 'email', 'phone', 'username', 'password']
+    const requiredFields = ['staffName', 'email', 'phoneNumber', 'role', 'username', 'password']
     const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData])
     
     if (missingFields.length > 0) {
@@ -305,16 +309,16 @@ export default function TeamPage() {
       console.log('Token found:', token ? 'Yes' : 'No')
       
       // Fallback: try to get token directly if utility function fails
-      const fallbackToken = localStorage.getItem('superadmin_token') || sessionStorage.getItem('superadmin_token')
+      const fallbackToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
       const finalToken = token || fallbackToken
       
       if (!finalToken) {
-        alert('Please log in to create a member')
+        alert('Please log in to create a staff member')
         setIsLoading(false)
         return
       }
 
-      const response = await fetch('/api/superadmin/members', {
+      const response = await fetch('/api/partner/staff', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -327,20 +331,21 @@ export default function TeamPage() {
       console.log('API Response:', result)
 
       if (result.success) {
-        // Add the new member to the list
-        const memberData = result.data.member || result.data; // Handle both response structures
+        // Add the new staff to the list
+        const staffData = result.data.staff || result.data;
         const newMember: TeamMember = {
-          id: memberData._id,
-          name: memberData.name,
-          email: memberData.email,
-          phone: memberData.phone,
-          dateAdded: new Date(memberData.createdAt).toLocaleDateString('fr-FR', {
+          id: staffData._id,
+          name: staffData.staffName,
+          email: staffData.email,
+          phone: staffData.phoneNumber,
+          role: staffData.role || '',
+          dateAdded: new Date(staffData.createdAt).toLocaleDateString('fr-FR', {
             day: 'numeric',
             month: 'long',
             year: 'numeric'
           }),
-          status: memberData.status || "active",
-          avatar: memberData.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+          status: staffData.status || "active",
+          avatar: staffData.staffName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
         }
         
         setTeamMembers(prev => [newMember, ...prev])
@@ -348,34 +353,33 @@ export default function TeamPage() {
         
         // Reset form data
         setFormData({
-          name: '',
+          staffName: '',
           email: '',
-          phone: '',
+          phoneNumber: '',
+          role: '',
           username: '',
           password: '',
-          permissions: []
+          staffImage: ''
         })
         
-        alert('Member created successfully!')
-        // Refresh the members list
+        alert('Staff member created successfully!')
+        // Refresh the staff list
         await fetchMembers()
       } else {
         console.error('API Error:', result.error)
         
         // Handle specific error types
-        if (result.error && result.error.includes('already registered')) {
-          alert(`❌ Email Error: ${result.error}`)
-        } else if (result.error && result.error.includes('already taken')) {
-          alert(`❌ Username Error: ${result.error}`)
-        } else if (result.error && result.error.includes('required fields')) {
+        if (result.error && result.error.includes('already exists')) {
+          alert(`❌ Error: ${result.error}`)
+        } else if (result.error && result.error.includes('required')) {
           alert(`❌ Validation Error: ${result.error}`)
         } else {
           alert(`❌ Error: ${result.error}`)
         }
       }
     } catch (error) {
-      console.error('Error saving member:', error)
-      alert('Failed to save member. Please try again.')
+      console.error('Error saving staff:', error)
+      alert('Failed to save staff member. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -399,16 +403,16 @@ export default function TeamPage() {
         alert('Please log in to update member')
         return
       }
-      const response = await fetch(`/api/superadmin/members/${selectedMember.id}`, {
+      const response = await fetch(`/api/partner/staff/${selectedMember.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          name: editForm.name,
+          staffName: editForm.name,
           email: editForm.email,
-          phone: editForm.phone
+          phoneNumber: editForm.phone
         })
       })
       if (response.ok) {
@@ -447,7 +451,7 @@ export default function TeamPage() {
         alert('Please log in to update password')
         return
       }
-      const response = await fetch(`/api/superadmin/members/${selectedMember.id}`, {
+      const response = await fetch(`/api/partner/staff/${selectedMember.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1018,8 +1022,8 @@ export default function TeamPage() {
                           borderRadius: "4px",
                           background: "#FFF"
                         }}
-                        value={formData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        value={formData.staffName}
+                        onChange={(e) => handleInputChange('staffName', e.target.value)}
                       />
                     </div>
                     <div className="flex flex-col gap-2">
@@ -1034,8 +1038,8 @@ export default function TeamPage() {
                           borderRadius: "4px",
                           background: "#FFF"
                         }}
-                        value={formData.phone}
-                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        value={formData.phoneNumber}
+                        onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                       />
                     </div>
                   </div>
@@ -1059,31 +1063,20 @@ export default function TeamPage() {
                       />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-[#212121]">Permissions</label>
-                      <div className="relative">
-                        <select
-                          className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
-                          style={{
-                            padding: "7.52px 12px",
-                            border: "1px solid #CED4DA",
-                            borderRadius: "4px",
-                            background: "#FFF"
-                          }}
-                          value={formData.permissions.join(',')}
-                          onChange={(e) => handleInputChange('permissions', e.target.value ? e.target.value.split(',') : [])}
-                        >
-                          <option value="">Select</option>
-                          <option value="dashboard">Dashboard</option>
-                          <option value="partner">Partner</option>
-                          <option value="subscription">Subscription</option>
-                          <option value="support">Support</option>
-                        </select>
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                          <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
-                            <path d="M1 1.5L6 6.5L11 1.5" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </div>
-                      </div>
+                      <label className="text-sm font-medium text-[#212121]">Role</label>
+                      <input
+                        type="text"
+                        placeholder="Write Here..."
+                        className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        style={{
+                          padding: "7.52px 12px",
+                          border: "1px solid #CED4DA",
+                          borderRadius: "4px",
+                          background: "#FFF"
+                        }}
+                        value={formData.role}
+                        onChange={(e) => handleInputChange('role', e.target.value)}
+                      />
                     </div>
                   </div>
                 </div>

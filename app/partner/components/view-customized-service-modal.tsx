@@ -5,15 +5,25 @@ import { ChangeStatusIcon, AssignTicketIcon } from "./icons"
 import AssignStaffModal from "./assign-staff-modal"
 
 interface CustomizedServiceRequest {
-  id: string
-  requestId: string
-  room: string
-  guest: string
-  created: string
-  status: "new" | "accepted" | "completed" | "pending" | "canceled"
-  assignee: string
+  _id?: string
+  id?: string
+  requestId?: string
+  customId?: string
+  room?: string
+  roomName?: string
+  guest?: string
+  residentEmail?: string
+  created?: string
+  createdAt?: string
+  status: "new" | "accepted" | "completed" | "no-show" | "canceled" | "pending"
+  assignee?: string | {
+    name: string
+    staffId: string
+    profilePic?: string
+  }
   title: string
-  requestDescription: string
+  requestDescription?: string
+  description?: string
 }
 
 interface ViewCustomizedServiceModalProps {
@@ -26,9 +36,6 @@ export default function ViewCustomizedServiceModal({ request, isOpen, onClose }:
   const [showAssignStaffModal, setShowAssignStaffModal] = useState(false)
 
   if (!isOpen || !request) return null
-
-  // Debug: Log the request data
-  console.log('CustomizedServiceModal request:', request)
 
   const handleAssignStaff = (staffId: string) => {
     console.log("Assigned staff:", staffId)
@@ -43,6 +50,8 @@ export default function ViewCustomizedServiceModal({ request, isOpen, onClose }:
         return { bg: "#6457D30D", border: "#6457D340", text: "#6457D3" }
       case "completed":
         return { bg: "#17B26A0D", border: "#17B26A40", text: "#17B26A" }
+      case "no-show":
+        return { bg: "#1F2A440D", border: "#1F2A4440", text: "#1F2A44" }
       case "pending":
         return { bg: "#1F2A440D", border: "#1F2A4440", text: "#1F2A44" }
       case "canceled":
@@ -94,10 +103,10 @@ export default function ViewCustomizedServiceModal({ request, isOpen, onClose }:
               
               <div className="w-full rounded-[8px] border p-4 bg-[#FBFAFA]" style={{ borderColor: "#21212114" }}>
                 <div className="flex flex-col gap-2.5">
-                  <InfoRow label="ID" value={request.requestId || request.id} centerValue={true} />
-                  <InfoRow label="Room" value={request.room} centerValue={true} />
-                  <InfoRow label="Guest" value={request.guest} centerValue={true} />
-                  <InfoRow label="Created" value={request.created} centerValue={true} />
+                  <InfoRow label="ID" value={request.requestId || request.id || request.customId || request._id?.substring(request._id.length - 6).toUpperCase() || '-'} centerValue={true} />
+                  <InfoRow label="Room" value={request.room || request.roomName || '-'} centerValue={true} />
+                  <InfoRow label="Guest" value={request.guest || request.residentEmail || '-'} centerValue={true} />
+                  <InfoRow label="Created" value={request.created || (request.createdAt ? new Date(request.createdAt).toLocaleString() : '-')} centerValue={true} />
                   <InfoRow 
                     label="Status" 
                     value={
@@ -114,7 +123,17 @@ export default function ViewCustomizedServiceModal({ request, isOpen, onClose }:
                     } 
                     centerValue={true}
                   />
-                  <InfoRow label="Assignee" value={request.assignee && request.assignee.trim() !== '' ? request.assignee : '-'} centerValue={true} />
+                  <InfoRow 
+                    label="Assignee" 
+                    value={
+                      request.assignee 
+                        ? typeof request.assignee === 'string' 
+                          ? (request.assignee.trim() !== '' ? request.assignee : '-')
+                          : (request.assignee.name || '-')
+                        : '-'
+                    } 
+                    centerValue={true} 
+                  />
                 </div>
               </div>
             </div>
@@ -131,7 +150,7 @@ export default function ViewCustomizedServiceModal({ request, isOpen, onClose }:
               <div className="w-full rounded-[8px] border p-4 bg-[#FBFAFA]" style={{ borderColor: "#21212114" }}>
                 <div className="flex flex-col gap-2.5">
                   <InfoRow label="Title" value={request.title || "Norem ipsum dolor sit amet"} centerValue={false} />
-                  <InfoRow label="Request description" value={request.requestDescription || "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero."} centerValue={false} />
+                  <InfoRow label="Request description" value={request.requestDescription || request.description || "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero."} centerValue={false} />
                 </div>
               </div>
             </div>

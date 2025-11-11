@@ -1,19 +1,69 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { RiCloseLine, RiImageLine, RiArrowDownSLine } from "react-icons/ri"
+import { getAuthToken } from "@/lib/auth-utils"
+
+interface RequestItem {
+  _id: string
+  name: string
+  category: string
+  status: "published" | "unpublished"
+  description: string
+  image?: string
+  createdAt?: string
+  updatedAt?: string
+}
 
 interface AddItemModalProps {
   isOpen: boolean
   onClose: () => void
+  onSuccess?: () => void
+  item?: RequestItem | null // Item to edit (null for new item)
 }
 
-export default function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
+export default function AddItemModal({ isOpen, onClose, onSuccess, item }: AddItemModalProps) {
   const [itemName, setItemName] = useState("")
   const [isPublished, setIsPublished] = useState(true)
   const [category, setCategory] = useState("")
-  const [itemPrice, setItemPrice] = useState("")
   const [itemDescription, setItemDescription] = useState("")
+  const [itemImage, setItemImage] = useState<string>("")
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Pre-fill form when editing an item
+  useEffect(() => {
+    if (item && isOpen) {
+      setItemName(item.name || "")
+      setIsPublished(item.status === "published")
+      setCategory(item.category || "")
+      setItemDescription(item.description || "")
+      setItemImage(item.image || "")
+      setImagePreview(item.image || null)
+      setError(null)
+    } else if (!item && isOpen) {
+      // Reset form for new item
+      setItemName("")
+      setIsPublished(true)
+      setCategory("")
+      setItemDescription("")
+      setItemImage("")
+      setImagePreview(null)
+      setError(null)
+    }
+  }, [item, isOpen])
+
+  const handleClose = () => {
+    setItemName("")
+    setIsPublished(true)
+    setCategory("")
+    setItemDescription("")
+    setItemImage("")
+    setImagePreview(null)
+    setError(null)
+    onClose()
+  }
 
   if (!isOpen) return null
 
@@ -22,9 +72,9 @@ export default function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
        <div className="bg-white shadow-xl max-w-3xl w-full mx-4" style={{ borderRadius: "10px" }}>
         {/* Header */}
         <div className="flex items-center justify-between pl-6 pr-6 pt-5 pb-5 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Add new items</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{item ? "Edit item" : "Add new items"}</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors"
           >
             <RiCloseLine className="w-6 h-6 text-gray-500" />
@@ -57,13 +107,13 @@ export default function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
                   Status
                 </label>
                 <div className="flex items-center space-x-3">
-                  <span className={`text-sm ${!isPublished ? 'text-gray-900' : 'text-gray-500'}`}>
+                  <span className={`text-sm ${isPublished ? 'text-gray-500' : 'text-gray-900'}`}>
                     Published
                   </span>
                   <div
                     className="relative w-11 h-6 rounded-full transition-colors cursor-pointer"
                     style={{
-                      backgroundColor: isPublished ? "#50BE87" : "#E5E7EB"
+                      backgroundColor: isPublished ? "#E5E7EB" : "#50BE87"
                     }}
                     onClick={() => setIsPublished(!isPublished)}
                   >
@@ -74,15 +124,13 @@ export default function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
                       }}
                     />
                   </div>
-                  <span className={`text-sm ${isPublished ? 'text-gray-500' : 'text-gray-900'}`}>
+                  <span className={`text-sm ${isPublished ? 'text-gray-900' : 'text-gray-500'}`}>
                     Unpublished
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Category and Price Row */}
-            <div className="grid grid-cols-2 gap-4">
               {/* Category */}
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: "#212121" }}>
@@ -96,36 +144,12 @@ export default function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
                     style={{ borderRadius: "4px" }}
                   >
                     <option value="">Select</option>
-                    <option value="main-course">Main Course</option>
-                    <option value="grilled">Grilled</option>
-                    <option value="italian">Italian</option>
-                    <option value="beverage">Beverage</option>
-                    <option value="healthy">Healthy</option>
-                    <option value="seafood">Seafood</option>
-                    <option value="fast-food">Fast Food</option>
-                    <option value="mexican">Mexican</option>
+                  <option value="Pillows">Pillows</option>
+                  <option value="Kitchen">Kitchen</option>
+                  <option value="Cleaning">Cleaning</option>
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                     <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Item Price */}
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: "#212121" }}>
-                  Item price
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={itemPrice}
-                    onChange={(e) => setItemPrice(e.target.value)}
-                    placeholder="Write Here..."
-                    className="w-full px-3 py-2 pr-8 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    style={{ borderRadius: "4px" }}
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">$</span>
                 </div>
               </div>
             </div>
@@ -163,9 +187,7 @@ export default function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
           >
             <label className="text-sm font-medium" style={{ color: "#212121" }}>Item image</label>
             
-            <div
-              className="flex flex-col"
-            >
+            <div className="flex flex-col">
               <div
                 style={{
                   width: "100%",
@@ -180,39 +202,232 @@ export default function AddItemModal({ isOpen, onClose }: AddItemModalProps) {
                   borderColor: "#0000000F",
                   background: "#FBFAFA"
                 }}
-                className="flex flex-col items-center justify-center border"
+                className="flex flex-col items-center justify-center border relative"
               >
+                {imagePreview ? (
+                  <>
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded" />
+                    <button
+                      onClick={() => {
+                        setImagePreview(null)
+                        setItemImage("")
+                      }}
+                      className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded hover:bg-red-600"
+                    >
+                      <RiCloseLine className="w-4 h-4" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <label htmlFor="image-upload" className="cursor-pointer">
                 <RiImageLine className="w-8 h-8 text-gray-400 mb-2" />
                 <div className="text-center">
                   <span className="text-sm text-gray-600">Drag and drop your image here or </span>
-                  <button className="text-sm text-blue-600 underline hover:text-blue-800">
-                    choose file
-                  </button>
+                        <span className="text-sm text-blue-600 underline">choose file</span>
                 </div>
+                    </label>
+                    <input
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          if (!file.type.startsWith('image/')) {
+                            setError("Please select a valid image file")
+                            return
+                          }
+                          if (file.size > 5 * 1024 * 1024) {
+                            setError("Image size must be less than 5MB")
+                            return
+                          }
+                          const reader = new FileReader()
+                          reader.onloadend = () => {
+                            const result = reader.result as string
+                            setImagePreview(result)
+                            setItemImage(result) // Store as base64
+                          }
+                          reader.readAsDataURL(file)
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 pt-5 pb-5 pl-6 pr-6 border-t border-gray-200">
            <button
-             onClick={onClose}
-             className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+             onClick={handleClose}
+             disabled={isLoading}
+             className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
              style={{ borderRadius: "6px", background: "#FBFAFA" }}
            >
              Annuler
            </button>
            <button
-             onClick={() => {
-               // Handle save logic here
-               console.log("Saving item:", { itemName, isPublished, category, itemPrice, itemDescription })
+            onClick={async () => {
+              // Clear previous errors
+              setError(null)
+
+              // Validate required fields
+              if (!itemName.trim()) {
+                setError("Item name is required")
+                return
+              }
+              if (!category.trim()) {
+                setError("Category is required")
+                return
+              }
+              if (!itemDescription.trim()) {
+                setError("Item description is required")
+                return
+              }
+
+              setIsLoading(true)
+
+              try {
+                const token = getAuthToken()
+                if (!token) {
+                  setError("Authentication token not found. Please log in again.")
+                  setIsLoading(false)
+                  return
+                }
+
+                // Prepare request body
+                const requestBody = {
+                  name: itemName.trim(),
+                  category: category.trim(),
+                  status: isPublished ? 'published' : 'unpublished',
+                  description: itemDescription.trim(),
+                  ...(itemImage && { image: itemImage }),
+                }
+
+                console.log('Saving item with data:', { ...requestBody, image: itemImage ? '[image data]' : 'none' })
+
+                const isEditMode = !!item
+                const url = isEditMode 
+                  ? `/api/partner/requests-management/${item._id}`
+                  : '/api/partner/requests-management'
+                const method = isEditMode ? 'PATCH' : 'POST'
+
+                console.log('Making API request with:', {
+                  url,
+                  method,
+                  isEditMode,
+                  hasToken: !!token,
+                  tokenLength: token?.length,
+                  requestBody: { ...requestBody, image: itemImage ? '[base64 data]' : 'none' }
+                })
+
+                const response = await fetch(url, {
+                  method,
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify(requestBody),
+                })
+
+                console.log('Raw response:', {
+                  status: response.status,
+                  statusText: response.statusText,
+                  ok: response.ok,
+                  headers: Object.fromEntries(response.headers.entries())
+                })
+
+                // Check if response is ok before parsing
+                let data;
+                try {
+                  const text = await response.text()
+                  console.log('Response text:', text)
+                  data = text ? JSON.parse(text) : {}
+                } catch (parseError) {
+                  console.error('Failed to parse response as JSON:', parseError)
+                  throw new Error('Invalid response from server')
+                }
+
+                console.log('Parsed response data:', data)
+
+                // Check if response is successful
+                if (!response.ok) {
+                  const errorMessage = data.error || data.message || `HTTP ${response.status}: ${response.statusText}` || 'Failed to create item'
+                  console.error('Save Item Error (HTTP):', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorMessage,
+                    fullData: data
+                  })
+                  throw new Error(errorMessage)
+                }
+
+                // Check if API returned success
+                if (!data.success) {
+                  const errorMessage = data.error || data.message || 'Failed to create item'
+                  console.error('Save Item Error (API):', {
+                    success: data.success,
+                    error: errorMessage,
+                    fullData: data
+                  })
+                  throw new Error(errorMessage)
+                }
+
+                console.log('✅ Item saved successfully:', data)
+
+                // Verify data was returned (handle case where duplicate save might not return data)
+                if (!data.data || !data.data.request) {
+                  console.warn('Save Item Warning: Response missing data.request, but success is true')
+                  // Still proceed as the item might have been saved
+                }
+
+                // Reset form only after successful save
+                setItemName("")
+                setIsPublished(true)
+                setCategory("")
+                setItemDescription("")
+                setItemImage("")
+                setImagePreview(null)
+                setError(null)
+
+                // Call success callback to refresh the list
+                if (onSuccess) {
+                  onSuccess()
+                }
+
+                // Close modal after a short delay
+                setTimeout(() => {
                onClose()
-             }}
-             className="px-4 py-2 text-white hover:opacity-90 transition-colors"
+                }, 300)
+              } catch (err: any) {
+                console.error('❌ Error creating item:', {
+                  error: err,
+                  message: err.message,
+                  stack: err.stack,
+                  name: err.name
+                })
+                const errorMessage = err.message || 'Failed to create item. Please try again.'
+                setError(errorMessage)
+                // Keep form data so user can retry
+              } finally {
+                setIsLoading(false)
+              }
+            }}
+            disabled={isLoading || !itemName.trim() || !category.trim() || !itemDescription.trim()}
+            className="px-4 py-2 text-white hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
              style={{ borderRadius: "6px", background: "#1F2A44" }}
            >
-             Save
+            {isLoading ? (item ? "Updating..." : "Saving...") : (item ? "Update" : "Save")}
            </button>
         </div>
       </div>

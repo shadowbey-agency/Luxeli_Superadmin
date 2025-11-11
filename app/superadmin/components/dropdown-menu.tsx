@@ -68,8 +68,9 @@ export default function DropdownMenu({ trigger, items }: DropdownMenuProps) {
                       setIsOpen(false)
                     }}
                     className={`w-full text-left flex items-center gap-3 px-4 py-2 text-sm hover:bg-muted transition-colors ${
-                      item.variant === "danger" ? "text-error" : "text-foreground"
+                      item.variant === "danger" ? "" : "text-foreground"
                     }`}
+                    style={item.variant === "danger" ? { color: "#FF0D0D" } : undefined}
                   >
                     {item.icon}
                     <span>{item.label}</span>

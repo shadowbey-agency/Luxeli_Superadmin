@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { FaDownload } from "react-icons/fa"
 import {
   RiMoreLine,
   RiDeleteBinLine,
@@ -8,12 +9,14 @@ import {
   RiHotelBedLine,
   RiUserLine,
   RiDownloadLine,
+  RiDashboard2Fill,
 } from "react-icons/ri"
 import PublicIcon from "@/app/partner/components/public-icon"
 import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 import StatCard from "@/app/superadmin/components/stat-card"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
 import { getAuthToken } from "@/lib/auth-utils"
+import { QRCodeCanvas } from "qrcode.react";
 
 interface Room {
   id: string
@@ -71,9 +74,25 @@ export default function RoomPage() {
   const [roomForQR, setRoomForQR] = useState<Room | null>(null)
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [roomToAssign, setRoomToAssign] = useState<Room | null>(null)
+  // Assign room form state
+  const [assignResident, setAssignResident] = useState("")
+  const [assignCheckInDate, setAssignCheckInDate] = useState("")
+  const [assignCheckInTime, setAssignCheckInTime] = useState("")
+  const [assignCheckOutDate, setAssignCheckOutDate] = useState("")
+  const [assignCheckOutTime, setAssignCheckOutTime] = useState("")
+  const [isAssigning, setIsAssigning] = useState(false)
+  const [assignError, setAssignError] = useState<string | null>(null)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [roomForHistory, setRoomForHistory] = useState<Room | null>(null)
+  const [roomHistory, setRoomHistory] = useState<RoomHistoryEntry[]>([])
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+  const [historySearchQuery, setHistorySearchQuery] = useState("")
+  const [historyCurrentPage, setHistoryCurrentPage] = useState(1)
+  const [historyItemsPerPage] = useState(20)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showUnassignModal, setShowUnassignModal] = useState(false)
+  const [roomToUnassign, setRoomToUnassign] = useState<Room | null>(null)
+  const [isUnassigning, setIsUnassigning] = useState(false)
   // Two-step add room flow
   const [showAddStepOne, setShowAddStepOne] = useState(false)
   const [newRoomName, setNewRoomName] = useState("")
@@ -130,9 +149,9 @@ export default function RoomPage() {
       capacity: "2", // Default
       status: apiRoom.roomStatus === 'full' ? 'Occupied' : 'Available',
       price: "500 MAD", // Default
-      dateAdded: apiRoom.createdAt ? formatDate(apiRoom.createdAt) : new Date().toLocaleDateString(),
+      dateAdded: apiRoom.createdAt ? (formatDate(apiRoom.createdAt) || new Date().toLocaleDateString()) : new Date().toLocaleDateString(),
       avatar: (apiRoom.roomId || apiRoom.roomName || 'R').charAt(0).toUpperCase(),
-      resident: apiRoom.resident || undefined,
+      resident: apiRoom.resident || null,
       checkIn: formatDateTime(apiRoom.checkInDate, apiRoom.checkInTime),
       checkOut: formatDateTime(apiRoom.checkOutDate, apiRoom.checkOutTime),
     }
@@ -216,29 +235,32 @@ export default function RoomPage() {
 
   const handleEditRoom = (room: Room) => {
     setSelectedRoom(room)
-    // Pre-fill fields using the same inputs as Add modal
+    // Pre-fill only room name
     setNewRoomName(room.roomNumber)
-    setNewRoomStatus(room.status === "Occupied" ? "Full" : "Empty")
     setShowEditModal(true)
   }
 
   const handleSaveEdit = async () => {
     if (!selectedRoom) return
+    if (!newRoomName.trim()) {
+      alert("Please enter a room name")
+      return
+    }
     try {
       const token = getAuthToken()
       if (!token) {
         alert('Please log in to edit room')
         return
       }
-      const response = await fetch(`/api/partner/rooms/${selectedRoom.id}`, {
+      const response = await fetch(`/api/partner/rooms/update-by-name`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
+          originalRoomName: selectedRoom.roomNumber, // Use room name instead of ID
           roomName: newRoomName.trim(),
-          roomStatus: newRoomStatus.toLowerCase(),
         })
       })
       const result = await response.json()
@@ -246,6 +268,7 @@ export default function RoomPage() {
         await fetchRooms()
         setShowEditModal(false)
         setSelectedRoom(null)
+        setNewRoomName("")
       } else {
         alert(result.error || 'Failed to update room')
       }
@@ -266,43 +289,244 @@ export default function RoomPage() {
   }
 
   const handleDownloadQR = () => {
-    // Handle QR code download logic here
-    console.log("Download QR code for room:", roomForQR?.roomNumber)
-    // You can implement actual download functionality here
-  }
+    const canvas = document.getElementById("room-qr") as HTMLCanvasElement;
+    if (!canvas || !roomForQR) return;
+    const pngUrl = canvas
+      .toDataURL("image/png")
+      .replace("image/png", "image/octet-stream");
+    const downloadLink = document.createElement("a");
+    downloadLink.href = pngUrl;
+    downloadLink.download = `${roomForQR.roomNumber || "room"}_QR.png`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  };
 
   const handleAssignRoom = (room: Room) => {
     setRoomToAssign(room)
+    // Pre-fill form with existing data if room is already assigned
+    setAssignResident(room.resident || "")
+    setAssignCheckInDate(room.checkIn ? room.checkIn.split(',')[0] : "")
+    setAssignCheckInTime(room.checkIn ? room.checkIn.split(',')[1]?.trim() || "" : "")
+    setAssignCheckOutDate(room.checkOut ? room.checkOut.split(',')[0] : "")
+    setAssignCheckOutTime(room.checkOut ? room.checkOut.split(',')[1]?.trim() || "" : "")
+    setAssignError(null)
     setShowAssignModal(true)
   }
 
   const closeAssignModal = () => {
     setShowAssignModal(false)
     setRoomToAssign(null)
+    setAssignResident("")
+    setAssignCheckInDate("")
+    setAssignCheckInTime("")
+    setAssignCheckOutDate("")
+    setAssignCheckOutTime("")
+    setAssignError(null)
   }
 
   const handleUnassignRoom = (room: Room) => {
-    // Handle room unassignment logic here
-    console.log("Unassigning room:", room.roomNumber)
-    // You can implement actual unassignment functionality here
+    if (!room.resident) {
+      alert('Room is not currently assigned')
+      return
+    }
+    setRoomToUnassign(room)
+    setShowUnassignModal(true)
   }
 
-  const handleSaveAssignment = () => {
-    // Handle room assignment save logic here
-    console.log("Saving room assignment for:", roomToAssign?.roomNumber)
-    setShowAssignModal(false)
-    setRoomToAssign(null)
+  const closeUnassignModal = () => {
+    setShowUnassignModal(false)
+    setRoomToUnassign(null)
+    setIsUnassigning(false)
   }
 
-  const handleRoomHistory = (room: Room) => {
+  const confirmUnassign = async () => {
+    if (!roomToUnassign) return
+
+    setIsUnassigning(true)
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to unassign room')
+        setIsUnassigning(false)
+        return
+      }
+
+      const response = await fetch(`/api/partner/rooms/${roomToUnassign.id}/unassign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        await fetchRooms()
+        closeUnassignModal()
+        alert('Room unassigned successfully. Previous assignment saved to history.')
+      } else {
+        alert(result.error || 'Failed to unassign room')
+        setIsUnassigning(false)
+      }
+    } catch (error) {
+      console.error('Error unassigning room:', error)
+      alert('Failed to unassign room. Please try again.')
+      setIsUnassigning(false)
+    }
+  }
+
+  const handleSaveAssignment = async () => {
+    if (!roomToAssign) return
+
+    // Validate required fields
+    if (!assignResident.trim()) {
+      setAssignError("Resident name is required")
+      return
+    }
+
+    setIsAssigning(true)
+    setAssignError(null)
+
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        setAssignError("Authentication token not found. Please log in again.")
+        setIsAssigning(false)
+        return
+      }
+
+      const response = await fetch(`/api/partner/rooms/${roomToAssign.id}/assign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          resident: assignResident.trim(),
+          checkInDate: assignCheckInDate || undefined, // HTML date input already returns ISO format (YYYY-MM-DD)
+          checkInTime: assignCheckInTime || null,
+          checkOutDate: assignCheckOutDate || null,
+          checkOutTime: assignCheckOutTime || null,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to assign room')
+      }
+
+      // Refresh rooms list
+      await fetchRooms()
+
+      // Close modal
+      closeAssignModal()
+    } catch (err: any) {
+      console.error('Error assigning room:', err)
+      setAssignError(err.message || 'Failed to assign room. Please try again.')
+    } finally {
+      setIsAssigning(false)
+    }
+  }
+
+  const handleRoomHistory = async (room: Room) => {
     setRoomForHistory(room)
     setShowHistoryModal(true)
+    await fetchRoomHistory(room.id)
   }
 
   const closeHistoryModal = () => {
     setShowHistoryModal(false)
     setRoomForHistory(null)
+    setRoomHistory([])
+    setHistorySearchQuery("")
+    setHistoryCurrentPage(1)
   }
+
+  // Fetch room history from history API
+  const fetchRoomHistory = async (roomId: string) => {
+    try {
+      setIsLoadingHistory(true)
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        setIsLoadingHistory(false)
+        return
+      }
+
+      // Fetch room history
+      const response = await fetch(`/api/partner/rooms/${roomId}/history`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.history) {
+          // Format dates for display
+          const formatDate = (date: Date | string | null) => {
+            if (!date) return "N/A"
+            const d = new Date(date)
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+            const month = months[d.getMonth()]
+            const day = d.getDate()
+            const year = d.getFullYear()
+            return `${month} ${day}, ${year}`
+          }
+
+          const formatDateTime = (date: Date | string | null, time: string | null) => {
+            if (!date) return "N/A"
+            const dateStr = formatDate(date)
+            if (time) {
+              // Format time (e.g., "10:30" -> "10:30 AM")
+              const [hours, minutes] = time.split(':')
+              const hour = parseInt(hours)
+              const ampm = hour >= 12 ? 'PM' : 'AM'
+              const displayHour = hour % 12 || 12
+              return `${dateStr}, ${displayHour}:${minutes} ${ampm}`
+            }
+            return dateStr
+          }
+
+          // Map history entries to RoomHistoryEntry format
+          const history: RoomHistoryEntry[] = result.history.map((entry: any) => ({
+            id: entry._id || entry.id || '',
+            name: entry.resident,
+            checkIn: formatDateTime(entry.checkInDate, entry.checkInTime),
+            checkOut: formatDateTime(entry.checkOutDate, entry.checkOutTime),
+          }))
+
+          setRoomHistory(history)
+        } else {
+          setRoomHistory([])
+        }
+      } else {
+        console.error('Failed to fetch room history')
+        setRoomHistory([])
+      }
+    } catch (error) {
+      console.error('Error fetching room history:', error)
+      setRoomHistory([])
+    } finally {
+      setIsLoadingHistory(false)
+    }
+  }
+
+  // Filter history based on search query
+  const filteredHistory = roomHistory.filter(entry => 
+    entry.name.toLowerCase().includes(historySearchQuery.toLowerCase()) ||
+    entry.checkIn.toLowerCase().includes(historySearchQuery.toLowerCase()) ||
+    entry.checkOut.toLowerCase().includes(historySearchQuery.toLowerCase())
+  )
+
+  // Paginate filtered history
+  const historyStartIndex = (historyCurrentPage - 1) * historyItemsPerPage
+  const historyEndIndex = historyStartIndex + historyItemsPerPage
+  const paginatedHistory = filteredHistory.slice(historyStartIndex, historyEndIndex)
+  const historyTotalPages = Math.ceil(filteredHistory.length / historyItemsPerPage)
 
   const handleAddRoom = () => {
     setNewRoomName("")
@@ -427,22 +651,22 @@ export default function RoomPage() {
   const fullRoomsCount = rooms.filter(r => r.status === 'Occupied').length
   const emptyRoomsCount = rooms.filter(r => r.status === 'Available').length
 
-  const getStatusStyle = (status: Room["status"]) => {
-    switch (status) {
-      case "Available":
-        return {
-          border: "0.5px solid rgba(80, 190, 135, 0.25)",
-          background: "#EEF9F3",
-          color: "#50BE87",
-        }
-      case "Occupied":
-        return {
-          border: "0.5px solid rgba(255, 13, 13, 0.25)",
-          background: "rgba(255, 13, 13, 0.05)",
-          color: "#FF0D0D",
-        }
-    }
-  }
+  // const getStatusStyle = (status: Room["status"]) => {
+  //   switch (status) {
+  //     case "Available":
+  //       return {
+  //         border: "0.5px solid rgba(80, 190, 135, 0.25)",
+  //         background: "#EEF9F3",
+  //         color: "#50BE87",
+  //       }
+  //     case "Occupied":
+  //       return {
+  //         border: "0.5px solid rgba(255, 13, 13, 0.25)",
+  //         background: "rgba(255, 13, 13, 0.05)",
+  //         color: "#FF0D0D",
+  //       }
+  //   }
+  // }
 
   const getNewStatusStyle = (status: Room["status"]) => {
     if (status === "Occupied") {
@@ -471,19 +695,21 @@ export default function RoomPage() {
     title, 
     onClose, 
     onSave, 
-    children 
+    children,
+    width = "50vw"
   }: { 
     isOpen: boolean
     title: string
     onClose: () => void
     onSave: () => void
     children: React.ReactNode
+    width?: string
   }) => {
     if (!isOpen) return null
 
     return (
       <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
-        <div className="bg-white rounded-xl w-[50vw] mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-xl mx-4 max-h-[90vh] overflow-y-auto" style={{ width }}>
           {/* Header */}
           <div className="flex justify-between items-center border-b p-5 rounded-t-xl bg-white">
             <div className="flex flex-col gap-2">
@@ -833,7 +1059,7 @@ export default function RoomPage() {
                      type="checkbox" 
                      className="rounded" 
                      checked={selectedRooms.size === currentRooms.length && currentRooms.length > 0}
-                     onChange={(e) => handleSelectAll(e.target.checked)}
+                     onChange={() => handleSelectAll()}
                      style={{
                        accentColor: "#1F2A44",
                        width: "16px",
@@ -1040,58 +1266,28 @@ export default function RoomPage() {
         </div>
       </div>
 
-      {/* Edit Room Modal - reuse the same modal UI as Add Room */}
+      {/* Edit Room Modal - only room name */}
       <RoomModal
         isOpen={showEditModal}
         title="Edit Room"
-        onClose={() => { setShowEditModal(false); setSelectedRoom(null) }}
+        width="480px"
+        onClose={() => { 
+          setShowEditModal(false)
+          setSelectedRoom(null)
+          setNewRoomName("")
+        }}
         onSave={handleSaveEdit}
       >
-        <div className="flex flex-col gap-2">
+        {/* Room name only */}
+        <div className="col-span-2 flex flex-col gap-2">
           <label className="text-sm font-medium text-gray-700">Room name</label>
           <input
             type="text"
             placeholder="Write Here..."
             value={newRoomName}
             onChange={(e) => setNewRoomName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Status</label>
-          <select 
-            value={newRoomStatus}
-            onChange={(e) => setNewRoomStatus(e.target.value as "Full" | "Empty")}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="Full">Full</option>
-            <option value="Empty">Empty</option>
-          </select>
-        </div>
-        <div className="col-span-2 flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">The resident</label>
-          <input
-            type="text"
-            placeholder="Write Here..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            defaultValue={selectedRoom?.resident || ""}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Check in</label>
-          <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Check in</label>
-          <input type="time" defaultValue="00:00" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Check out</label>
-          <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Check out</label>
-          <input type="time" defaultValue="00:00" className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>
       </RoomModal>
 
@@ -1188,148 +1384,136 @@ export default function RoomPage() {
                  </button>
                </div>
              </div>
-           </div>
-         </div>
-       )}
+          </div>
+        </div>
+      )}
+
+      {/* Unassign Room Modal */}
+      {showUnassignModal && roomToUnassign && (
+        <div className="fixed inset-0 bg-black/40 bg-opacity-80 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+          <div 
+            className="bg-white rounded-lg w-full max-w-md mx-4"
+            style={{
+              border: "1px solid #56C6FF",
+              borderRadius: "10px"
+            }}
+          >
+            {/* Header */}
+            <div 
+              className="flex justify-between items-center px-6 py-4"
+              style={{
+                borderBottom: "1px dashed rgba(0, 0, 0, 0.1)"
+              }}
+            >
+              <h2 
+                className="text-black font-bold text-xl"
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 700
+                }}
+              >
+                Unassign room
+              </h2>
+              <button
+                onClick={closeUnassignModal}
+                className="text-gray-500 hover:text-gray-700 transition-colors p-1"
+                disabled={isUnassigning}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 py-6">
+              <p 
+                className="text-gray-700 text-base leading-relaxed"
+                style={{
+                  color: "#212121",
+                  fontSize: "16px",
+                  fontWeight: 400,
+                  lineHeight: "24px"
+                }}
+              >
+                You're about to unassign Room <span className="font-semibold">{roomToUnassign.roomNumber}</span> from <span className="font-semibold">{roomToUnassign.resident}</span>. The room will return to Vacant and remain available for other guests.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div 
+              className="flex justify-end items-center gap-3 px-6 py-4"
+              style={{
+                borderTop: "1px solid rgba(0, 0, 0, 0.04)"
+              }}
+            >
+              <button
+                onClick={closeUnassignModal}
+                disabled={isUnassigning}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  background: "#FBFAFA",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: 500
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmUnassign}
+                disabled={isUnassigning}
+                className="px-4 py-2 text-white rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  background: "#1F2A44",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: 500
+                }}
+              >
+                {isUnassigning ? "Unassigning..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Room QR Code Modal */}
       {showQRModal && roomForQR && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
-        >
+        <div className="fixed inset-0 bg-black/40 bg-opacity-80 flex items-center justify-center z-50 " style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+          <div className="bg-white rounded-lg  flex flex-col rounded-xl w-[500px] min-w-md items-center h-[350px]">
+
           <div
-            className="bg-white flex flex-col items-center"
-            style={{
-              width: "500px",
-              height: "451.0395202636719px",
-              top: "286px",
-              left: "470px",
-              borderRadius: "10px",
-              paddingTop: "30px",
-              paddingBottom: "30px",
-              gap: "30px",
-              opacity: 1,
-            }}
-          >
-            {/* Heading Section */}
-            <div
-              className="flex items-center justify-center"
-              style={{
-                width: "500px",
-                height: "32px",
-                paddingRight: "20px",
-                paddingLeft: "20px",
-                gap: "10px",
-                opacity: 1,
-              }}
-            >
-              <h2 className="text-lg font-semibold text-black">Room QR code</h2>
-            </div>
+        className="flex items-center justify-center "
+        style={{
+          width: "300px",
+          height: "300px",
+          opacity: 1,
+        }}
+      >
+        {/* Real QR Code */}
+        <QRCodeCanvas
+          id="room-qr"
+          value={JSON.stringify({
+            roomNumber: roomForQR?.roomNumber,
+            resident: roomForQR?.resident,
+            checkIn: roomForQR?.checkIn,
+            checkOut: roomForQR?.checkOut,
+          })}
+          size={190}
+          bgColor="#ffffff"
+          fgColor="#000000"
+          level="H"
+          includeMargin={true}
+        />
+         </div>
+         <div className="w-full">
 
-            {/* QR Code Section */}
-            <div
-              className="flex items-center justify-center"
-              style={{
-                width: "231.99978637695312px",
-                height: "231.99951171875px",
-                opacity: 1,
-              }}
-            >
-              {/* QR Code Pattern */}
-              <div
-                className="bg-black"
-                style={{
-                  width: "189.7466583251953px",
-                  height: "189.7452850341797px",
-                  marginTop: "20.82px",
-                  marginLeft: "21.14px",
-                  opacity: 1,
-                  // Simple QR code pattern representation
-                  backgroundImage: `
-                    linear-gradient(90deg, transparent 0%, transparent 10%, black 10%, black 20%, transparent 20%, transparent 30%, black 30%, black 40%, transparent 40%, transparent 50%, black 50%, black 60%, transparent 60%, transparent 70%, black 70%, black 80%, transparent 80%, transparent 90%, black 90%, black 100%),
-                    linear-gradient(0deg, transparent 0%, transparent 10%, black 10%, black 20%, transparent 20%, transparent 30%, black 30%, black 40%, transparent 40%, transparent 50%, black 50%, black 60%, transparent 60%, transparent 70%, black 70%, black 80%, transparent 80%, transparent 90%, black 90%, black 100%)
-                  `,
-                  backgroundSize: "20px 20px",
-                }}
-              />
-            </div>
-
-            {/* Border */}
-            <div
-              style={{
-                width: "500px",
-                height: "0px",
-                borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
-                opacity: 1,
-              }}
-            />
-
-            {/* Buttons Row */}
-            <div
-              className="flex items-center justify-end gap-3"
-              style={{
-                width: "500px",
-                height: "37.040000915527344px",
-                paddingRight: "20px",
-                paddingLeft: "20px",
-                gap: "10px",
-                opacity: 1,
-              }}
-            >
-              {/* Download Button */}
-              <button
-                onClick={handleDownloadQR}
-                className="flex items-center gap-4 text-white rounded"
-                style={{
-                  width: "107px",
-                  height: "37.040000915527344px",
-                  gap: "16px",
-                  background: "#1F2A44",
-                  borderRadius: "6px",
-                  padding: "8.52px 10px",
-                }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  className="w-4 h-4"
-                >
-                  <path
-                    d="M8 1V11M8 11L4 7M8 11L12 7M1 15H15"
-                    stroke="white"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span className="text-sm font-medium">Download</span>
-              </button>
-
-              {/* Cancel Button */}
-              <button
-                onClick={closeQRModal}
-                className="flex items-center justify-center border rounded"
-                style={{
-                  width: "66px",
-                  height: "37.040000915527344px",
-                  borderRadius: "6px",
-                  paddingTop: "8.52px",
-                  paddingRight: "10px",
-                  paddingBottom: "8.52px",
-                  paddingLeft: "10px",
-                  gap: "6px",
-                  background: "#FBFAFA",
-                  border: "1px solid #CED4DA",
-                  color: "#000",
-                }}
-              >
-                <span className="text-sm font-medium">Cancel</span>
-              </button>
-            </div>
+          <div className="flex gap-4 flex-end justify-end border-t p-5">
+            <button onClick={handleDownloadQR} className="h-[37px] text-4 p-2 flex items-center text-white bg-primary rounded-[4px]"> <FaDownload size={16} color="white" />download</button>
+            <button onClick={closeQRModal} className="bg-[#FBFAFA] h-[37px] text-4 p-2 rounded-[6px]">cancel</button>
+          </div>
+         </div>
           </div>
         </div>
       )}
@@ -1403,6 +1587,13 @@ export default function RoomPage() {
               </button>
             </div>
 
+            {/* Error Message */}
+            {assignError && (
+              <div className="mx-4 mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {assignError}
+              </div>
+            )}
+
             {/* Input Section */}
             <div
               className="flex flex-col border-b"
@@ -1461,8 +1652,10 @@ export default function RoomPage() {
                     </label>
                     <input
                       type="text"
-                      defaultValue={roomToAssign?.roomNumber}
-                      className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                      value={roomToAssign?.roomNumber || ""}
+                      readOnly
+                      disabled
+                      className="w-full border rounded bg-gray-50 cursor-not-allowed"
                       style={{
                         width: "326px",
                         height: "35.040000915527344px",
@@ -1501,6 +1694,8 @@ export default function RoomPage() {
                     </label>
                     <input
                       type="text"
+                      value={assignResident}
+                      onChange={(e) => setAssignResident(e.target.value)}
                       placeholder="Write Here..."
                       className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
                       style={{
@@ -1552,8 +1747,9 @@ export default function RoomPage() {
                       Check in
                     </label>
                     <input
-                      type="text"
-                      placeholder="mm/dd/yyyy"
+                      type="date"
+                      value={assignCheckInDate}
+                      onChange={(e) => setAssignCheckInDate(e.target.value)}
                       className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
                       style={{
                         width: "326px",
@@ -1593,8 +1789,9 @@ export default function RoomPage() {
                       Check in
                     </label>
                     <input
-                      type="text"
-                      defaultValue="00:00 AM"
+                      type="time"
+                      value={assignCheckInTime}
+                      onChange={(e) => setAssignCheckInTime(e.target.value)}
                       className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
                       style={{
                         width: "326px",
@@ -1645,8 +1842,9 @@ export default function RoomPage() {
                       Check out
                     </label>
                     <input
-                      type="text"
-                      placeholder="mm/dd/yyyy"
+                      type="date"
+                      value={assignCheckOutDate}
+                      onChange={(e) => setAssignCheckOutDate(e.target.value)}
                       className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
                       style={{
                         width: "326px",
@@ -1686,8 +1884,9 @@ export default function RoomPage() {
                       Check out
                     </label>
                     <input
-                      type="text"
-                      defaultValue="00:00 AM"
+                      type="time"
+                      value={assignCheckOutTime}
+                      onChange={(e) => setAssignCheckOutTime(e.target.value)}
                       className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
                       style={{
                         width: "326px",
@@ -1760,7 +1959,8 @@ export default function RoomPage() {
                 {/* Save Button */}
                 <button
                   onClick={handleSaveAssignment}
-                  className="flex items-center justify-center text-white rounded"
+                  disabled={isAssigning || !assignResident.trim()}
+                  className="flex items-center justify-center text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{
                     width: "72px",
                     height: "37.040000915527344px",
@@ -1774,7 +1974,7 @@ export default function RoomPage() {
                     opacity: 1,
                   }}
                 >
-                  Save
+                  {isAssigning ? "Saving..." : "Save"}
                 </button>
               </div>
             </div>
@@ -1789,7 +1989,12 @@ export default function RoomPage() {
             {/* Header */}
             <div className=" border-gray-200 flex-shrink-0">
               <div className="pt-5 pb-5 pr-6 pl-6 flex items-center justify-between border-b">
-                <h2 className="text-xl font-semibold text-black">Room History</h2>
+                <div className="flex flex-col">
+                  <h2 className="text-xl font-semibold text-black">Room History</h2>
+                  {roomForHistory && (
+                    <p className="text-sm text-gray-500 mt-1">Room: {roomForHistory.roomNumber}</p>
+                  )}
+                </div>
                 <button 
                   onClick={closeHistoryModal}
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -1811,7 +2016,7 @@ export default function RoomPage() {
                 }}
               >
                 <p className="text-sm text-gray-600">
-                  Found {mockRoomHistory.length} resident
+                  Found {filteredHistory.length} resident{filteredHistory.length !== 1 ? 's' : ''}
                 </p>
                 
                 {/* Search Bar and Icon */}
@@ -1826,6 +2031,11 @@ export default function RoomPage() {
                 >
                   <input
                     type="text"
+                    value={historySearchQuery}
+                    onChange={(e) => {
+                      setHistorySearchQuery(e.target.value)
+                      setHistoryCurrentPage(1) // Reset to first page on search
+                    }}
                     placeholder="Search..."
                     className="border rounded focus:outline-none focus:ring-2 focus:ring-primary"
                     style={{
@@ -1852,11 +2062,28 @@ export default function RoomPage() {
 
             {/* Room History Cards - Scrollable */}
             <div className="flex-1 p-6 overflow-y-auto">
-              <div 
-                className="grid gap-4"
-                style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
-              >
-                {mockRoomHistory.slice(0, 20).map((history) => (
+              {isLoadingHistory ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : paginatedHistory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <div className="w-32 h-32 mb-4 opacity-50">
+                    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="40" y="60" width="120" height="80" rx="4" stroke="currentColor" strokeWidth="2" fill="none" />
+                      <path d="M60 100L100 130L140 100" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                  <p className="text-muted-foreground">
+                    {historySearchQuery ? 'No residents found matching your search' : 'No room assignment history available'}
+                  </p>
+                </div>
+              ) : (
+                <div 
+                  className="grid gap-4"
+                  style={{ gridTemplateColumns: "repeat(2, 1fr)" }}
+                >
+                  {paginatedHistory.map((history) => (
                   <div
                     key={history.id}
                     className="bg-white rounded-lg border flex flex-col"
@@ -1923,20 +2150,48 @@ export default function RoomPage() {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Fixed Pagination at Bottom */}
-            <div className="p-6 border-t border-gray-200 flex-shrink-0">
-              <div className="flex items-center justify-end gap-2">
-                <button className="w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">‹</button>
-                <button className="w-8 h-8 rounded-full text-sm font-medium bg-primary text-white">1</button>
-                <button className="w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">2</button>
-                <button className="w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">3</button>
-                <button className="w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100">›</button>
+            {filteredHistory.length > 0 && historyTotalPages > 1 && (
+              <div className="p-6 border-t border-gray-200 flex-shrink-0">
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => setHistoryCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={historyCurrentPage === 1}
+                    className="w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ‹
+                  </button>
+                  {Array.from({ length: Math.min(3, historyTotalPages) }, (_, i) => {
+                    const page = i + 1
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setHistoryCurrentPage(page)}
+                        className={`w-8 h-8 rounded-full text-sm font-medium ${
+                          historyCurrentPage === page
+                            ? 'bg-primary text-white'
+                            : 'text-gray-500 hover:bg-gray-100'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  })}
+                  <button
+                    onClick={() => setHistoryCurrentPage(p => Math.min(historyTotalPages, p + 1))}
+                    disabled={historyCurrentPage === historyTotalPages}
+                    className="w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ›
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
            </div>
          </div>
        )}
@@ -1971,7 +2226,7 @@ export default function RoomPage() {
                      placeholder="Write Here..."
                      value={newRoomName}
                      onChange={(e) => setNewRoomName(e.target.value)}
-                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                    />
                  </div>
                  
@@ -1981,7 +2236,7 @@ export default function RoomPage() {
                    <select 
                      value={newRoomStatus}
                      onChange={(e) => setNewRoomStatus(e.target.value as "Full" | "Empty")}
-                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                    >
                      <option value="Empty">Empty</option>
                      <option value="Full">Full</option>
@@ -2046,7 +2301,7 @@ export default function RoomPage() {
              placeholder="Write Here..."
              value={newRoomName}
              onChange={(e) => setNewRoomName(e.target.value)}
-             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
            />
          </div>
          <div className="flex flex-col gap-2">
@@ -2054,7 +2309,7 @@ export default function RoomPage() {
            <select 
              value={newRoomStatus}
              onChange={(e) => setNewRoomStatus(e.target.value as "Full" | "Empty")}
-             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
            >
              <option value="Full">Full</option>
              <option value="Empty">Empty</option>
@@ -2069,7 +2324,7 @@ export default function RoomPage() {
              placeholder="Write Here..."
              value={newResident}
              onChange={(e) => setNewResident(e.target.value)}
-             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
            />
          </div>
 
@@ -2080,7 +2335,7 @@ export default function RoomPage() {
              type="date"
              value={newCheckInDate}
              onChange={(e) => setNewCheckInDate(e.target.value)}
-             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
            />
          </div>
          <div className="flex flex-col gap-2">
@@ -2089,7 +2344,7 @@ export default function RoomPage() {
              type="time"
              value={newCheckInTime}
              onChange={(e) => setNewCheckInTime(e.target.value)}
-             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
            />
          </div>
 
@@ -2100,7 +2355,7 @@ export default function RoomPage() {
              type="date"
              value={newCheckOutDate}
              onChange={(e) => setNewCheckOutDate(e.target.value)}
-             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
            />
          </div>
          <div className="flex flex-col gap-2">
@@ -2109,7 +2364,7 @@ export default function RoomPage() {
              type="time"
              value={newCheckOutTime}
              onChange={(e) => setNewCheckOutTime(e.target.value)}
-             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
            />
          </div>
        </RoomModal>

@@ -40,7 +40,7 @@ const RoomSchema = new Schema<IRoom>(
     checkInDate: {
       type: Date,
       default: null,
-    },
+    },     
     checkInTime: {
       type: String,
       default: null,

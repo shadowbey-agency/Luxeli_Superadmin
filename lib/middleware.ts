@@ -7,9 +7,18 @@ export interface AuthenticatedRequest extends NextRequest {
 
 /**
  * Middleware to protect API routes
+ * Supports both handlers with and without params
  */
-export function withAuth(handler: (req: AuthenticatedRequest) => Promise<NextResponse>) {
-  return async (req: NextRequest): Promise<NextResponse> => {
+export function withAuth(
+  handler: (
+    req: AuthenticatedRequest, 
+    context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }
+  ) => Promise<NextResponse>
+) {
+  return async (
+    req: NextRequest, 
+    context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }
+  ): Promise<NextResponse> => {
     try {
       const authHeader = req.headers.get('authorization');
       const token = authHeader?.replace('Bearer ', '');
@@ -33,8 +42,10 @@ export function withAuth(handler: (req: AuthenticatedRequest) => Promise<NextRes
       const authenticatedReq = req as AuthenticatedRequest;
       authenticatedReq.user = payload;
 
-      return handler(authenticatedReq);
+      // Pass through params if provided
+      return handler(authenticatedReq, context);
     } catch (error) {
+      console.error('Auth middleware error:', error);
       return NextResponse.json(
         { error: 'Authentication failed' },
         { status: 401 }

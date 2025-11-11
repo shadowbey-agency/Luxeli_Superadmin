@@ -1,14 +1,33 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { RiCloseLine, RiImageLine, RiCalendarLine } from "react-icons/ri"
+import { getAuthToken } from "@/lib/auth-utils"
+
+interface BookingSetting {
+  _id: string
+  serviceName: string
+  category: string
+  serviceDescription: string
+  serviceLocation: string
+  servicePrice: number
+  startDate: string
+  endDate: string
+  status: "published" | "unpublished"
+  bookDate: boolean
+  serviceImage?: string
+  createdAt?: string
+  updatedAt?: string
+}
 
 interface AddServiceModalProps {
   isOpen: boolean
   onClose: () => void
+  onSuccess?: () => void
+  service?: BookingSetting | null // Service to edit (null for new service)
 }
 
-export default function AddServiceModal({ isOpen, onClose }: AddServiceModalProps) {
+export default function AddServiceModal({ isOpen, onClose, onSuccess, service }: AddServiceModalProps) {
   const [serviceName, setServiceName] = useState("")
   const [category, setCategory] = useState("")
   const [description, setDescription] = useState("")
@@ -18,6 +37,42 @@ export default function AddServiceModal({ isOpen, onClose }: AddServiceModalProp
   const [endDate, setEndDate] = useState("")
   const [isPublished, setIsPublished] = useState(true)
   const [clientCanChooseDate, setClientCanChooseDate] = useState(true)
+  const [serviceImage, setServiceImage] = useState<string>("")
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Pre-fill form when editing a service
+  useEffect(() => {
+    if (service && isOpen) {
+      setServiceName(service.serviceName || "")
+      setCategory(service.category || "")
+      setDescription(service.serviceDescription || "")
+      setLocation(service.serviceLocation || "")
+      setPrice(service.servicePrice?.toString() || "")
+      setStartDate(service.startDate ? new Date(service.startDate).toISOString().split('T')[0] : "")
+      setEndDate(service.endDate ? new Date(service.endDate).toISOString().split('T')[0] : "")
+      setIsPublished(service.status === "published")
+      setClientCanChooseDate(service.bookDate || false)
+      setServiceImage(service.serviceImage || "")
+      setImagePreview(service.serviceImage || null)
+      setError(null)
+    } else if (!service && isOpen) {
+      // Reset form for new service
+      setServiceName("")
+      setCategory("")
+      setDescription("")
+      setLocation("")
+      setPrice("")
+      setStartDate("")
+      setEndDate("")
+      setIsPublished(true)
+      setClientCanChooseDate(true)
+      setServiceImage("")
+      setImagePreview(null)
+      setError(null)
+    }
+  }, [service, isOpen])
 
   if (!isOpen) return null
 
@@ -32,7 +87,7 @@ export default function AddServiceModal({ isOpen, onClose }: AddServiceModalProp
         <div className="bg-white shadow-xl max-w-4xl w-full mx-4" style={{ borderRadius: "10px" }}>
         {/* Header */}
         <div className="flex items-center justify-between pl-6 pr-6 pt-5 pb-5 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Add a new service</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{service ? "Edit service" : "Add a new service"}</h2>
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors"
@@ -237,6 +292,13 @@ export default function AddServiceModal({ isOpen, onClose }: AddServiceModalProp
             </div>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
           {/* Service Image Upload */}
           <div
             style={{
@@ -269,15 +331,58 @@ export default function AddServiceModal({ isOpen, onClose }: AddServiceModalProp
                   borderColor: "#0000000F",
                   background: "#FBFAFA"
                 }}
-                className="flex flex-col items-center justify-center border"
+                className="flex flex-col items-center justify-center border relative"
               >
-                <RiImageLine className="w-8 h-8 text-gray-400 mb-2" />
-                <div className="text-center">
-                  <span className="text-sm text-gray-600">Drag and drop your image here or </span>
-                  <button className="text-sm text-blue-600 underline hover:text-blue-800">
-                    choose file
-                  </button>
-                </div>
+                {imagePreview ? (
+                  <>
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded" />
+                    <button
+                      onClick={() => {
+                        setImagePreview(null)
+                        setServiceImage("")
+                      }}
+                      className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded hover:bg-red-600"
+                    >
+                      <RiCloseLine className="w-4 h-4" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <label htmlFor="service-image-upload" className="cursor-pointer">
+                      <RiImageLine className="w-8 h-8 text-gray-400 mb-2" />
+                      <div className="text-center">
+                        <span className="text-sm text-gray-600">Drag and drop your image here or </span>
+                        <span className="text-sm text-blue-600 underline">choose file</span>
+                      </div>
+                    </label>
+                    <input
+                      id="service-image-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          if (!file.type.startsWith('image/')) {
+                            setError("Please select a valid image file")
+                            return
+                          }
+                          if (file.size > 5 * 1024 * 1024) {
+                            setError("Image size must be less than 5MB")
+                            return
+                          }
+                          const reader = new FileReader()
+                          reader.onloadend = () => {
+                            const result = reader.result as string
+                            setImagePreview(result)
+                            setServiceImage(result) // Store as base64
+                          }
+                          reader.readAsDataURL(file)
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -293,25 +398,120 @@ export default function AddServiceModal({ isOpen, onClose }: AddServiceModalProp
             Annuler
           </button>
           <button
-            onClick={() => {
-              // Handle save logic here
-              console.log({
-                serviceName,
-                category,
-                description,
-                location,
-                price,
-                startDate,
-                endDate,
-                isPublished,
-                clientCanChooseDate
-              })
-              onClose()
+            onClick={async () => {
+              // Clear previous errors
+              setError(null)
+
+              // Validate required fields
+              if (!serviceName.trim()) {
+                setError("Service name is required")
+                return
+              }
+              if (!category.trim()) {
+                setError("Category is required")
+                return
+              }
+              if (!description.trim()) {
+                setError("Service description is required")
+                return
+              }
+              if (!location.trim()) {
+                setError("Service location is required")
+                return
+              }
+              if (!price.trim() || isNaN(parseFloat(price)) || parseFloat(price) < 0) {
+                setError("Service price is required and must be a valid number >= 0")
+                return
+              }
+              if (!startDate) {
+                setError("Start date is required")
+                return
+              }
+              if (!endDate) {
+                setError("End date is required")
+                return
+              }
+
+              setIsLoading(true)
+
+              try {
+                const token = getAuthToken()
+                if (!token) {
+                  setError("Authentication token not found. Please log in again.")
+                  setIsLoading(false)
+                  return
+                }
+
+                // Prepare request body
+                const requestBody = {
+                  serviceName: serviceName.trim(),
+                  category: category.trim(),
+                  serviceDescription: description.trim(),
+                  serviceLocation: location.trim(),
+                  servicePrice: parseFloat(price),
+                  startDate: startDate,
+                  endDate: endDate,
+                  status: isPublished ? 'published' : 'unpublished',
+                  bookDate: clientCanChooseDate,
+                  ...(serviceImage && { serviceImage }),
+                }
+
+                const isEditMode = !!service
+                const url = isEditMode 
+                  ? `/api/partner/booking-settings/${service._id}`
+                  : '/api/partner/booking-settings'
+                const method = isEditMode ? 'PATCH' : 'POST'
+
+                const response = await fetch(url, {
+                  method,
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify(requestBody),
+                })
+
+                const data = await response.json()
+
+                if (!response.ok || !data.success) {
+                  throw new Error(data.error || 'Failed to save service')
+                }
+
+                // Reset form only after successful save
+                setServiceName("")
+                setCategory("")
+                setDescription("")
+                setLocation("")
+                setPrice("")
+                setStartDate("")
+                setEndDate("")
+                setIsPublished(true)
+                setClientCanChooseDate(true)
+                setServiceImage("")
+                setImagePreview(null)
+                setError(null)
+
+                // Call success callback to refresh the list
+                if (onSuccess) {
+                  onSuccess()
+                }
+
+                // Close modal after a short delay
+                setTimeout(() => {
+                  onClose()
+                }, 300)
+              } catch (err: any) {
+                console.error('Error saving service:', err)
+                setError(err.message || 'Failed to save service. Please try again.')
+              } finally {
+                setIsLoading(false)
+              }
             }}
-            className="px-4 py-2 text-white hover:opacity-90 transition-colors"
+            disabled={isLoading || !serviceName.trim() || !category.trim() || !description.trim() || !location.trim() || !price.trim() || !startDate || !endDate}
+            className="px-4 py-2 text-white hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ borderRadius: "6px", background: "#1F2A44" }}
           >
-            Save
+            {isLoading ? (service ? "Updating..." : "Saving...") : (service ? "Update" : "Save")}
           </button>
         </div>
       </div>

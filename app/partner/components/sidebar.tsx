@@ -18,17 +18,14 @@ import PublicIcon from "./public-icon"
 import { useState, useEffect } from "react"
 import React from "react"
 import DashboardSidebarIcon from "./dashboard-sidebar-icon"
-import RoomSidebarIcon from "./room-sidebar-icon"
-import SupportSidebarIcon from "./support-sidebar-icon"
 import TeamSidebarIcon from "./team-sidebar-icon"
-import SubscriptionSidebarIcon from "./subscription-sidebar-icon"
 
 const menuItems = [
   { icon: DashboardSidebarIcon, label: "Dashboard", href: "/partner/pages/dashboard" },
-  { icon: RoomSidebarIcon, label: "Rooms", href: "/partner/pages/room" },
-  { icon: SupportSidebarIcon, label: "Support", href: "/partner/pages/support" },
+  { icon: PublicIcon, label: "Rooms", href: "/partner/pages/room", isPublicIcon: true, iconProps: { src: "/assets/icons/bed-bunk.svg", alt: "Rooms", width: 20, height: 20 } },
+  { icon: PublicIcon, label: "Support", href: "/partner/pages/support", isPublicIcon: true, iconProps: { src: "/assets/icons/status error.svg", alt: "Support", width: 20, height: 20 } },
   { icon: TeamSidebarIcon, label: "Team", href: "/partner/pages/team" },
-  { icon: SubscriptionSidebarIcon, label: "Subscription", href: "/partner/pages/subscription" },
+  { icon: PublicIcon, label: "Subscription", href: "/partner/pages/subscription", isPublicIcon: true, iconProps: { src: "/assets/icons/dollar-circle.svg", alt: "Subscription", width: 20, height: 20 } },
   { icon: PublicIcon, label: "Settings", href: "/partner/pages/settings", isPublicIcon: true, iconProps: { src: "/assets/icons/settings.svg", alt: "Settings", width: 20, height: 20 } },
 ]
 
@@ -304,19 +301,19 @@ export default function Sidebar() {
                           style={{ borderRadius: "8px" }}
                         >
                           {subItem.isPublicIcon ? (
-                            <div style={{ width: "22px", height: "22px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                            <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
                               <SubIcon 
                                 {...subItem.iconProps}
                                 className="flex-shrink-0"
                                 style={{ 
-                                  width: "22px", 
-                                  height: "22px",
+                                  width: "20px", 
+                                  height: "20px",
                                   filter: isSubActive ? "brightness(0) invert(1)" : "brightness(0) saturate(100%) invert(45%) sepia(7%) saturate(1000%) hue-rotate(184deg) brightness(94%) contrast(86%)"
                                 }}
                               />
                             </div>
                           ) : (
-                            <div style={{ width: "22px", height: "22px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                            <div style={{ width: "24px", height: "24px", display: "flex", justifyContent: "center", alignItems: "center" }}>
                               {React.createElement(SubIcon as any, { strokeColor: subStrokeColor, className: "w-6 h-6 flex-shrink-0" })}
                             </div>
                           )}

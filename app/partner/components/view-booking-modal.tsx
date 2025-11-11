@@ -6,21 +6,33 @@ import AssignStaffModal from "./assign-staff-modal"
 import ServiceCardView from "./service-card-view"
 
 interface BookingRequest {
-  id: string
-  requestId: string
-  room: string
-  guest: string
+  _id?: string
+  id?: string
+  requestId?: string
+  room?: string
+  roomName?: string
+  guest?: string
+  residentEmail?: string
   category: string
-  created: string
-  status: "new" | "accepted" | "completed" | "pending" | "canceled"
-  assignee: string
-  location: string
-  serviceName: string
-  description: string
-  price: string
-  reservation: string
+  created?: string
+  createdAt?: string
+  status: "new" | "accepted" | "completed" | "no-show" | "canceled" | "pending"
+  assignee?: string | {
+    name: string
+    staffId: string
+    profilePic?: string
+  }
+  location?: string
+  serviceName?: string
+  description?: string
+  price?: string
+  reservation?: string | {
+    date: string
+    time: string
+  }
   image?: string
   note?: string
+  notes?: string
 }
 
 interface ViewBookingModalProps {
@@ -47,6 +59,8 @@ export default function ViewBookingModal({ request, isOpen, onClose }: ViewBooki
         return { bg: "#6457D30D", border: "#6457D340", text: "#6457D3" }
       case "completed":
         return { bg: "#17B26A0D", border: "#17B26A40", text: "#17B26A" }
+      case "no-show":
+        return { bg: "#1F2A440D", border: "#1F2A4440", text: "#1F2A44" }
       case "pending":
         return { bg: "#1F2A440D", border: "#1F2A4440", text: "#1F2A44" }
       case "canceled":
@@ -98,11 +112,11 @@ export default function ViewBookingModal({ request, isOpen, onClose }: ViewBooki
               
               <div className="w-full rounded-[8px] border p-4 bg-[#FBFAFA]" style={{ borderColor: "#21212114" }}>
                 <div className="flex flex-col gap-2.5">
-                  <InfoRow label="ID" value={request.requestId || request.id} centerValue={true} />
-                  <InfoRow label="Room" value={request.room} centerValue={true} />
-                  <InfoRow label="Guest" value={request.guest} centerValue={true} />
-                  <InfoRow label="Category" value={request.category} centerValue={true} />
-                  <InfoRow label="Created" value={request.created} centerValue={true} />
+                  <InfoRow label="ID" value={request.requestId || request.id || request._id?.substring(request._id.length - 6).toUpperCase() || '-'} centerValue={true} />
+                  <InfoRow label="Room" value={request.room || request.roomName || '-'} centerValue={true} />
+                  <InfoRow label="Guest" value={request.guest || request.residentEmail || '-'} centerValue={true} />
+                  <InfoRow label="Category" value={request.category || '-'} centerValue={true} />
+                  <InfoRow label="Created" value={request.created || (request.createdAt ? new Date(request.createdAt).toLocaleString() : '-')} centerValue={true} />
                   <InfoRow 
                     label="Status" 
                     value={
@@ -119,7 +133,17 @@ export default function ViewBookingModal({ request, isOpen, onClose }: ViewBooki
                     } 
                     centerValue={true}
                   />
-                  <InfoRow label="Assignee" value={request.assignee && request.assignee.trim() !== '' ? request.assignee : '-'} centerValue={true} />
+                  <InfoRow 
+                    label="Assignee" 
+                    value={
+                      request.assignee 
+                        ? typeof request.assignee === 'string' 
+                          ? (request.assignee.trim() !== '' ? request.assignee : '-')
+                          : (request.assignee.name || '-')
+                        : '-'
+                    } 
+                    centerValue={true} 
+                  />
                 </div>
               </div>
             </div>
@@ -147,11 +171,11 @@ export default function ViewBookingModal({ request, isOpen, onClose }: ViewBooki
                 
                 {/* Service Card - Same as booking settings page but read-only */}
                 <ServiceCardView
-                  id={parseInt(request.id) || 1}
+                  id={parseInt(request.id || request._id?.substring(request._id.length - 6) || '1') || 1}
                   name={request.serviceName || "Service Name"}
                   category={request.category || "Category"}
                   location={request.location || "Location"}
-                  date={request.reservation || "Jan 15, 2025"}
+                  date={typeof request.reservation === 'string' ? request.reservation : (request.reservation ? `${request.reservation.date} ${request.reservation.time}` : "Jan 15, 2025")}
                   price={request.price || "20$"}
                   status={request.status || "new"}
                   description={request.description || "Service description goes here. Lorem ipsum dolor sit amet, consectetur adipiscing elit."}
@@ -172,7 +196,13 @@ export default function ViewBookingModal({ request, isOpen, onClose }: ViewBooki
                   }}
                 >
                   <span className="text-sm font-medium" style={{ color: "#212121" }}>Reservation</span>
-                  <span className="text-sm" style={{ color: "#525866" }}>{request.reservation || "Jan 15, 10:30 AM"}</span>
+                  <span className="text-sm" style={{ color: "#525866" }}>
+                    {typeof request.reservation === 'string' 
+                      ? request.reservation 
+                      : (request.reservation 
+                          ? `${request.reservation.date} ${request.reservation.time}` 
+                          : "Jan 15, 10:30 AM")}
+                  </span>
                 </div>
               </div>
 
@@ -201,7 +231,7 @@ export default function ViewBookingModal({ request, isOpen, onClose }: ViewBooki
                   }}
                 >
                   <p className="text-sm" style={{ color: "#000000CC" }}>
-                    {request.note || "Norem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis."}
+                    {request.note || request.notes || "Norem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis."}
                   </p>
                 </div>
               </div>

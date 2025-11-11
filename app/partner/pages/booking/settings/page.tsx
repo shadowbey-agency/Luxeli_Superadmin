@@ -1,27 +1,116 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { RiArrowDownSLine, RiCalendarLine } from "react-icons/ri"
 import PublicIcon from "../../../components/public-icon"
 import ServiceCard from "../../../components/service-card"
 import AddServiceModal from "../../../components/add-service-modal"
+import { getAuthToken } from "@/lib/auth-utils"
+
+interface BookingSetting {
+  _id: string
+  serviceName: string
+  category: string
+  serviceDescription: string
+  serviceLocation: string
+  servicePrice: number
+  startDate: string
+  endDate: string
+  status: "published" | "unpublished"
+  bookDate: boolean
+  serviceImage?: string
+  createdAt: string
+  updatedAt: string
+}
 
 export default function BookingSettingsPage() {
   const router = useRouter()
   const [isAddServiceModalOpen, setIsAddServiceModalOpen] = useState(false)
+  const [editingService, setEditingService] = useState<BookingSetting | null>(null)
+  const [services, setServices] = useState<BookingSetting[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(20)
+  const [totalServices, setTotalServices] = useState(0)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("")
 
-  const handleEditService = (id: number) => {
-    console.log("Edit service:", id)
-    // Handle edit logic here
+  // Fetch services from API
+  const fetchServices = async () => {
+    try {
+      setIsLoading(true)
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        setIsLoading(false)
+        return
+      }
+
+      const queryParams = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+      })
+      
+      if (searchQuery) queryParams.append('search', searchQuery)
+      if (statusFilter) queryParams.append('status', statusFilter)
+      if (categoryFilter) queryParams.append('category', categoryFilter)
+
+      const response = await fetch(`/api/partner/booking-settings?${queryParams}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+
+      if (data.success && data.data?.bookings) {
+        setServices(data.data.bookings)
+        if (data.data.pagination) {
+          setTotalServices(data.data.pagination.total)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleDeleteService = (id: number) => {
-    console.log("Delete service:", id)
-    // Handle delete logic here
+  useEffect(() => {
+    fetchServices()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, searchQuery, statusFilter, categoryFilter])
+
+  const handleServiceCreated = () => {
+    setCurrentPage(1)
+    setEditingService(null)
+    fetchServices()
+  }
+
+  const handleEditService = (service: BookingSetting) => {
+    setEditingService(service)
+    setIsAddServiceModalOpen(true)
+  }
+
+  const handleDeleteService = async (service: BookingSetting) => {
+    if (confirm('Are you sure you want to delete this service?')) {
+      try {
+        const token = getAuthToken()
+        if (!token) return
+        await fetch(`/api/partner/booking-settings/${service._id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        fetchServices()
+      } catch (error) {
+        console.error('Error deleting service:', error)
+      }
+    }
   }
 
   const handleAddService = () => {
+    setEditingService(null)
     setIsAddServiceModalOpen(true)
   }
 
@@ -37,98 +126,6 @@ export default function BookingSettingsPage() {
       label: "Bookings setting",
       icon: <PublicIcon src="/assets/icons/settings.svg" alt="Bookings setting" width={16} height={16} />,
       href: "/partner/pages/booking/settings"
-    }
-  ]
-
-  // Sample service data
-  const services = [
-    {
-      id: 1,
-      name: "Kayaking Adventure",
-      category: "Clubs",
-      location: "Lake Resort",
-      date: "Jan 15, 2025",
-      price: "20$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://cf.bstatic.com/xdata/images/hotel/max1024x768/587978734.jpg?k=2e9f4bc2a6a8f574e14cb70b1392ece864fa25e4042172dcf3b0ce83315a3b87&o=&hp=1"
-    },
-    {
-      id: 2,
-      name: "Relaxing Massage",
-      category: "SPA",
-      location: "SPA Center",
-      date: "Jan 15, 2025",
-      price: "50$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://img.freepik.com/free-photo/forehead-massage_23-2147638154.jpg"
-    },
-    {
-      id: 3,
-      name: "Facial Treatment",
-      category: "SPA",
-      location: "SPA Center",
-      date: "Jan 15, 2025",
-      price: "35$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://img.grouponcdn.com/iam_raw/tVdtift3qfeHqDLvAZE6/zs-5616x3744/v1/t2124x1284.webp"
-    },
-    {
-      id: 4,
-      name: "Room Service Dinner",
-      category: "Restaurant",
-      location: "Restaurant",
-      date: "Jan 15, 2025",
-      price: "25$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoV7hzmu6HKh30hkUevHJeecGWNiY254TyCA&s"
-    },
-    {
-      id: 5,
-      name: "Wine Tasting",
-      category: "Restaurant",
-      location: "Restaurant",
-      date: "Jan 15, 2025",
-      price: "30$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://images.squarespace-cdn.com/content/v1/5f24290fd0d0910ecab2b02e/b2b65c78-ad81-42a1-a304-8b696750716d/shutterstock_611011652-222.jpg"
-    },
-    {
-      id: 6,
-      name: "Hot Stone Therapy",
-      category: "SPA",
-      location: "SPA Center",
-      date: "Jan 15, 2025",
-      price: "60$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://img.freepik.com/free-photo/person-enjoying-time-nature_23-2151262753.jpg?semt=ais_hybrid&w=740&q=80"
-    },
-    {
-      id: 7,
-      name: "Breakfast in Bed",
-      category: "Restaurant",
-      location: "Restaurant",
-      date: "Jan 15, 2025",
-      price: "18$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://www.zingbus.com/blog/wp-content/uploads/2023/04/couple-family-traveling-together-min-scaled.jpg"
-    },
-    {
-      id: 8,
-      name: "Aromatherapy Session",
-      category: "SPA",
-      location: "SPA Center",
-      date: "Jan 15, 2025",
-      price: "40$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://cf.bstatic.com/xdata/images/hotel/max1024x768/587978734.jpg?k=2e9f4bc2a6a8f574e14cb70b1392ece864fa25e4042172dcf3b0ce83315a3b87&o=&hp=1"
     }
   ]
 
@@ -171,12 +168,17 @@ export default function BookingSettingsPage() {
           <div style={{ background: "#FFFFFF", padding: "16px", borderBottom: "1px solid #E7E7E7" }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">30 Services found</span>
+                <span className="text-sm text-muted-foreground">{totalServices} Service{totalServices !== 1 ? 's' : ''} found</span>
               </div>
               <div className="flex items-center gap-3">
                 {/* Search bar */}
                 <input 
                   type="text" 
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setCurrentPage(1)
+                  }}
                   placeholder="Search..." 
                   style={{
                     width: "380px",
@@ -195,6 +197,11 @@ export default function BookingSettingsPage() {
                 {/* Category dropdown */}
                 <div className="relative">
                   <select
+                    value={categoryFilter}
+                    onChange={(e) => {
+                      setCategoryFilter(e.target.value)
+                      setCurrentPage(1)
+                    }}
                     className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
                     style={{
                       padding: "7.52px 12px",
@@ -208,10 +215,11 @@ export default function BookingSettingsPage() {
                       lineHeight: "19.5px"
                     }}
                   >
-                    <option>Category</option>
-                    <option>Clubs</option>
-                    <option>SPA</option>
-                    <option>Restaurant</option>
+                    <option value="">Category</option>
+                    <option value="clubs">Clubs</option>
+                    <option value="spa">SPA</option>
+                    <option value="restaurant">Restaurant</option>
+                    <option value="activities">Activities</option>
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                     <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
@@ -221,6 +229,11 @@ export default function BookingSettingsPage() {
                 {/* Status dropdown */}
                 <div className="relative">
                   <select
+                    value={statusFilter}
+                    onChange={(e) => {
+                      setStatusFilter(e.target.value)
+                      setCurrentPage(1)
+                    }}
                     className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
                     style={{
                       padding: "7.52px 12px",
@@ -234,10 +247,9 @@ export default function BookingSettingsPage() {
                       lineHeight: "19.5px"
                     }}
                   >
-                    <option>Status</option>
-                    <option>Published</option>
-                    <option>Draft</option>
-                    <option>Archived</option>
+                    <option value="">Status</option>
+                    <option value="published">Published</option>
+                    <option value="unpublished">Unpublished</option>
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                     <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
@@ -275,32 +287,47 @@ export default function BookingSettingsPage() {
 
           {/* Cards Grid */}
           <div style={{ background: "#FFFFFF", padding: "16px" }}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {services.map((service) => (
-                <ServiceCard
-                  key={service.id}
-                  id={service.id}
-                  name={service.name}
-                  category={service.category}
-                  location={service.location}
-                  date={service.date}
-                  price={service.price}
-                  status={service.status}
-                  description={service.description}
-                  image={service.image}
-                  onEdit={handleEditService}
-                  onDelete={handleDeleteService}
-                />
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : services.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <p className="text-muted-foreground">No services found</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {services.map((service) => (
+                  <ServiceCard
+                    key={service._id}
+                    id={parseInt(service._id.slice(-6), 16)} // Convert to number for ServiceCard
+                    name={service.serviceName}
+                    category={service.category}
+                    location={service.serviceLocation}
+                    date={new Date(service.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    price={`${service.servicePrice}$`}
+                    status={service.status === "published" ? "Published" : "Unpublished"}
+                    description={service.serviceDescription}
+                    image={service.serviceImage || ""}
+                    onEdit={() => handleEditService(service)}
+                    onDelete={() => handleDeleteService(service)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Add Service Modal */}
+      {/* Add/Edit Service Modal */}
       <AddServiceModal 
         isOpen={isAddServiceModalOpen}
-        onClose={() => setIsAddServiceModalOpen(false)}
+        onClose={() => {
+          setIsAddServiceModalOpen(false)
+          setEditingService(null)
+        }}
+        onSuccess={handleServiceCreated}
+        service={editingService}
       />
     </div>
   )

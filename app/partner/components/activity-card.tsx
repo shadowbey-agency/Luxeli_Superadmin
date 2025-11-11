@@ -43,7 +43,7 @@ export default function ActivityCard({
         {/* Status Badge */}
         <div 
           className={`absolute flex items-center justify-center top-[13px] left-[11.96px] w-[79.92px] h-[22px] px-[10px] rounded text-white text-[11px] font-semibold ${
-            status === "Active" ? "bg-green-500 border border-green-500/40" : "bg-gray-500 border border-gray-500/40"
+            status === "Published" ? "bg-green-500 border border-green-500/40" : "bg-gray-500 border border-gray-500/40"
           }`}
         >
           {status}

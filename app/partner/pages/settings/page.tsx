@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { RiNotification3Line, RiEyeLine, RiEyeOffLine, RiArrowDownSLine, RiAddLine, RiDeleteBinLine, RiMoreLine } from "react-icons/ri"
 import PublicIcon from "@/app/partner/components/public-icon"
 import ToggleSwitch from "@/app/superadmin/components/toggle-switch"
 import SimpleToggleSwitch from "@/app/partner/components/simple-toggle-switch"
 import Image from "next/image"
+import { getAuthToken } from "@/lib/auth-utils"
 
 interface NotificationSetting {
   id: string
@@ -35,6 +36,30 @@ export default function SettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  // Account form state
+  const [hotelName, setHotelName] = useState("")
+  const [hotelCity, setHotelCity] = useState("")
+  const [phoneNumber, setPhoneNumber] = useState("")
+  const [hotelAddressEmail, setHotelAddressEmail] = useState("")
+  const [RC, setRC] = useState("")
+  const [ICE, setICE] = useState("")
+  const [identifiantFiscal, setIdentifiantFiscal] = useState("")
+  const [taxeProfessionnelle, setTaxeProfessionnelle] = useState("")
+  const [hotelImage, setHotelImage] = useState("")
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+
+  // Password form state
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+
+  // Loading and error states
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const [notificationSettings, setNotificationSettings] = useState<NotificationSetting[]>([
     {
@@ -180,6 +205,188 @@ export default function SettingsPage() {
   const handleDeleteBanner = (id: string) => {
     setBanners(banners.filter((banner) => banner.id !== id))
   }
+
+  // Fetch partner account data
+  const fetchPartnerAccount = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const token = getAuthToken()
+      if (!token) {
+        setError("Authentication token not found. Please log in again.")
+        setIsLoading(false)
+        return
+      }
+
+      const response = await fetch('/api/partner/account', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.partner) {
+        const partner = data.partner
+        setHotelName(partner.hotelName || "")
+        setHotelCity(partner.hotelCity || "")
+        setPhoneNumber(partner.phoneNumber || "")
+        setHotelAddressEmail(partner.hotelAddressEmail || "")
+        setRC(partner.RC || "")
+        setICE(partner.ICE || "")
+        setIdentifiantFiscal(partner.identifiantFiscal || "")
+        setTaxeProfessionnelle(partner.taxeProfessionnelle || "")
+        setHotelImage(partner.hotelImage || "")
+        setImagePreview(partner.hotelImage || null)
+      } else {
+        setError(data.error || 'Failed to fetch account data')
+      }
+    } catch (err: any) {
+      console.error('Error fetching partner account:', err)
+      setError(err.message || 'Failed to fetch account data')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Save account changes
+  const handleSaveAccount = async () => {
+    try {
+      setIsSaving(true)
+      setError(null)
+      setSuccessMessage(null)
+      const token = getAuthToken()
+      if (!token) {
+        setError("Authentication token not found. Please log in again.")
+        setIsSaving(false)
+        return
+      }
+
+      const response = await fetch('/api/partner/account', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          hotelName: hotelName.trim(),
+          hotelCity: hotelCity.trim(),
+          phoneNumber: phoneNumber.trim(),
+          hotelAddressEmail: hotelAddressEmail.trim(),
+          RC: RC.trim(),
+          ICE: ICE.trim(),
+          identifiantFiscal: identifiantFiscal.trim(),
+          taxeProfessionnelle: taxeProfessionnelle.trim(),
+          hotelImage: hotelImage || undefined,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setSuccessMessage('Account updated successfully')
+        setTimeout(() => setSuccessMessage(null), 3000)
+        // Refresh account data
+        await fetchPartnerAccount()
+      } else {
+        setError(data.error || 'Failed to update account')
+      }
+    } catch (err: any) {
+      console.error('Error updating account:', err)
+      setError(err.message || 'Failed to update account')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Change password
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setError("Please fill in all password fields")
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("New password and confirm password do not match")
+      return
+    }
+
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters long")
+      return
+    }
+
+    try {
+      setIsChangingPassword(true)
+      setError(null)
+      setSuccessMessage(null)
+      const token = getAuthToken()
+      if (!token) {
+        setError("Authentication token not found. Please log in again.")
+        setIsChangingPassword(false)
+        return
+      }
+
+      const response = await fetch('/api/partner/account/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          confirmPassword,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setSuccessMessage('Password changed successfully')
+        setCurrentPassword("")
+        setNewPassword("")
+        setConfirmPassword("")
+        setTimeout(() => setSuccessMessage(null), 3000)
+      } else {
+        setError(data.error || 'Failed to change password')
+      }
+    } catch (err: any) {
+      console.error('Error changing password:', err)
+      setError(err.message || 'Failed to change password')
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
+
+  // Handle image upload
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setError("Please select a valid image file")
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image size must be less than 5MB")
+        return
+      }
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const result = reader.result as string
+        setImagePreview(result)
+        setHotelImage(result) // Store as base64 for now
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  // Fetch account data on mount
+  useEffect(() => {
+    if (activeTab === "account") {
+      fetchPartnerAccount()
+    }
+  }, [activeTab])
 
   return (
     <div className="p-6 min-h-screen  ">
@@ -338,122 +545,170 @@ export default function SettingsPage() {
                   date.
                 </p>
               </div>
-              <button className="px-6 py-2.5 bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90 rounded-lg text-sm font-medium transition-colors">
-                Save Changes
+              <button 
+                onClick={handleSaveAccount}
+                disabled={isSaving || isLoading}
+                className="px-6 py-2.5 bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? "Saving..." : "Save Changes"}
               </button>
             </div>
 
             <div className="p-6 bg-white rounded-b-lg space-y-6">
-              <div className="flex flex-col lg:flex-row items-start gap-5">
-                {/* Personal Information Section */}
-                <div className="flex-1 flex p-4 flex-col items-start gap-3.5 rounded-xl border border-dashed border-[rgba(0,0,0,0.12)]">
-                  <div className="flex pb-3 items-center gap-3 self-stretch border-b border-[rgba(0,0,0,0.12)]">
-                    <h3 className="text-base font-semibold text-[#212121]">Hotel Information</h3>
-                  </div>
+              {/* Error/Success Messages */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                  {error}
+                </div>
+              )}
+              {successMessage && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+                  {successMessage}
+                </div>
+              )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-                    {/* Row 1 - First 4 fields */}
-                    <div>
-                      <label className="block text-sm font-medium text-[#212121] mb-2">Hotel name</label>
-                      <input
-                        type="text"
-                        defaultValue="Mazagan beach"
-                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-col lg:flex-row items-start gap-5">
+                    {/* Personal Information Section */}
+                    <div className="flex-1 flex p-4 flex-col items-start gap-3.5 rounded-xl border border-dashed border-[rgba(0,0,0,0.12)]">
+                      <div className="flex pb-3 items-center gap-3 self-stretch border-b border-[rgba(0,0,0,0.12)]">
+                        <h3 className="text-base font-semibold text-[#212121]">Hotel Information</h3>
+                      </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-[#212121] mb-2">Hotel city</label>
-                      <div className="relative">
-                        <select className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary appearance-none pr-10">
-                          <option value="agadir">Agadir</option>
-                          <option value="casablanca">Casablanca</option>
-                          <option value="marrakech">Marrakech</option>
-                          <option value="rabat">Rabat</option>
-                        </select>
-                        <RiArrowDownSLine className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+                        {/* Row 1 - First 4 fields */}
+                        <div>
+                          <label className="block text-sm font-medium text-[#212121] mb-2">Hotel name</label>
+                          <input
+                            type="text"
+                            value={hotelName}
+                            onChange={(e) => setHotelName(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-[#212121] mb-2">Hotel city</label>
+                          <div className="relative">
+                            <select 
+                              value={hotelCity}
+                              onChange={(e) => setHotelCity(e.target.value)}
+                              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary appearance-none pr-10"
+                            >
+                              <option value="">Select city</option>
+                              <option value="agadir">Agadir</option>
+                              <option value="casablanca">Casablanca</option>
+                              <option value="marrakech">Marrakech</option>
+                              <option value="rabat">Rabat</option>
+                            </select>
+                            <RiArrowDownSLine className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-[#212121] mb-2">Phone number</label>
+                          <input
+                            type="tel"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-[#212121] mb-2">Hotel address email</label>
+                          <input
+                            type="email"
+                            value={hotelAddressEmail}
+                            onChange={(e) => setHotelAddressEmail(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
+                          />
+                        </div>
+
+                        {/* Row 2 - Second 4 fields */}
+                        <div>
+                          <label className="block text-sm font-medium text-[#212121] mb-2">RC</label>
+                          <input
+                            type="text"
+                            value={RC}
+                            onChange={(e) => setRC(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-[#212121] mb-2">ICE</label>
+                          <input
+                            type="text"
+                            value={ICE}
+                            onChange={(e) => setICE(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-[#212121] mb-2">Identifiant Fiscal</label>
+                          <input
+                            type="text"
+                            value={identifiantFiscal}
+                            onChange={(e) => setIdentifiantFiscal(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-[#212121] mb-2">Taxe Professionnelle</label>
+                          <input
+                            type="text"
+                            value={taxeProfessionnelle}
+                            onChange={(e) => setTaxeProfessionnelle(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-[#212121] mb-2">Phone number</label>
-                      <input
-                        type="tel"
-                        defaultValue="+212566788700"
-                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
+                    <div className="flex max-w-[327px] h-[142px] p-[22px] items-center gap-5 rounded-[11px] border border-dashed border-[rgba(0,0,0,0.12)] bg-white">
+                      {/* Hotel Picture Circle */}
+                      <div className="flex w-[84px] h-[84px] justify-center items-center flex-shrink-0 rounded-full overflow-hidden bg-gray-200">
+                        {imagePreview ? (
+                          <Image
+                            src={imagePreview}
+                            alt="Hotel"
+                            width={84}
+                            height={84}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">
+                            No Image
+                          </div>
+                        )}
+                      </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-[#212121] mb-2">Hotel address email</label>
-                      <input
-                        type="email"
-                        defaultValue="Mazaganbeach@gmail.com"
-                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-
-                    {/* Row 2 - Second 4 fields */}
-                    <div>
-                      <label className="block text-sm font-medium text-[#212121] mb-2">RC</label>
-                      <input
-                        type="text"
-                        defaultValue="123456 - Casablanca"
-                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-[#212121] mb-2">ICE</label>
-                      <input
-                        type="text"
-                        defaultValue="65561655668978"
-                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-[#212121] mb-2">Identifiant Fiscal</label>
-                      <input
-                        type="text"
-                        defaultValue="112356489"
-                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-[#212121] mb-2">Taxe Professionnelle</label>
-                      <input
-                        type="text"
-                        defaultValue="03264863"
-                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
+                      {/* Hotel Picture Content */}
+                      <div className="flex flex-col gap-2 flex-1">
+                        <h4 className="text-sm font-semibold text-[#212121]">Hotel picture</h4>
+                        <p className="text-xs text-muted-foreground">Update your Hotel picture.</p>
+                        <label className="flex h-7 px-[11.5px] py-[1px] justify-center items-center rounded-[5px] border border-[#E5E7EB] bg-white text-sm font-medium text-[#212121] hover:bg-gray-50 transition-colors w-fit cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            className="hidden"
+                          />
+                          Change Picture
+                        </label>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="flex max-w-[327px] h-[142px] p-[22px] items-center gap-5 rounded-[11px] border border-dashed border-[rgba(0,0,0,0.12)] bg-white">
-                  {/* Hotel Picture Circle */}
-                  <div className="flex w-[84px] h-[84px] justify-center items-center flex-shrink-0 rounded-full overflow-hidden bg-gray-200">
-                    <Image
-                      src="/placeholder.svg?height=84&width=84"
-                      alt="Hotel"
-                      width={84}
-                      height={84}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  {/* Hotel Picture Content */}
-                  <div className="flex flex-col gap-2 flex-1">
-                    <h4 className="text-sm font-semibold text-[#212121]">Hotel picture</h4>
-                    <p className="text-xs text-muted-foreground">Update your Hotel picture.</p>
-                    <button className="flex h-7 px-[11.5px] py-[1px] justify-center items-center rounded-[5px] border border-[#E5E7EB] bg-white text-sm font-medium text-[#212121] hover:bg-gray-50 transition-colors w-fit">
-                      Change Picture
-                    </button>
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
 
               <div className="flex p-4 flex-col items-start gap-3.5 rounded-xl border border-dashed border-[rgba(0,0,0,0.12)]">
                 <div className="flex pb-3 items-center gap-3 self-stretch border-b border-[rgba(0,0,0,0.12)]">
@@ -466,6 +721,8 @@ export default function SettingsPage() {
                     <div className="relative">
                       <input
                         type={showCurrentPassword ? "text" : "password"}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
                         placeholder="Enter current password"
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary pr-10"
                       />
@@ -484,6 +741,8 @@ export default function SettingsPage() {
                     <div className="relative">
                       <input
                         type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="Enter new password"
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary pr-10"
                       />
@@ -502,6 +761,8 @@ export default function SettingsPage() {
                     <div className="relative">
                       <input
                         type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="Confirm new password"
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary pr-10"
                       />
@@ -515,6 +776,13 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
+                <button
+                  onClick={handleChangePassword}
+                  disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                  className="px-4 py-2 bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isChangingPassword ? "Changing..." : "Change Password"}
+                </button>
               </div>
 
               <div className="flex p-4 flex-col items-start gap-3.5 rounded-xl border border-dashed border-[rgba(0,0,0,0.12)]">

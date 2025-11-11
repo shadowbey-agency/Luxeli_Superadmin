@@ -1,38 +1,54 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { RiArrowLeftSLine, RiArrowDownSLine, RiAddLine, RiArrowRightSLine } from "react-icons/ri"
-import AddItemModal from "../../../../components/add-item-modal"
+import { getAuthToken } from "@/lib/auth-utils"
+import AddRestaurantItemModal from "../../../../components/add-restaurant-item-modal"
+
+interface RestaurantItem {
+  itemName: string
+  status: "published" | "unpublished"
+  category: string
+  itemPrice: number
+  itemDescription: string
+  itemImage?: string
+}
+
+interface Restaurant {
+  _id: string
+  restaurantName: string
+  status: "open" | "closed"
+  startWork: string
+  endWork: string
+  restaurantImage?: string
+  items: RestaurantItem[]
+  createdAt: string
+  updatedAt: string
+}
 
 // Item Card component matching booking settings page style
 const ItemCard = ({ 
-  id, 
-  name, 
-  category, 
-  price, 
-  status, 
-  description, 
-  image, 
+  item,
+  itemIndex,
+  restaurantId,
   onEdit, 
-  onDelete 
+  onDelete,
+  onRefresh
 }: {
-  id: number
-  name: string
-  category: string
-  price: string
-  status: string
-  description: string
-  image?: string
-  onEdit?: (id: number) => void
-  onDelete?: (id: number) => void
+  item: RestaurantItem
+  itemIndex: number
+  restaurantId: string
+  onEdit?: (item: RestaurantItem, itemIndex: number) => void
+  onDelete?: (itemIndex: number) => void
+  onRefresh?: () => void
 }) => {
   return (
     <div className="border rounded-[10px] overflow-hidden w-full h-full bg-white flex flex-col shadow-lg">
       {/* Image Section */}
       <div className="relative w-full h-[220px] bg-gray-200 flex items-center justify-center flex-shrink-0">
-        {image ? (
-          <img src={image} alt={name} className="w-full h-full object-cover" />
+        {item.itemImage ? (
+          <img src={item.itemImage} alt={item.itemName} className="w-full h-full object-cover" />
         ) : (
           <div className="text-center">
             <div className="text-gray-500 text-sm">Item Image</div>
@@ -43,17 +59,33 @@ const ItemCard = ({
         <div 
           className="absolute flex items-center justify-center top-[13px] left-[11.96px] w-[79.92px] h-[22px] px-[10px] rounded text-white text-[11px] font-semibold"
           style={{
-            backgroundColor: status === "Published" ? "#17B26A" : "#FF0D0D"
+            backgroundColor: item.status === "published" ? "#17B26A" : "#FF0D0D"
           }}
         >
-          {status}
+          {item.status === "published" ? "Published" : "Unpublished"}
         </div>
         
         {/* Action Icons */}
         <div className="absolute flex flex-col top-[13px] right-[11.96px] gap-[10px]">
           {/* Delete Box */}
           <button 
-            onClick={() => onDelete?.(id)}
+            onClick={async () => {
+              if (confirm('Are you sure you want to delete this item?')) {
+                try {
+                  const token = getAuthToken()
+                  if (!token) return
+                  const response = await fetch(`/api/partner/restaurants/${restaurantId}/items/${itemIndex}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                  })
+                  if (response.ok) {
+                    onRefresh?.()
+                  }
+                } catch (error) {
+                  console.error('Error deleting item:', error)
+                }
+              }
+            }}
             className="flex items-center justify-center w-[32px] h-[32px] rounded bg-white border border-gray-200 shadow-lg"
           >
             <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,7 +95,7 @@ const ItemCard = ({
           
           {/* Edit Box */}
           <button 
-            onClick={() => onEdit?.(id)}
+            onClick={() => onEdit?.(item, itemIndex)}
             className="flex items-center justify-center w-[32px] h-[32px] rounded bg-white shadow-lg"
           >
             <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,19 +110,19 @@ const ItemCard = ({
          {/* Name and Category */}
          <div className="flex justify-between items-center">
            <div className="font-bold text-[17px] text-[#212121]">
-             {name}
+             {item.itemName}
            </div>
            <div 
              className="text-[15px]"
              style={{ color: "#21212199 !important" }}
            >
-             {category}
+             {item.category}
            </div>
          </div>
         
         {/* Description */}
         <p className="text-sm text-[#21212199] flex-1 overflow-y-auto">
-          {description}
+          {item.itemDescription}
         </p>
         
         {/* Price */}
@@ -99,7 +131,7 @@ const ItemCard = ({
             className="font-bold text-xl"
             style={{ color: "#4195BF" }}
           >
-            {price}
+            ${item.itemPrice}
           </div>
         </div>
       </div>
@@ -109,101 +141,107 @@ const ItemCard = ({
 
 export default function ViewItemsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const restaurantId = searchParams.get('id')
+  
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<{ item: RestaurantItem; index: number } | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("")
 
-  const handleEditItem = (id: number) => {
-    console.log("Edit item:", id)
-    // Handle edit logic here
+  // Fetch restaurant data
+  const fetchRestaurant = async () => {
+    if (!restaurantId) {
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        setIsLoading(false)
+        return
+      }
+
+      const response = await fetch(`/api/partner/restaurants/${restaurantId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+
+      if (data.success && data.data?.restaurant) {
+        setRestaurant(data.data.restaurant)
+      }
+    } catch (error) {
+      console.error('Error fetching restaurant:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleDeleteItem = (id: number) => {
-    console.log("Delete item:", id)
-    // Handle delete logic here
-  }
+  useEffect(() => {
+    fetchRestaurant()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurantId])
 
-  const handleAddItem = () => {
+  // Filter items based on search and filters, preserving original index
+  const filteredItems = restaurant?.items
+    ?.map((item, index) => ({ item, originalIndex: index }))
+    .filter(({ item }) => {
+      const matchesSearch = !searchQuery || 
+        item.itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.itemDescription.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesStatus = !statusFilter || item.status === statusFilter
+      const matchesCategory = !categoryFilter || item.category === categoryFilter
+      return matchesSearch && matchesStatus && matchesCategory
+    }) || []
+
+  // Get unique categories for filter dropdown
+  const categories = Array.from(new Set(restaurant?.items?.map(item => item.category) || []))
+
+  const handleEditItem = (item: RestaurantItem, itemIndex: number) => {
+    setEditingItem({ item, index: itemIndex })
     setIsAddItemModalOpen(true)
   }
 
-  const handleBack = () => {
-    router.back()
+  const handleDeleteItem = async (itemIndex: number) => {
+    if (confirm('Are you sure you want to delete this item?')) {
+      try {
+        const token = getAuthToken()
+        if (!token || !restaurantId) return
+        const response = await fetch(`/api/partner/restaurants/${restaurantId}/items/${itemIndex}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (response.ok) {
+          fetchRestaurant()
+        }
+      } catch (error) {
+        console.error('Error deleting item:', error)
+      }
+    }
   }
 
-  // Sample items data
-  const items = [
-    {
-      id: 1,
-      name: "Grilled Chicken",
-      category: "Main Course",
-      price: "20$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis...",
-      image: "https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=300&h=200&fit=crop"
-    },
-    {
-      id: 2,
-      name: "Beef Skewers",
-      category: "Grilled",
-      price: "25$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis...",
-      image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=300&h=200&fit=crop"
-    },
-    {
-      id: 3,
-      name: "Pasta Carbonara",
-      category: "Italian",
-      price: "18$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis...",
-      image: "https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=300&h=200&fit=crop"
-    },
-    {
-      id: 4,
-      name: "Fruit Smoothie",
-      category: "Beverage",
-      price: "12$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis...",
-      image: "https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=300&h=200&fit=crop"
-    },
-    {
-      id: 5,
-      name: "Fresh Salad",
-      category: "Healthy",
-      price: "15$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis...",
-      image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300&h=200&fit=crop"
-    },
-    {
-      id: 6,
-      name: "Grilled Fish",
-      category: "Seafood",
-      price: "22$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis...",
-      image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=300&h=200&fit=crop"
-    },
-    {
-      id: 7,
-      name: "Chicken Wrap",
-      category: "Fast Food",
-      price: "16$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis...",
-      image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=300&h=200&fit=crop"
-    },
-    {
-      id: 8,
-      name: "Burrito Bowl",
-      category: "Mexican",
-      price: "19$",
-      status: "Published",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis...",
-      image: "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=300&h=200&fit=crop"
-    }
-  ]
+  const handleAddItem = () => {
+    setEditingItem(null)
+    setIsAddItemModalOpen(true)
+  }
+
+  const handleItemCreated = () => {
+    fetchRestaurant()
+    setIsAddItemModalOpen(false)
+    setEditingItem(null)
+  }
+
+  const handleBack = () => {
+    router.push('/partner/pages/room-delivery/restaurants')
+  }
 
   return (
     <div className="p-6">
@@ -229,7 +267,7 @@ export default function ViewItemsPage() {
          <div className="flex items-center gap-2 text-sm text-gray-600">
            <span>Restaurants</span>
            <RiArrowRightSLine className="w-3 h-4 text-gray-400" />
-           <span className="text-gray-900 font-medium">View items</span>
+           <span className="text-gray-900 font-medium">{restaurant?.restaurantName || 'View items'}</span>
          </div>
       </div>
 
@@ -238,18 +276,20 @@ export default function ViewItemsPage() {
         {/* Header Section */}
         <div style={{ background: "#FBFAFA", padding: "16px", borderBottom: "1px solid #E7E7E7" }}>
           <h2 className="text-2xl font-bold text-foreground mb-2">Items</h2>
-          <p className="text-muted-foreground">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+          <p className="text-muted-foreground">{restaurant?.restaurantName ? `Items for ${restaurant.restaurantName}` : 'Loading restaurant items...'}</p>
         </div>
 
         {/* Controls Section */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200" style={{ background: "#FFFFFF" }}>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{items.length} Items found</span>
+            <span className="text-sm text-muted-foreground">{filteredItems.length} Item{filteredItems.length !== 1 ? 's' : ''} found</span>
           </div>
           
           <div className="flex items-center gap-4">
             <input 
               type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search..." 
               className="w-80 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/30"
               style={{
@@ -266,6 +306,8 @@ export default function ViewItemsPage() {
             
             <div className="relative">
               <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
                 className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
                 style={{
                   padding: "7.52px 12px",
@@ -279,9 +321,9 @@ export default function ViewItemsPage() {
                   lineHeight: "19.5px"
                 }}
               >
-                <option>Status</option>
-                <option>Published</option>
-                <option>Unpublished</option>
+                <option value="">Status</option>
+                <option value="published">Published</option>
+                <option value="unpublished">Unpublished</option>
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
@@ -290,6 +332,8 @@ export default function ViewItemsPage() {
 
             <div className="relative">
               <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
                 className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
                 style={{
                   padding: "7.52px 12px",
@@ -303,15 +347,10 @@ export default function ViewItemsPage() {
                   lineHeight: "19.5px"
                 }}
               >
-                <option>Category</option>
-                <option>Main Course</option>
-                <option>Grilled</option>
-                <option>Italian</option>
-                <option>Beverage</option>
-                <option>Healthy</option>
-                <option>Seafood</option>
-                <option>Fast Food</option>
-                <option>Mexican</option>
+                <option value="">Category</option>
+                {categories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
@@ -331,31 +370,50 @@ export default function ViewItemsPage() {
 
         {/* Content Area */}
         <div style={{ background: "#FFFFFF", padding: "16px" }}>
-          {/* Items Grid */}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : !restaurant ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <p className="text-muted-foreground">Restaurant not found</p>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <p className="text-muted-foreground">No items found</p>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {items.map((item) => (
+              {filteredItems.map(({ item, originalIndex }) => (
               <ItemCard
-                key={item.id}
-                id={item.id}
-                name={item.name}
-                category={item.category}
-                price={item.price}
-                status={item.status}
-                description={item.description}
-                image={item.image}
+                  key={`${item.itemName}-${originalIndex}`}
+                  item={item}
+                  itemIndex={originalIndex}
+                  restaurantId={restaurantId || ''}
                 onEdit={handleEditItem}
                 onDelete={handleDeleteItem}
+                  onRefresh={fetchRestaurant}
               />
             ))}
           </div>
+          )}
         </div>
       </div>
 
-      {/* Add Item Modal */}
-      <AddItemModal 
-        isOpen={isAddItemModalOpen}
-        onClose={() => setIsAddItemModalOpen(false)}
-      />
+      {/* Add/Edit Item Modal */}
+      {restaurantId && (
+        <AddRestaurantItemModal 
+          isOpen={isAddItemModalOpen}
+          onClose={() => {
+            setIsAddItemModalOpen(false)
+            setEditingItem(null)
+          }}
+          onSuccess={handleItemCreated}
+          restaurantId={restaurantId}
+          item={editingItem?.item || null}
+          itemIndex={editingItem?.index}
+        />
+      )}
     </div>
   )
 }

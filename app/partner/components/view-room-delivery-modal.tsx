@@ -18,11 +18,12 @@ interface RoomDeliveryRequest {
   room: string
   guest: string
   created: string
-  status: "new" | "accepted" | "completed" | "pending" | "canceled"
+  status: "new" | "accepted" | "completed" | "pending" | "canceled" | "no-show"
   assignee: string
   restaurant: string
   pickup: string
-  items: RoomDeliveryItem[]
+  items?: RoomDeliveryItem[]
+  itemsForModal?: RoomDeliveryItem[]
   note?: string
 }
 
@@ -51,6 +52,7 @@ export default function ViewRoomDeliveryModal({ request, isOpen, onClose }: View
       case "completed":
         return { bg: "#17B26A0D", border: "#17B26A40", text: "#17B26A" }
       case "pending":
+      case "no-show":
         return { bg: "#1F2A440D", border: "#1F2A4440", text: "#1F2A44" }
       case "canceled":
         return { bg: "#FF0D0D0D", border: "#FF0D0D40", text: "#FF0D0D" }
@@ -154,32 +156,28 @@ export default function ViewRoomDeliveryModal({ request, isOpen, onClose }: View
               
               <div className="w-full rounded-[8px] border p-4 bg-[#FBFAFA]" style={{ borderColor: "#21212114" }}>
                 <div className="flex gap-5 flex-wrap">
-                  {request.items && Array.isArray(request.items) ? request.items.map((item, index) => (
-                    <ItemRequestCard
-                      key={item.id || index}
-                      id={item.id}
-                      name={item.name || "Item name"}
-                      quantity={`x${item.quantity || 1}`}
-                      image={item.image}
-                    />
-                  )) : (
-                    <>
+                  {request.itemsForModal && Array.isArray(request.itemsForModal) && request.itemsForModal.length > 0 ? (
+                    request.itemsForModal.map((item: any, index: number) => (
                       <ItemRequestCard
-                        name="Grilled "
-                        quantity="x2"
-                        image="/placeholder.svg"
+                        key={item.id || index}
+                        id={item.id}
+                        name={item.name || "Item name"}
+                        quantity={item.quantity || "x1"}
+                        image={item.image}
                       />
+                    ))
+                  ) : request.items && Array.isArray(request.items) && request.items.length > 0 ? (
+                    request.items.map((item: any, index: number) => (
                       <ItemRequestCard
-                        name="Rice Bowl"
-                        quantity="x1"
-                        image="/placeholder.svg"
+                        key={item.id || index}
+                        id={item.id}
+                        name={item.name || "Item name"}
+                        quantity={`x${item.quantity || 1}`}
+                        image={item.image}
                       />
-                      <ItemRequestCard
-                        name="Stir Fry"
-                        quantity="x3"
-                        image="/placeholder.svg"
-                      />
-                    </>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">No items listed</p>
                   )}
                 </div>
               </div>

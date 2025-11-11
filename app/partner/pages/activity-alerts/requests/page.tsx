@@ -5,36 +5,299 @@ import { useRouter } from "next/navigation"
 import { RiArrowDownSLine } from "react-icons/ri"
 import PublicIcon from "@/app/partner/components/public-icon"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
+import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 import ViewActivityAlertModal from "../../../components/view-activity-alert-modal"
 import AssignStaffModal from "../../../components/assign-staff-modal"
+import { getAuthToken } from "@/lib/auth-utils"
+
+interface ActivityRequest {
+  _id: string
+  roomName: string
+  residentName: string
+  service: string
+  status: "new" | "accepted" | "completed" | "no-show" | "canceled"
+  notes?: string
+  assignee?: {
+    name: string
+    staffId: string
+    profilePic?: string
+  }
+  createdAt: string
+  updatedAt: string
+}
 
 export default function ActivityAlertsRequestsPage() {
   const router = useRouter()
-  const [showDropdown, setShowDropdown] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const totalPages = 3
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
   const [showViewRequest, setShowViewRequest] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState<any>(null)
   const [showAssignStaffModal, setShowAssignStaffModal] = useState(false)
   const [requestToAssign, setRequestToAssign] = useState<any>(null)
+  const [requests, setRequests] = useState<ActivityRequest[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState("")
+  const [serviceFilter, setServiceFilter] = useState("")
+  const [showStatusChangeModal, setShowStatusChangeModal] = useState(false)
+  const [requestToChangeStatus, setRequestToChangeStatus] = useState<ActivityRequest | null>(null)
 
-  const handleAssignStaff = (staffId: string) => {
-    console.log("Assigned staff:", staffId, "to request:", requestToAssign)
-    // Handle the assignment logic here
+  // Fetch requests from API
+  const fetchRequests = async () => {
+    try {
+      setIsLoading(true)
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        setIsLoading(false)
+        return
+      }
+
+      const queryParams = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+      })
+      
+      if (searchQuery) queryParams.append('search', searchQuery)
+      if (statusFilter) queryParams.append('status', statusFilter.toLowerCase())
+      if (serviceFilter) queryParams.append('service', serviceFilter)
+
+      const response = await fetch(`/api/partner/activity-requests?${queryParams}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+
+      if (data.success && data.data?.requests) {
+        setRequests(data.data.requests)
+        if (data.data.pagination) {
+          setTotalItems(data.data.pagination.total)
+          setTotalPages(data.data.pagination.pages)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching requests:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element
-      if (!target.closest('.dropdown-container')) {
-        setShowDropdown(null)
+    fetchRequests()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, itemsPerPage, searchQuery, statusFilter, serviceFilter])
+
+  // Map API request to UI format
+  const mapApiRequestToUI = (apiRequest: ActivityRequest, index: number) => {
+    const formatDate = (date: Date | string | null) => {
+      if (!date) return "N/A"
+      const d = new Date(date)
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+      const month = months[d.getMonth()]
+      const day = d.getDate()
+      const hours = d.getHours()
+      const minutes = d.getMinutes()
+      const ampm = hours >= 12 ? 'PM' : 'AM'
+      const displayHour = hours % 12 || 12
+      return `${month} ${day}, ${displayHour}:${minutes.toString().padStart(2, '0')} ${ampm}`
+    }
+
+    const getStatusStyle = (status: string) => {
+      switch (status) {
+        case "new":
+          return { bg: "#D1924F0D", border: "#D1924F40", color: "#D1924F" }
+        case "accepted":
+          return { bg: "#8B5CF60D", border: "#8B5CF640", color: "#8B5CF6" }
+        case "completed":
+          return { bg: "#10B9810D", border: "#10B98140", color: "#10B981" }
+        case "no-show":
+          return { bg: "#6B72800D", border: "#6B728040", color: "#6B7280" }
+        case "canceled":
+          return { bg: "#EF44440D", border: "#EF444440", color: "#EF4444" }
+        default:
+          return { bg: "#D1924F0D", border: "#D1924F40", color: "#D1924F" }
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+    const statusStyle = getStatusStyle(apiRequest.status)
+    const requestId = `#${apiRequest._id.slice(-6).toUpperCase()}`
+    const serviceTitle = apiRequest.service.length > 20 
+      ? `${apiRequest.service.substring(0, 20)}...` 
+      : apiRequest.service
+
+    return {
+      id: requestId,
+      requestId: requestId,
+      room: apiRequest.roomName,
+      guest: apiRequest.residentName,
+      title: serviceTitle,
+      created: formatDate(apiRequest.createdAt),
+      status: apiRequest.status,
+      statusBg: statusStyle.bg,
+      statusBorder: statusStyle.border,
+      statusColor: statusStyle.color,
+      assignee: apiRequest.assignee?.name || "",
+      hasAssignee: !!apiRequest.assignee,
+      serviceName: apiRequest.service,
+      note: apiRequest.notes || "",
+      _original: apiRequest // Keep original for API calls
+    }
+  }
+
+  const handleAssignStaff = async (staffId: string) => {
+    if (!requestToAssign?._original) return
+
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to assign staff')
+        return
+      }
+
+      // Fetch staff details to get name
+      try {
+        const staffResponse = await fetch(`/api/partner/staff?limit=1000`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const staffData = await staffResponse.json()
+        
+        let staffName = "Staff Member"
+        if (staffData.success && staffData.data?.staff) {
+          const staff = staffData.data.staff.find((s: any) => s._id === staffId)
+          if (staff) {
+            staffName = staff.staffName || staffName
+          }
+        }
+
+        const assignee = {
+          name: staffName,
+          staffId: staffId,
+          profilePic: undefined
+        }
+
+        const response = await fetch(`/api/partner/activity-requests/${requestToAssign._original._id}/assign`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ assignee })
+        })
+
+        const result = await response.json()
+
+        if (response.ok && result.success) {
+          await fetchRequests()
+          setShowAssignStaffModal(false)
+          setRequestToAssign(null)
+        } else {
+          alert(result.error || 'Failed to assign staff')
+        }
+      } catch (staffError) {
+        console.error('Error fetching staff:', staffError)
+        // Continue with default name if staff fetch fails
+        const assignee = {
+          name: "Staff Member",
+          staffId: staffId,
+          profilePic: undefined
+        }
+
+        const response = await fetch(`/api/partner/activity-requests/${requestToAssign._original._id}/assign`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ assignee })
+        })
+
+        const result = await response.json()
+
+        if (response.ok && result.success) {
+          await fetchRequests()
+          setShowAssignStaffModal(false)
+          setRequestToAssign(null)
+        } else {
+          alert(result.error || 'Failed to assign staff')
+        }
+      }
+    } catch (error) {
+      console.error('Error assigning staff:', error)
+      alert('Failed to assign staff. Please try again.')
+    }
+  }
+
+  const handleStatusChange = async (newStatus: "new" | "accepted" | "completed" | "no-show" | "canceled") => {
+    if (!requestToChangeStatus) return
+
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to update status')
+        return
+      }
+
+      const response = await fetch(`/api/partner/activity-requests/${requestToChangeStatus._id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        await fetchRequests()
+        setShowStatusChangeModal(false)
+        setRequestToChangeStatus(null)
+      } else {
+        alert(result.error || 'Failed to update status')
+      }
+    } catch (error) {
+      console.error('Error updating status:', error)
+      alert('Failed to update status. Please try again.')
+    }
+  }
+
+  const handleDeleteRequest = async (requestId: string) => {
+    if (!confirm('Are you sure you want to delete this request?')) {
+      return
+    }
+
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to delete request')
+        return
+      }
+
+      const response = await fetch(`/api/partner/activity-requests/${requestId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        await fetchRequests()
+      } else {
+        alert(result.error || 'Failed to delete request')
+      }
+    } catch (error) {
+      console.error('Error deleting request:', error)
+      alert('Failed to delete request. Please try again.')
+    }
+  }
+
 
   const tabs = [
     {
@@ -51,104 +314,7 @@ export default function ActivityAlertsRequestsPage() {
     }
   ]
 
-  // Sample data for activity alerts requests
-  const requests = [
-    {
-      id: "#22232",
-      requestId: "#22232",
-      room: "R1 E3 A3",
-      guest: "Lindsey Stroud",
-      title: "Torem ipsum dolo...",
-      created: "Jan 15, 10:30 AM",
-      status: "new",
-      statusBg: "#D1924F0D",
-      statusBorder: "#D1924F40",
-      statusColor: "#D1924F",
-      assignee: "",
-      hasAssignee: false,
-      requestedFor: "Today 14:00-16:00",
-      serviceName: "Activity Alert",
-      location: "Hotel Lobby",
-      price: "15$",
-      note: "Please monitor the activity in the lobby area."
-    },
-    {
-      id: "#22233",
-      requestId: "#22233",
-      room: "R2 E4 A5",
-      guest: "John Smith",
-      title: "Security alert...",
-      created: "Jan 15, 11:15 AM",
-      status: "accepted",
-      statusBg: "#8B5CF60D",
-      statusBorder: "#8B5CF640",
-      statusColor: "#8B5CF6",
-      assignee: "Full Name",
-      hasAssignee: true,
-      requestedFor: "Today 15:00-17:00",
-      serviceName: "Security Alert",
-      location: "Pool Area",
-      price: "25$",
-      note: "Security monitoring required for pool area."
-    },
-    {
-      id: "#22234",
-      requestId: "#22234",
-      room: "R3 E5 A6",
-      guest: "Sarah Johnson",
-      title: "Maintenance alert...",
-      created: "Jan 15, 12:00 PM",
-      status: "pending",
-      statusBg: "#6B72800D",
-      statusBorder: "#6B728040",
-      statusColor: "#6B7280",
-      assignee: "",
-      hasAssignee: false,
-      requestedFor: "Today 16:00-18:00",
-      serviceName: "Maintenance Alert",
-      location: "Elevator",
-      price: "30$",
-      note: "Elevator maintenance alert needs attention."
-    },
-    {
-      id: "#22235",
-      requestId: "#22235",
-      room: "R4 E6 A7",
-      guest: "Mike Wilson",
-      title: "System alert...",
-      created: "Jan 15, 01:30 PM",
-      status: "completed",
-      statusBg: "#10B9810D",
-      statusBorder: "#10B98140",
-      statusColor: "#10B981",
-      assignee: "Full Name",
-      hasAssignee: true,
-      requestedFor: "Today 17:00-19:00",
-      serviceName: "System Alert",
-      location: "Reception",
-      price: "20$",
-      note: "System monitoring alert resolved."
-    },
-    {
-      id: "#22236",
-      requestId: "#22236",
-      room: "R5 E7 A8",
-      guest: "Emma Davis",
-      title: "Emergency alert...",
-      created: "Jan 15, 02:45 PM",
-      status: "canceled",
-      statusBg: "#EF44440D",
-      statusBorder: "#EF444440",
-      statusColor: "#EF4444",
-      assignee: "Full Name",
-      hasAssignee: true,
-      requestedFor: "Today 18:00-20:00",
-      serviceName: "Emergency Alert",
-      location: "Kitchen",
-      price: "35$",
-      note: "Emergency alert was canceled."
-    }
-  ]
+  const mappedRequests = requests.map((req, index) => mapApiRequestToUI(req, index))
 
   return (
     <div className="p-6">
@@ -193,6 +359,11 @@ export default function ActivityAlertsRequestsPage() {
               {/* Display dropdown */}
               <div className="relative">
                 <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value))
+                    setCurrentPage(1)
+                  }}
                   className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
                   style={{
                     padding: "7.52px 12px",
@@ -219,6 +390,11 @@ export default function ActivityAlertsRequestsPage() {
               <input 
                 type="text" 
                 placeholder="Search..." 
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setCurrentPage(1)
+                }}
                 style={{
                   padding: "7.52px 12px",
                   borderRadius: "4px",
@@ -235,6 +411,11 @@ export default function ActivityAlertsRequestsPage() {
               {/* Status dropdown */}
               <div className="relative inline-block">
                 <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value)
+                    setCurrentPage(1)
+                  }}
                   className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
                   style={{
                     padding: "7.52px 12px",
@@ -250,21 +431,26 @@ export default function ActivityAlertsRequestsPage() {
                     minWidth: "90px"
                   }}
                 >
-                  <option>Status</option>
-                  <option>New</option>
-                  <option>Accepted</option>
-                  <option>Completed</option>
-                  <option>Pending</option>
-                  <option>Canceled</option>
+                  <option value="">Status</option>
+                  <option value="new">New</option>
+                  <option value="accepted">Accepted</option>
+                  <option value="completed">Completed</option>
+                  <option value="no-show">No Show</option>
+                  <option value="canceled">Canceled</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
                 </div>
               </div>
               
-              {/* Type dropdown */}
+              {/* Service/Type dropdown */}
               <div className="relative inline-block">
                 <select
+                  value={serviceFilter}
+                  onChange={(e) => {
+                    setServiceFilter(e.target.value)
+                    setCurrentPage(1)
+                  }}
                   className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
                   style={{
                     padding: "7.52px 12px",
@@ -280,12 +466,12 @@ export default function ActivityAlertsRequestsPage() {
                     minWidth: "120px"
                   }}
                 >
-                  <option>Type</option>
-                  <option>Activity Alert</option>
-                  <option>Security Alert</option>
-                  <option>Maintenance Alert</option>
-                  <option>System Alert</option>
-                  <option>Emergency Alert</option>
+                  <option value="">Type</option>
+                  <option value="Activity Alert">Activity Alert</option>
+                  <option value="Security Alert">Security Alert</option>
+                  <option value="Maintenance Alert">Maintenance Alert</option>
+                  <option value="System Alert">System Alert</option>
+                  <option value="Emergency Alert">Emergency Alert</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
@@ -345,6 +531,11 @@ export default function ActivityAlertsRequestsPage() {
         <div className="px-6">
           {/* Table */}
           <div className="overflow-x-auto">
+            {isLoading ? (
+              <div className="py-8 text-center text-muted-foreground">Loading...</div>
+            ) : mappedRequests.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground">No requests found</div>
+            ) : (
             <table className="w-full">
             <thead style={{
               background: "#FBFAFA",
@@ -392,105 +583,8 @@ export default function ActivityAlertsRequestsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {/* Sample data rows */}
-              {[
-                {
-                  id: "#22232",
-                  requestId: "#22232",
-                  room: "R1 E3 A3",
-                  guest: "Lindsey Stroud",
-                  title: "Torem ipsum dolo...",
-                  created: "Jan 15, 10:30 AM",
-                  status: "new",
-                  statusBg: "#D1924F0D",
-                  statusBorder: "#D1924F40",
-                  statusColor: "#D1924F",
-                  assignee: "",
-                  hasAssignee: false,
-                  requestedFor: "Today 14:00-16:00",
-                  serviceName: "Activity Alert",
-                  location: "Hotel Lobby",
-                  price: "15$",
-                  note: "Please monitor the activity in the lobby area."
-                },
-                {
-                  id: "#22233",
-                  requestId: "#22233",
-                  room: "R2 E4 A5",
-                  guest: "John Smith",
-                  title: "Security alert...",
-                  created: "Jan 15, 11:15 AM",
-                  status: "accepted",
-                  statusBg: "#8B5CF60D",
-                  statusBorder: "#8B5CF640",
-                  statusColor: "#8B5CF6",
-                  assignee: "",
-                  hasAssignee: false,
-                  requestedFor: "Today 15:00-17:00",
-                  serviceName: "Security Alert",
-                  location: "Pool Area",
-                  price: "25$",
-                  note: "Security monitoring required for pool area."
-                },
-                {
-                  id: "#22234",
-                  requestId: "#22234",
-                  room: "R3 E5 A6",
-                  guest: "Sarah Johnson",
-                  title: "Maintenance alert...",
-                  created: "Jan 15, 12:00 PM",
-                  status: "pending",
-                  statusBg: "#6B72800D",
-                  statusBorder: "#6B728040",
-                  statusColor: "#6B7280",
-                  assignee: "",
-                  hasAssignee: false,
-                  requestedFor: "Today 16:00-18:00",
-                  serviceName: "Maintenance Alert",
-                  location: "Elevator",
-                  price: "30$",
-                  note: "Elevator maintenance alert needs attention."
-                },
-                {
-                  id: "#22235",
-                  requestId: "#22235",
-                  room: "R4 E6 A7",
-                  guest: "Mike Wilson",
-                  title: "System alert...",
-                  created: "Jan 15, 01:30 PM",
-                  status: "completed",
-                  statusBg: "#10B9810D",
-                  statusBorder: "#10B98140",
-                  statusColor: "#10B981",
-                  assignee: "Full Name",
-                  hasAssignee: true,
-                  requestedFor: "Today 17:00-19:00",
-                  serviceName: "System Alert",
-                  location: "Reception",
-                  price: "20$",
-                  note: "System monitoring alert resolved."
-                },
-                {
-                  id: "#22236",
-                  requestId: "#22236",
-                  room: "R5 E7 A8",
-                  guest: "Emma Davis",
-                  title: "Emergency alert...",
-                  created: "Jan 15, 02:45 PM",
-                  status: "canceled",
-                  statusBg: "#EF44440D",
-                  statusBorder: "#EF444440",
-                  statusColor: "#EF4444",
-                  assignee: "Full Name",
-                  hasAssignee: true,
-                  requestedFor: "Today 18:00-20:00",
-                  serviceName: "Emergency Alert",
-                  location: "Kitchen",
-                  price: "35$",
-                  note: "Emergency alert was canceled."
-                }
-              ].map((row, index) => (
-                <tr key={index} className="hover:bg-muted/50 transition-colors">
+                  {mappedRequests.map((row, index) => (
+                    <tr key={row._original._id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-4">
                     <input type="checkbox" className="rounded" />
                   </td>
@@ -558,93 +652,84 @@ export default function ActivityAlertsRequestsPage() {
                     )}
                   </td>
                   <td className="px-4 py-4">
-                    <div className="relative dropdown-container">
-                      <button 
-                        className="p-1 hover:bg-gray-100 rounded"
-                        onClick={() => setShowDropdown(showDropdown === index ? null : index)}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                        </svg>
-                      </button>
-                      
-                      {/* Dropdown Menu */}
-                      {showDropdown === index && (
-                        <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
-                          <div className="py-1">
-                            <button 
-                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                              onClick={() => {
-                                setSelectedRequest(row)
-                                setShowViewRequest(true)
-                                setShowDropdown(null)
-                              }}
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                              View request
-                            </button>
-                            <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                              Edit
-                            </button>
-                            <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 16 17">
-                                <g clipPath="url(#clip0_1_12740)">
-                                  <path d="M2.66699 12.4827C2.66699 12.8364 2.80747 13.1755 3.05752 13.4256C3.30756 13.6756 3.6467 13.8161 4.00033 13.8161C4.35395 13.8161 4.69309 13.6756 4.94313 13.4256C5.19318 13.1755 5.33366 12.8364 5.33366 12.4827C5.33366 12.1291 5.19318 11.79 4.94313 11.5399C4.69309 11.2899 4.35395 11.1494 4.00033 11.1494C3.6467 11.1494 3.30756 11.2899 3.05752 11.5399C2.80747 11.79 2.66699 12.1291 2.66699 12.4827Z" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-                                  <path d="M10.667 12.4827C10.667 12.8364 10.8075 13.1755 11.0575 13.4256C11.3076 13.6756 11.6467 13.8161 12.0003 13.8161C12.3539 13.8161 12.6931 13.6756 12.9431 13.4256C13.1932 13.1755 13.3337 12.8364 13.3337 12.4827C13.3337 12.1291 13.1932 11.79 12.9431 11.5399C12.6931 11.2899 12.3539 11.1494 12.0003 11.1494C11.6467 11.1494 11.3076 11.2899 11.0575 11.5399C10.8075 11.79 10.667 12.1291 10.667 12.4827Z" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-                                  <path d="M4 8.48275V7.14941C4 6.08855 4.42143 5.07113 5.17157 4.32099C5.92172 3.57084 6.93913 3.14941 8 3.14941C9.06087 3.14941 10.0783 3.57084 10.8284 4.32099C11.5786 5.07113 12 6.08855 12 7.14941V8.48275" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-                                  <path d="M10 6.47998L12 8.47998L14 6.47998" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-                                </g>
-                                <defs>
-                                  <clipPath id="clip0_1_12740">
-                                    <rect width="16" height="16" fill="white" transform="translate(0 0.47998)"/>
-                                  </clipPath>
-                                </defs>
-                              </svg>
-                              Change status
-                            </button>
-                            <button 
-                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                              onClick={() => {
-                                setRequestToAssign(row)
-                                setShowAssignStaffModal(true)
-                                setShowDropdown(null)
-                              }}
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 16 15">
-                                <path d="M1.33301 6.81348C2.88748 5.18536 5.09516 5.1087 6.66634 6.81348M5.66307 2.48014C5.66307 3.40062 4.91582 4.14681 3.99403 4.14681C3.07224 4.14681 2.32499 3.40062 2.32499 2.48014C2.32499 1.55967 3.07224 0.813477 3.99403 0.813477C4.91582 0.813477 5.66307 1.55967 5.66307 2.48014Z" stroke="#141B34" strokeLinecap="round"/>
-                                <path d="M9.33301 14.1465C10.8875 12.5184 13.0952 12.4417 14.6663 14.1465M13.6631 9.81315C13.6631 10.7336 12.9158 11.4798 11.994 11.4798C11.0722 11.4798 10.325 10.7336 10.325 9.81315C10.325 8.89268 11.0722 8.14648 11.994 8.14648C12.9158 8.14648 13.6631 8.89268 13.6631 9.81315Z" stroke="#141B34" strokeLinecap="round"/>
-                                <path d="M2 8.81331C2 11.3933 4.08667 13.48 6.66667 13.48L6 12.1466" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
-                                <path d="M10 1.47998H14M10 3.47998H14M10 5.47998H12.3333" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
-                              Assign to staff
-                            </button>
-                            <button className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <DropdownMenu
+                      trigger={
+                        <button className="p-1 hover:bg-gray-100 rounded">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                          </svg>
+                        </button>
+                      }
+                      items={[
+                        {
+                          label: "View request",
+                          icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>,
+                          onClick: () => {
+                            setSelectedRequest(row)
+                            setShowViewRequest(true)
+                          },
+                        },
+                        {
+                          label: "Change status",
+                          icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 16 17">
+                            <g clipPath="url(#clip0_1_12740)">
+                              <path d="M2.66699 12.4827C2.66699 12.8364 2.80747 13.1755 3.05752 13.4256C3.30756 13.6756 3.6467 13.8161 4.00033 13.8161C4.35395 13.8161 4.69309 13.6756 4.94313 13.4256C5.19318 13.1755 5.33366 12.8364 5.33366 12.4827C5.33366 12.1291 5.19318 11.79 4.94313 11.5399C4.69309 11.2899 4.35395 11.1494 4.00033 11.1494C3.6467 11.1494 3.30756 11.2899 3.05752 11.5399C2.80747 11.79 2.66699 12.1291 2.66699 12.4827Z" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M10.667 12.4827C10.667 12.8364 10.8075 13.1755 11.0575 13.4256C11.3076 13.6756 11.6467 13.8161 12.0003 13.8161C12.3539 13.8161 12.6931 13.6756 12.9431 13.4256C13.1932 13.1755 13.3337 12.8364 13.3337 12.4827C13.3337 12.1291 13.1932 11.79 12.9431 11.5399C12.6931 11.2899 12.3539 11.1494 12.0003 11.1494C11.6467 11.1494 11.3076 11.2899 11.0575 11.5399C10.8075 11.79 10.667 12.1291 10.667 12.4827Z" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M4 8.48275V7.14941C4 6.08855 4.42143 5.07113 5.17157 4.32099C5.92172 3.57084 6.93913 3.14941 8 3.14941C9.06087 3.14941 10.0783 3.57084 10.8284 4.32099C11.5786 5.07113 12 6.08855 12 7.14941V8.48275" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M10 6.47998L12 8.47998L14 6.47998" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+                            </g>
+                            <defs>
+                              <clipPath id="clip0_1_12740">
+                                <rect width="16" height="16" fill="white" transform="translate(0 0.47998)"/>
+                              </clipPath>
+                            </defs>
+                          </svg>,
+                          onClick: () => {
+                            setRequestToChangeStatus(row._original)
+                            setShowStatusChangeModal(true)
+                          },
+                        },
+                        {
+                          label: "Assign to staff",
+                          icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 16 15">
+                            <path d="M1.33301 6.81348C2.88748 5.18536 5.09516 5.1087 6.66634 6.81348M5.66307 2.48014C5.66307 3.40062 4.91582 4.14681 3.99403 4.14681C3.07224 4.14681 2.32499 3.40062 2.32499 2.48014C2.32499 1.55967 3.07224 0.813477 3.99403 0.813477C4.91582 0.813477 5.66307 1.55967 5.66307 2.48014Z" stroke="#141B34" strokeLinecap="round"/>
+                            <path d="M9.33301 14.1465C10.8875 12.5184 13.0952 12.4417 14.6663 14.1465M13.6631 9.81315C13.6631 10.7336 12.9158 11.4798 11.994 11.4798C11.0722 11.4798 10.325 10.7336 10.325 9.81315C10.325 8.89268 11.0722 8.14648 11.994 8.14648C12.9158 8.14648 13.6631 8.89268 13.6631 9.81315Z" stroke="#141B34" strokeLinecap="round"/>
+                            <path d="M2 8.81331C2 11.3933 4.08667 13.48 6.66667 13.48L6 12.1466" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M10 1.47998H14M10 3.47998H14M10 5.47998H12.3333" stroke="#141B34" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>,
+                          onClick: () => {
+                            setRequestToAssign(row)
+                            setShowAssignStaffModal(true)
+                          },
+                        },
+                        {
+                          label: "Delete",
+                          icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>,
+                          onClick: () => {
+                            handleDeleteRequest(row._original._id)
+                          },
+                          variant: "danger",
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
             </table>
+            )}
           </div>
 
           {/* Pagination */}
+          {!isLoading && mappedRequests.length > 0 && (
           <div className="flex items-center justify-between py-3 border-t border-border">
             <p className="text-sm text-muted-foreground">
-              Displaying {((currentPage - 1) * 10) + 1}-{Math.min(currentPage * 10, 30)} results out of 30
+                Displaying {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalItems)} results out of {totalItems}
             </p>
 
             <div className="flex items-center gap-2">
@@ -656,8 +741,17 @@ export default function ActivityAlertsRequestsPage() {
                 <LeftArrow />
               </button>
 
-              {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-                const page = i + 1
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let page: number
+                  if (totalPages <= 5) {
+                    page = i + 1
+                  } else if (currentPage <= 3) {
+                    page = i + 1
+                  } else if (currentPage >= totalPages - 2) {
+                    page = totalPages - 4 + i
+                  } else {
+                    page = currentPage - 2 + i
+                  }
                 return (
                   <button
                     key={page}
@@ -680,6 +774,7 @@ export default function ActivityAlertsRequestsPage() {
               </button>
             </div>
           </div>
+          )}
         </div>
       </div>
 
@@ -702,6 +797,33 @@ export default function ActivityAlertsRequestsPage() {
         }}
         onAssign={handleAssignStaff}
       />
+
+      {/* Status Change Modal */}
+      {showStatusChangeModal && requestToChangeStatus && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setShowStatusChangeModal(false)} />
+          <div className="relative bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Change Status</h3>
+            <div className="space-y-2">
+              {(["new", "accepted", "completed", "no-show", "canceled"] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => handleStatusChange(status)}
+                  className="w-full text-left px-4 py-2 rounded hover:bg-gray-100 capitalize"
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowStatusChangeModal(false)}
+              className="mt-4 w-full px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

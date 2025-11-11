@@ -1,27 +1,109 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { RiArrowDownSLine, RiCalendarLine } from "react-icons/ri"
 import PublicIcon from "../../../components/public-icon"
 import ActivityCard from "../../../components/activity-card"
 import AddActivityModal from "../../../components/add-activity-modal"
+import { getAuthToken } from "@/lib/auth-utils"
+
+interface Activity {
+  _id: string
+  activityTitle: string
+  status: "published" | "unpublished"
+  activityDescription: string
+  activityImage?: string
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
 
 export default function ActivityAlertsActivitiesPage() {
   const router = useRouter()
   const [isAddActivityModalOpen, setIsAddActivityModalOpen] = useState(false)
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(20)
+  const [totalActivities, setTotalActivities] = useState(0)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState("")
 
-  const handleEditActivity = (id: number) => {
-    console.log("Edit activity:", id)
-    // Handle edit logic here
+  // Fetch activities from API
+  const fetchActivities = async () => {
+    try {
+      setIsLoading(true)
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        setIsLoading(false)
+        return
+      }
+
+      const queryParams = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+      })
+      
+      if (searchQuery) queryParams.append('search', searchQuery)
+      if (statusFilter) queryParams.append('status', statusFilter)
+
+      const response = await fetch(`/api/partner/activities?${queryParams}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+
+      if (data.success && data.data?.activities) {
+        setActivities(data.data.activities)
+        if (data.data.pagination) {
+          setTotalActivities(data.data.pagination.total)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleDeleteActivity = (id: number) => {
-    console.log("Delete activity:", id)
-    // Handle delete logic here
+  useEffect(() => {
+    fetchActivities()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, searchQuery, statusFilter])
+
+  const handleActivityCreated = () => {
+    setCurrentPage(1)
+    setEditingActivity(null)
+    fetchActivities()
+  }
+
+  const handleEditActivity = (activity: Activity) => {
+    setEditingActivity(activity)
+    setIsAddActivityModalOpen(true)
+  }
+
+  const handleDeleteActivity = async (activity: Activity) => {
+    if (confirm('Are you sure you want to delete this activity?')) {
+      try {
+        const token = getAuthToken()
+        if (!token) return
+        await fetch(`/api/partner/activities/${activity._id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        fetchActivities()
+      } catch (error) {
+        console.error('Error deleting activity:', error)
+      }
+    }
   }
 
   const handleAddActivity = () => {
+    setEditingActivity(null)
     setIsAddActivityModalOpen(true)
   }
 
@@ -37,90 +119,6 @@ export default function ActivityAlertsActivitiesPage() {
       label: "Activities",
       icon: <PublicIcon src="/assets/icons/menu-01.svg" alt="Activities" width={16} height={16} />,
       href: "/partner/pages/activity-alerts/activities"
-    }
-  ]
-
-  // Sample activity data
-  const activities = [
-    {
-      id: 1,
-      title: "Security Monitoring",
-      type: "Security Alert",
-      location: "Hotel Lobby",
-      date: "Jan 15, 2025",
-      status: "Active",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR8ipA6E17y4LoKuHtZWjuJkPWWFPAUIkc5-w&s"
-    },
-    {
-      id: 2,
-      title: "System Health Check",
-      type: "System Alert",
-      location: "Reception",
-      date: "Jan 15, 2025",
-      status: "Active",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://www.wayfairertravel.com/hs-fs/hubfs/Imported%20sitepage%20images/shutterstock_2398908619_fbl654.jpg?width=1920&height=590&name=shutterstock_2398908619_fbl654.jpg"
-    },
-    {
-      id: 3,
-      title: "Maintenance Alert",
-      type: "Maintenance Alert",
-      location: "Elevator",
-      date: "Jan 15, 2025",
-      status: "Inactive",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://www.moxeemarketing.com/wp-content/uploads/2023/08/Long-boat-and-rocks-on-railay-beach-in-Krabi-Thailand.jpg"
-    },
-    {
-      id: 4,
-      title: "Pool Area Monitoring",
-      type: "Activity Alert",
-      location: "Pool Area",
-      date: "Jan 15, 2025",
-      status: "Active",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://image.vietnamnews.vn/uploadvnnews/Article/2025/1/9/396482_Visual.jpeg"
-    },
-    {
-      id: 5,
-      title: "Emergency Response",
-      type: "Emergency Alert",
-      location: "Kitchen",
-      date: "Jan 15, 2025",
-      status: "Inactive",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://fyi50plus.com/wp-content/uploads/2024/04/grandparents-raising-grandchildren-W-jpg.webp"
-    },
-    {
-      id: 6,
-      title: "Guest Activity Tracking",
-      type: "Activity Alert",
-      location: "Restaurant",
-      date: "Jan 15, 2025",
-      status: "Active",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://i.guim.co.uk/img/static/sys-images/Guardian/Pix/pictures/2015/6/25/1435228611797/b2c7829a-1917-463d-a0ae-c62e944f1e4b-2060x1236.jpeg?width=700&quality=85&auto=format&fit=max&s=37d9b9ac8a60d6882541a8bd2cf85925"
-    },
-    {
-      id: 7,
-      title: "Network Monitoring",
-      type: "System Alert",
-      location: "IT Room",
-      date: "Jan 15, 2025",
-      status: "Active",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://www.centralasia-travel.com/upload/tiles/bike-uzbekistan.jpg"
-    },
-    {
-      id: 8,
-      title: "Temperature Alert",
-      type: "Maintenance Alert",
-      location: "HVAC System",
-      date: "Jan 15, 2025",
-      status: "Inactive",
-      description: "Rorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-      image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR8ipA6E17y4LoKuHtZWjuJkPWWFPAUIkc5-w&s"
     }
   ]
 
@@ -163,12 +161,17 @@ export default function ActivityAlertsActivitiesPage() {
           <div style={{ background: "#FFFFFF", padding: "16px", borderBottom: "1px solid #E7E7E7" }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">8 Activities found</span>
+                <span className="text-sm text-muted-foreground">{totalActivities} Activit{totalActivities !== 1 ? 'ies' : 'y'} found</span>
               </div>
               <div className="flex items-center gap-3">
                 {/* Search bar */}
                 <input 
                   type="text" 
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setCurrentPage(1)
+                  }}
                   placeholder="Search..." 
                   style={{
                     width: "380px",
@@ -184,37 +187,14 @@ export default function ActivityAlertsActivitiesPage() {
                   className="focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
                 
-                {/* Category dropdown */}
-                <div className="relative">
-                  <select
-                    className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    style={{
-                      padding: "7.52px 12px",
-                      paddingRight: "32px",
-                      borderRadius: "4px",
-                      border: "1px solid #CED4DA",
-                      background: "#FFF",
-                      color: "rgba(33, 33, 33, 0.60)",
-                      fontSize: "13px",
-                      fontWeight: "400",
-                      lineHeight: "19.5px"
-                    }}
-                  >
-                    <option>Category</option>
-                    <option>Activity Alert</option>
-                    <option>Security Alert</option>
-                    <option>Maintenance Alert</option>
-                    <option>System Alert</option>
-                    <option>Emergency Alert</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
-                  </div>
-                </div>
-                
                 {/* Status dropdown */}
                 <div className="relative">
                   <select
+                    value={statusFilter}
+                    onChange={(e) => {
+                      setStatusFilter(e.target.value)
+                      setCurrentPage(1)
+                    }}
                     className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30"
                     style={{
                       padding: "7.52px 12px",
@@ -228,10 +208,9 @@ export default function ActivityAlertsActivitiesPage() {
                       lineHeight: "19.5px"
                     }}
                   >
-                    <option>Status</option>
-                    <option>Active</option>
-                    <option>Inactive</option>
-                    <option>Pending</option>
+                    <option value="">Status</option>
+                    <option value="published">Published</option>
+                    <option value="unpublished">Unpublished</option>
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                     <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
@@ -268,31 +247,46 @@ export default function ActivityAlertsActivitiesPage() {
 
           {/* Cards Grid */}
           <div style={{ background: "#FFFFFF", padding: "16px" }}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {activities.map((activity) => (
-                <ActivityCard
-                  key={activity.id}
-                  id={activity.id}
-                  title={activity.title}
-                  type={activity.type}
-                  location={activity.location}
-                  date={activity.date}
-                  status={activity.status}
-                  description={activity.description}
-                  image={activity.image}
-                  onEdit={handleEditActivity}
-                  onDelete={handleDeleteActivity}
-                />
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <p className="text-muted-foreground">No activities found</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {activities.map((activity) => (
+                  <ActivityCard
+                    key={activity._id}
+                    id={parseInt(activity._id.slice(-6), 16)} // Convert to number for ActivityCard
+                    title={activity.activityTitle}
+                    type="Activity Alert" // Default type since model doesn't have type field
+                    location="General" // Default location since model doesn't have location field
+                    date={new Date(activity.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    status={activity.status === "published" ? "Published" : "Unpublished"}
+                    description={activity.activityDescription}
+                    image={activity.activityImage || ""}
+                    onEdit={() => handleEditActivity(activity)}
+                    onDelete={() => handleDeleteActivity(activity)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Add Activity Modal */}
+      {/* Add/Edit Activity Modal */}
       <AddActivityModal 
         isOpen={isAddActivityModalOpen}
-        onClose={() => setIsAddActivityModalOpen(false)}
+        onClose={() => {
+          setIsAddActivityModalOpen(false)
+          setEditingActivity(null)
+        }}
+        onSuccess={handleActivityCreated}
+        activity={editingActivity}
       />
     </div>
   )

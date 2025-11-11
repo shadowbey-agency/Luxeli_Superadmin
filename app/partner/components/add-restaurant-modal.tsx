@@ -1,18 +1,69 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { RiCloseLine, RiImageLine, RiTimeLine } from "react-icons/ri"
+import { getAuthToken } from "@/lib/auth-utils"
+
+interface Restaurant {
+  _id: string
+  restaurantName: string
+  status: "open" | "closed"
+  startWork: string
+  endWork: string
+  restaurantImage?: string
+  items: Array<{
+    itemName: string
+    status: "published" | "unpublished"
+    category: string
+    itemPrice: number
+    itemDescription: string
+    itemImage?: string
+  }>
+  createdAt?: string
+  updatedAt?: string
+}
 
 interface AddRestaurantModalProps {
   isOpen: boolean
   onClose: () => void
+  onSuccess?: () => void
+  restaurant?: Restaurant | null // Restaurant to edit (null for new restaurant)
 }
 
-export default function AddRestaurantModal({ isOpen, onClose }: AddRestaurantModalProps) {
+export default function AddRestaurantModal({ isOpen, onClose, onSuccess, restaurant }: AddRestaurantModalProps) {
   const [restaurantName, setRestaurantName] = useState("")
-  const [isPublished, setIsPublished] = useState(true)
+  const [isOpenStatus, setIsOpenStatus] = useState(true) // open/closed status
   const [startWork, setStartWork] = useState("")
   const [endWork, setEndWork] = useState("")
+  const [restaurantImage, setRestaurantImage] = useState<string>("")
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  // Pre-fill form when editing a restaurant
+  useEffect(() => {
+    if (restaurant && isOpen) {
+      setRestaurantName(restaurant.restaurantName || "")
+      setIsOpenStatus(restaurant.status === "open")
+      setStartWork(restaurant.startWork || "")
+      setEndWork(restaurant.endWork || "")
+      setRestaurantImage(restaurant.restaurantImage || "")
+      setImagePreview(restaurant.restaurantImage || null)
+      setError(null)
+      setSuccessMessage(null)
+    } else if (!restaurant && isOpen) {
+      // Reset form for new restaurant
+      setRestaurantName("")
+      setIsOpenStatus(true)
+      setStartWork("")
+      setEndWork("")
+      setRestaurantImage("")
+      setImagePreview(null)
+      setError(null)
+      setSuccessMessage(null)
+    }
+  }, [restaurant, isOpen])
 
   if (!isOpen) return null
 
@@ -21,7 +72,7 @@ export default function AddRestaurantModal({ isOpen, onClose }: AddRestaurantMod
        <div className="bg-white shadow-xl max-w-3xl w-full mx-4" style={{ borderRadius: "10px" }}>
         {/* Header */}
         <div className="flex items-center justify-between pl-6 pr-6 pt-5 pb-5 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Add new restaurant</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{restaurant ? "Edit restaurant" : "Add new restaurant"}</h2>
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors"
@@ -56,25 +107,25 @@ export default function AddRestaurantModal({ isOpen, onClose }: AddRestaurantMod
                   Status
                 </label>
                 <div className="flex items-center space-x-3">
-                  <span className={`text-sm ${!isPublished ? 'text-gray-900' : 'text-gray-500'}`}>
-                    Published
+                  <span className={`text-sm ${!isOpenStatus ? 'text-gray-900' : 'text-gray-500'}`}>
+                    Open
                   </span>
                   <div
                     className="relative w-11 h-6 rounded-full transition-colors cursor-pointer"
                     style={{
-                      backgroundColor: isPublished ? "#50BE87" : "#E5E7EB"
+                      backgroundColor: isOpenStatus ? "#50BE87" : "#E5E7EB"
                     }}
-                    onClick={() => setIsPublished(!isPublished)}
+                    onClick={() => setIsOpenStatus(!isOpenStatus)}
                   >
                     <div
                       className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform"
                       style={{
-                        transform: isPublished ? "translateX(24px)" : "translateX(4px)"
+                        transform: isOpenStatus ? "translateX(24px)" : "translateX(4px)"
                       }}
                     />
                   </div>
-                  <span className={`text-sm ${isPublished ? 'text-gray-500' : 'text-gray-900'}`}>
-                    Unpublished
+                  <span className={`text-sm ${isOpenStatus ? 'text-gray-500' : 'text-gray-900'}`}>
+                    Closed
                   </span>
                 </div>
               </div>
@@ -162,39 +213,184 @@ export default function AddRestaurantModal({ isOpen, onClose }: AddRestaurantMod
                   borderColor: "#0000000F",
                   background: "#FBFAFA"
                 }}
-                className="flex flex-col items-center justify-center border"
+                className="flex flex-col items-center justify-center border relative"
               >
-                <RiImageLine className="w-8 h-8 text-gray-400 mb-2" />
-                <div className="text-center">
-                  <span className="text-sm text-gray-600">Drag and drop your image here or </span>
-                  <button className="text-sm text-blue-600 underline hover:text-blue-800">
-                    choose file
-                  </button>
-                </div>
+                {imagePreview ? (
+                  <>
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded" />
+                    <button
+                      onClick={() => {
+                        setImagePreview(null)
+                        setRestaurantImage("")
+                      }}
+                      className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded hover:bg-red-600"
+                    >
+                      <RiCloseLine className="w-4 h-4" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <label htmlFor="restaurant-image-upload" className="cursor-pointer">
+                      <RiImageLine className="w-8 h-8 text-gray-400 mb-2" />
+                      <div className="text-center">
+                        <span className="text-sm text-gray-600">Drag and drop your image here or </span>
+                        <span className="text-sm text-blue-600 underline">choose file</span>
+                      </div>
+                    </label>
+                    <input
+                      id="restaurant-image-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          if (!file.type.startsWith('image/')) {
+                            setError("Please select a valid image file")
+                            return
+                          }
+                          if (file.size > 5 * 1024 * 1024) {
+                            setError("Image size must be less than 5MB")
+                            return
+                          }
+                          const reader = new FileReader()
+                          reader.onloadend = () => {
+                            const result = reader.result as string
+                            setImagePreview(result)
+                            setRestaurantImage(result) // Store as base64
+                          }
+                          reader.readAsDataURL(file)
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Success Message */}
+          {successMessage && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>{successMessage}</span>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 pt-5 pb-5 pl-6 pr-6 border-t border-gray-200">
            <button
              onClick={onClose}
-             className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+             disabled={isLoading}
+             className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
              style={{ borderRadius: "6px", background: "#FBFAFA" }}
            >
              Annuler
            </button>
            <button
-             onClick={() => {
-               // Handle save logic here
-               console.log("Saving restaurant:", { restaurantName, isPublished, startWork, endWork })
-               onClose()
+             onClick={async () => {
+               // Clear previous errors
+               setError(null)
+
+               // Validate required fields
+               if (!restaurantName.trim()) {
+                 setError("Restaurant name is required")
+                 return
+               }
+               if (!startWork.trim()) {
+                 setError("Start work time is required")
+                 return
+               }
+               if (!endWork.trim()) {
+                 setError("End work time is required")
+                 return
+               }
+
+               setIsLoading(true)
+
+               try {
+                 const token = getAuthToken()
+                 if (!token) {
+                   setError("Authentication token not found. Please log in again.")
+                   setIsLoading(false)
+                   return
+                 }
+
+                 // Prepare request body
+                 const requestBody = {
+                   restaurantName: restaurantName.trim(),
+                   status: isOpenStatus ? 'open' : 'closed',
+                   startWork: startWork.trim(),
+                   endWork: endWork.trim(),
+                   ...(restaurantImage && { restaurantImage }),
+                 }
+
+                 const isEditMode = !!restaurant
+                 const url = isEditMode 
+                   ? `/api/partner/restaurants/${restaurant._id}`
+                   : '/api/partner/restaurants'
+                 const method = isEditMode ? 'PATCH' : 'POST'
+
+                 const response = await fetch(url, {
+                   method,
+                   headers: {
+                     'Content-Type': 'application/json',
+                     'Authorization': `Bearer ${token}`
+                   },
+                   body: JSON.stringify(requestBody),
+                 })
+
+                 const data = await response.json()
+
+                 if (!response.ok || !data.success) {
+                   throw new Error(data.error || 'Failed to save restaurant')
+                 }
+
+                 // Show success message
+                 const message = isEditMode ? 'Restaurant updated successfully!' : 'Restaurant created successfully!'
+                 setSuccessMessage(message)
+                 setError(null)
+
+                 // Reset form only after successful save
+                 setRestaurantName("")
+                 setIsOpenStatus(true)
+                 setStartWork("")
+                 setEndWork("")
+                 setRestaurantImage("")
+                 setImagePreview(null)
+
+                 // Call success callback to refresh the list
+                 if (onSuccess) {
+                   onSuccess()
+                 }
+
+                 // Close modal after showing success message
+                 setTimeout(() => {
+                   setSuccessMessage(null)
+                   onClose()
+                 }, 1500)
+               } catch (err: any) {
+                 console.error('Error saving restaurant:', err)
+                 setError(err.message || 'Failed to save restaurant. Please try again.')
+               } finally {
+                 setIsLoading(false)
+               }
              }}
-             className="px-4 py-2 text-white hover:opacity-90 transition-colors"
+             disabled={isLoading || !restaurantName.trim() || !startWork.trim() || !endWork.trim()}
+             className="px-4 py-2 text-white hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
              style={{ borderRadius: "6px", background: "#1F2A44" }}
            >
-             Save
+             {isLoading ? (restaurant ? "Updating..." : "Saving...") : (restaurant ? "Update" : "Save")}
            </button>
         </div>
       </div>

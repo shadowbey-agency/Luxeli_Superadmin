@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   RiMoreLine,
   RiEyeLine,
@@ -28,6 +28,7 @@ import {
 } from "@/app/superadmin/components/icons"
 import SupportSidebarIcon from "@/app/partner/components/support-sidebar-icon"
 import AddTicketModal from "@/app/partner/components/add-ticket-modal"
+import { getAuthToken } from "@/lib/auth-utils"
 
 interface Ticket {
   id: string
@@ -212,11 +213,29 @@ const getPriorityStyle = (priority: string) => {
   return styles[priority as keyof typeof styles] || styles.low
 }
 
+// Helper function to format date
+const formatDate = (date: Date | string) => {
+  const d = new Date(date)
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  const month = months[d.getMonth()]
+  const day = d.getDate()
+  const year = d.getFullYear()
+  const hours = d.getHours()
+  const minutes = d.getMinutes()
+  const ampm = hours >= 12 ? "PM" : "AM"
+  const displayHours = hours % 12 || 12
+  const displayMinutes = minutes.toString().padStart(2, "0")
+  return `${month} ${day}, ${year}, ${displayHours}:${displayMinutes} ${ampm}`
+}
+
 export default function SupportPage() {
   const [activeTab, setActiveTab] = useState<'my-tickets' | 'tickets-saved'>('my-tickets')
-  const [tickets, setTickets] = useState<Ticket[]>(mockTickets)
+  const [tickets, setTickets] = useState<Ticket[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [totalTickets, setTotalTickets] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null)
   const [showViewTicketModal, setShowViewTicketModal] = useState(false)
   const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null)
@@ -232,10 +251,72 @@ export default function SupportPage() {
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null)
   const [showAddTicketModal, setShowAddTicketModal] = useState(false)
 
-  const totalPages = Math.ceil(tickets.length / itemsPerPage)
+  // Fetch tickets from API
+  const fetchTickets = async () => {
+    try {
+      setIsLoading(true)
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        setIsLoading(false)
+        return
+      }
+
+      const response = await fetch(`/api/partner/tickets?page=${currentPage}&limit=${itemsPerPage}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+
+      if (data.success && data.data?.tickets) {
+        // Transform API response to match Ticket interface
+        const transformedTickets: Ticket[] = data.data.tickets.map((ticket: any) => ({
+          id: ticket._id || ticket.id,
+          ticketId: ticket.ticketId || `TCKT-${ticket._id?.slice(-6)}`, // Use TCKT- prefix to match model
+          title: ticket.title,
+          status: ticket.status as Ticket["status"],
+          priority: ticket.priority as Ticket["priority"],
+          assignee: ticket.assignee ? {
+            name: ticket.assignee.name || "Unassigned",
+            avatar: ticket.assignee.profilePic || (ticket.assignee.name ? ticket.assignee.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : "U")
+          } : { name: "Unassigned", avatar: "U" },
+          dateCreated: formatDate(ticket.createdAt || new Date()),
+          dateUpdate: formatDate(ticket.updatedAt || ticket.createdAt || new Date()),
+          hotelName: "Hotel name", // You may want to fetch this from partner data
+          hotelEmail: "hotel@gmail.com", // You may want to fetch this from partner data
+          description: ticket.description,
+          isMarkedAsTicket: true,
+        }))
+        setTickets(transformedTickets)
+        
+        // Update pagination info from API
+        if (data.data.pagination) {
+          setTotalTickets(data.data.pagination.total)
+          setTotalPages(data.data.pagination.pages)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching tickets:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchTickets()
+  }, [currentPage, itemsPerPage])
+
+  // Refresh tickets after creating a new one
+  const handleTicketCreated = () => {
+    // Reset to first page and refresh
+    setCurrentPage(1)
+    fetchTickets()
+  }
+
   const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentTickets = tickets.slice(startIndex, endIndex)
+  const endIndex = Math.min(startIndex + tickets.length, totalTickets)
+  const currentTickets = tickets
 
   const handleStatusChange = (ticketId: string, newStatus: Ticket["status"]) => {
     setTickets(tickets.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)))
@@ -479,7 +560,6 @@ export default function SupportPage() {
                 </th>
                 <th className="px-4 py-4 text-left">
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
                     <span style={{ 
                       color: "#000", 
                       fontSize: "12px", 
@@ -492,7 +572,6 @@ export default function SupportPage() {
                 </th>
                 <th className="px-4 py-4 text-left">
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
                     <span style={{ 
                       color: "#000", 
                       fontSize: "12px", 
@@ -505,7 +584,6 @@ export default function SupportPage() {
                 </th>
                 <th className="px-4 py-4 text-left">
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
                     <span style={{ 
                       color: "#000", 
                       fontSize: "12px", 
@@ -518,7 +596,6 @@ export default function SupportPage() {
                 </th>
                 <th className="px-4 py-4 text-left">
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
                     <span style={{ 
                       color: "#000", 
                       fontSize: "12px", 
@@ -531,7 +608,6 @@ export default function SupportPage() {
                 </th>
                 <th className="px-4 py-4 text-left">
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
                     <span style={{ 
                       color: "#000", 
                       fontSize: "12px", 
@@ -544,7 +620,6 @@ export default function SupportPage() {
                 </th>
                 <th className="px-4 py-4 text-left">
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
                     <span style={{ 
                       color: "#000", 
                       fontSize: "12px", 
@@ -559,7 +634,16 @@ export default function SupportPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {currentTickets.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-16">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+                      <p className="text-muted-foreground">Loading tickets...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : currentTickets.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-16">
                     <div className="flex flex-col items-center justify-center text-center">
@@ -591,7 +675,7 @@ export default function SupportPage() {
                           />
                         </svg>
                       </div>
-                      <p className="text-muted-foreground">No data available</p>
+                      <p className="text-muted-foreground">No tickets available</p>
                     </div>
                   </td>
                 </tr>
@@ -681,64 +765,24 @@ export default function SupportPage() {
                             <RiMoreLine className="w-5 h-5 text-muted-foreground" />
                           </button>
                         }
-                        items={
-                          ticket.status === "sent"
-                            ? [
-                                {
-                                  label: "View ticket",
-                                  icon: <RiEyeLine className="w-4 h-4" />,
-                                  onClick: () => handleViewTicket(ticket),
-                                },
-                                {
-                                  label: "Edit ticket",
-                                  icon: <PublicIcon src="/assets/icons/support edite ticket.svg" alt="Edit ticket" width={16} height={16} />,
-                                  onClick: () => handleUnmarkTicket(ticket),
-                                },
-                                {
-                                  label: "Delete",
-                                  icon: <RiDeleteBinLine className="w-4 h-4" style={{ color: "#FF0D0D" }} />,
-                                  onClick: () => handleDeleteTicket(ticket),
-                                  variant: "danger",
-                                },
-                              ]
-                            : ticket.status === "reopened"
-                            ? [
-                                {
-                                  label: "View ticket",
-                                  icon: <RiEyeLine className="w-4 h-4" />,
-                                  onClick: () => handleViewTicket(ticket),
-                                },
-                                {
-                                  label: "View reply",
-                                  icon: <SupportSidebarIcon size={16} strokeColor="#141B34" />,
-                                  onClick: () => handleContactPartner(ticket),
-                                },
-                                {
-                                  label: "Delete",
-                                  icon: <RiDeleteBinLine className="w-4 h-4" style={{ color: "#FF0D0D" }} />,
-                                  onClick: () => handleDeleteTicket(ticket),
-                                  variant: "danger",
-                                },
-                              ]
-                            : [
-                                {
-                                  label: "View ticket",
-                                  icon: <RiEyeLine className="w-4 h-4" />,
-                                  onClick: () => handleViewTicket(ticket),
-                                },
-                                {
-                                  label: "Edit ticket",
-                                  icon: <PublicIcon src="/assets/icons/support edite ticket.svg" alt="Edit ticket" width={16} height={16} />,
-                                  onClick: () => handleUnmarkTicket(ticket),
-                                },
-                                {
-                                  label: "Delete",
-                                  icon: <RiDeleteBinLine className="w-4 h-4" style={{ color: "#FF0D0D" }} />,
-                                  onClick: () => handleDeleteTicket(ticket),
-                                  variant: "danger",
-                                },
-                              ]
-                        }
+                        items={[
+                          {
+                            label: "View ticket",
+                            icon: <RiEyeLine className="w-4 h-4" />,
+                            onClick: () => handleViewTicket(ticket),
+                          },
+                          {
+                            label: "View reply",
+                            icon: <SupportSidebarIcon size={16} strokeColor="#141B34" />,
+                            onClick: () => handleContactPartner(ticket),
+                          },
+                          {
+                            label: "Delete",
+                            icon: <RiDeleteBinLine className="w-4 h-4" style={{ color: "#FF0D0D" }} />,
+                            onClick: () => handleDeleteTicket(ticket),
+                            variant: "danger",
+                          },
+                        ]}
                       />
                     </td>
                   </tr>
@@ -752,7 +796,7 @@ export default function SupportPage() {
         {tickets.length > 0 && (
           <div className="flex items-center justify-between  py-3 border-t border-border">
             <p className="text-sm text-muted-foreground">
-              Displaying {startIndex + 1}-{Math.min(endIndex, tickets.length)} results out of {tickets.length}
+              Displaying {startIndex + 1}-{endIndex} results out of {totalTickets}
             </p>
 
             <div className="flex items-center gap-2">
@@ -902,7 +946,6 @@ export default function SupportPage() {
                 </th>
                 <th className="px-4 py-4 text-left">
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
                     <span style={{ 
                       color: "#000", 
                       fontSize: "12px", 
@@ -915,7 +958,6 @@ export default function SupportPage() {
                 </th>
                 <th className="px-4 py-4 text-left">
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
                     <span style={{ 
                       color: "#000", 
                       fontSize: "12px", 
@@ -928,7 +970,6 @@ export default function SupportPage() {
                 </th>
                 <th className="px-4 py-4 text-left">
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
                     <span style={{ 
                       color: "#000", 
                       fontSize: "12px", 
@@ -941,7 +982,6 @@ export default function SupportPage() {
                 </th>
                 <th className="px-4 py-4 text-left">
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
                     <span style={{ 
                       color: "#000", 
                       fontSize: "12px", 
@@ -954,7 +994,6 @@ export default function SupportPage() {
                 </th>
                 <th className="px-4 py-4 text-left">
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
                     <span style={{ 
                       color: "#000", 
                       fontSize: "12px", 
@@ -967,7 +1006,6 @@ export default function SupportPage() {
                 </th>
                 <th className="px-4 py-4 text-left">
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <SortArrows sortDirection="none" />
                     <span style={{ 
                       color: "#000", 
                       fontSize: "12px", 
@@ -982,7 +1020,16 @@ export default function SupportPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {currentTickets.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-16">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+                      <p className="text-muted-foreground">Loading tickets...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : currentTickets.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-16">
                     <div className="flex flex-col items-center justify-center text-center">
@@ -1130,7 +1177,7 @@ export default function SupportPage() {
         {tickets.length > 0 && (
           <div className="flex items-center justify-between pt-4 border-t">
             <p className="text-sm text-muted-foreground">
-              Displaying {startIndex + 1}-{Math.min(endIndex, tickets.length)} results out of {tickets.length}
+              Displaying {startIndex + 1}-{endIndex} results out of {totalTickets}
             </p>
 
             <div className="flex items-center gap-2">
@@ -1221,6 +1268,7 @@ export default function SupportPage() {
       <AddTicketModal
         isOpen={showAddTicketModal}
         onClose={() => setShowAddTicketModal(false)}
+        onSuccess={handleTicketCreated}
       />
     </div>
   )

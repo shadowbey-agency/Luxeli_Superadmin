@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { getAuthToken } from "@/lib/auth-utils"
 
 interface Staff {
   id: string
@@ -15,26 +16,60 @@ interface AssignStaffModalProps {
   onAssign: (staffId: string) => void
 }
 
-const mockStaff: Staff[] = [
-  { id: "1", name: "Full name", available: false },
-  { id: "2", name: "Full name", available: true },
-  { id: "3", name: "Full name", available: true },
-  { id: "4", name: "Full name", available: true },
-  { id: "5", name: "Full name", available: true },
-  { id: "6", name: "Full name", available: true },
-  { id: "7", name: "Full name", available: false },
-  { id: "8", name: "Full name", available: true },
-]
-
-export default function   AssignStaffModal({ isOpen, onClose, onAssign }: AssignStaffModalProps) {
+export default function AssignStaffModal({ isOpen, onClose, onAssign }: AssignStaffModalProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStaff, setSelectedStaff] = useState<string>("")
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [staff, setStaff] = useState<Staff[]>([])
+  const [isLoadingStaff, setIsLoadingStaff] = useState(false)
+
+  // Fetch staff from API when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchStaff()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
+
+  const fetchStaff = async () => {
+    try {
+      setIsLoadingStaff(true)
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        setIsLoadingStaff(false)
+        return
+      }
+
+      const response = await fetch(`/api/partner/staff?limit=1000&status=active`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data?.staff) {
+          const transformedStaff: Staff[] = result.data.staff.map((staffMember: any) => ({
+            id: staffMember._id,
+            name: staffMember.staffName || 'Unknown',
+            avatar: staffMember.staffName ? staffMember.staffName.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'S',
+            available: staffMember.status === 'active'
+          }))
+          setStaff(transformedStaff)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching staff:', error)
+    } finally {
+      setIsLoadingStaff(false)
+    }
+  }
 
   if (!isOpen) return null
 
-  const filteredStaff = mockStaff.filter(staff =>
-    staff.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredStaff = staff.filter(staffMember =>
+    staffMember.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const handleAssign = () => {
@@ -117,30 +152,32 @@ export default function   AssignStaffModal({ isOpen, onClose, onAssign }: Assign
                   maxHeight: "250px"
                 }}
               >
-                {filteredStaff.length > 0 ? (
-                  filteredStaff.map((staff) => (
+                {isLoadingStaff ? (
+                  <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                    Loading staff...
+                  </div>
+                ) : filteredStaff.length > 0 ? (
+                  filteredStaff.map((staffMember) => (
                     <button
-                      key={staff.id}
-                      onClick={() => handleSelectStaff(staff)}
+                      key={staffMember.id}
+                      onClick={() => handleSelectStaff(staffMember)}
                       className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
                     >
                       <div className="flex items-center gap-3">
                         {/* Avatar */}
-                        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
-                          <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                          </svg>
+                        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-xs font-medium text-gray-700">
+                          {staffMember.avatar || 'S'}
                         </div>
-                        <span className="text-sm text-gray-900">{staff.name}</span>
+                        <span className="text-sm text-gray-900">{staffMember.name}</span>
                       </div>
                       
                       {/* Availability Status */}
                       <span
                         className={`text-xs font-medium ${
-                          staff.available ? "text-green-600" : "text-red-600"
+                          staffMember.available ? "text-green-600" : "text-red-600"
                         }`}
                       >
-                        {staff.available ? "Available" : "Unavailable"}
+                        {staffMember.available ? "Available" : "Unavailable"}
                       </span>
                     </button>
                   ))

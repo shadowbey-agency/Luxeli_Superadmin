@@ -10,7 +10,7 @@ interface LaundryRequest {
   room: string
   guest: string
   created: string
-  status: "new" | "accepted" | "completed" | "pending" | "canceled"
+  status: "new" | "accepted" | "completed" | "no-show" | "canceled"
   priority: "low" | "medium" | "urgent"
   assignee: string
   service: string
@@ -43,7 +43,7 @@ export default function ViewLaundryModal({ request, isOpen, onClose }: ViewLaund
         return { bg: "#6457D30D", border: "#6457D340", text: "#6457D3" }
       case "completed":
         return { bg: "#17B26A0D", border: "#17B26A40", text: "#17B26A" }
-      case "pending":
+      case "no-show":
         return { bg: "#1F2A440D", border: "#1F2A4440", text: "#1F2A44" }
       case "canceled":
         return { bg: "#FF0D0D0D", border: "#FF0D0D40", text: "#FF0D0D" }
@@ -59,7 +59,7 @@ export default function ViewLaundryModal({ request, isOpen, onClose }: ViewLaund
       case "medium":
         return { bg: "#D1924F0D", border: "#D1924F40", text: "#D1924F" }
       case "low":
-        return { bg: "#17B26A0D", border: "#17B26A40", text: "#17B26A" }
+        return { bg: "#56C6FF0D", border: "#56C6FF40", text: "#56C6FF" }
       default:
         return { bg: "#1F2A440D", border: "#1F2A4440", text: "#1F2A44" }
     }
@@ -178,7 +178,7 @@ export default function ViewLaundryModal({ request, isOpen, onClose }: ViewLaund
               
               <div className="w-full rounded-[8px] border p-4 bg-[#FBFAFA]" style={{ borderColor: "#21212114" }}>
                 <p className="text-sm" style={{ color: "#000000CC" }}>
-                  {request.note || "Norem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis."}
+                  {request.note || request.notes || "No notes provided."}
                 </p>
               </div>
             </div>
