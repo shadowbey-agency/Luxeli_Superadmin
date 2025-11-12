@@ -1,10 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { RiArrowLeftSLine, RiArrowDownSLine, RiAddLine, RiArrowRightSLine } from "react-icons/ri"
 import { getAuthToken } from "@/lib/auth-utils"
 import AddRestaurantItemModal from "../../../../components/add-restaurant-item-modal"
+
+// Force dynamic rendering to avoid prerendering issues
+export const dynamic = 'force-dynamic'
 
 interface RestaurantItem {
   itemName: string
@@ -139,10 +142,10 @@ const ItemCard = ({
   )
 }
 
-export default function ViewItemsPage() {
+function ViewItemsPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const restaurantId = searchParams.get('id')
+  const restaurantId = searchParams?.get('id') || null
   
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -415,5 +418,19 @@ export default function ViewItemsPage() {
         />
       )}
     </div>
+  )
+}
+
+export default function ViewItemsPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-6">
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    }>
+      <ViewItemsPageContent />
+    </Suspense>
   )
 }

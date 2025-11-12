@@ -954,7 +954,23 @@ export default function TeamPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {currentMembers.map((member) => (
+              {(activeTab === 'members' ? isLoadingMembers : isLoadingStaff) ? (
+                <tr>
+                  <td colSpan={activeTab === 'staff' ? 8 : 7} className="px-4 py-8 text-center text-muted-foreground">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      Loading {activeTab === 'members' ? 'members' : 'staff'}...
+                    </div>
+                  </td>
+                </tr>
+              ) : currentMembers.length === 0 ? (
+                <tr>
+                  <td colSpan={activeTab === 'staff' ? 8 : 7} className="px-4 py-8 text-center text-muted-foreground">
+                    No {activeTab === 'members' ? 'members' : 'staff'} found
+                  </td>
+                </tr>
+              ) : (
+                currentMembers.map((member) => (
                 <tr key={member.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-4">
                     <input type="checkbox" className="rounded" />
@@ -1072,7 +1088,8 @@ export default function TeamPage() {
                     />
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>
