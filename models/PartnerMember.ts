@@ -60,7 +60,6 @@ const PartnerMemberSchema = new Schema<IPartnerMember>(
     partnerId: {
       type: String,
       required: true,
-      index: true,
       trim: true,
     },
     memberName: {
@@ -146,8 +145,7 @@ const PartnerMemberSchema = new Schema<IPartnerMember>(
 
 // Indexes for better query performance
 PartnerMemberSchema.index({ partnerId: 1 });
-PartnerMemberSchema.index({ email: 1 });
-PartnerMemberSchema.index({ username: 1 });
+// Note: email and username already have indexes from unique: true
 PartnerMemberSchema.index({ status: 1 });
 
 // 🔐 Hash password before saving

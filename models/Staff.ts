@@ -19,7 +19,6 @@ const StaffSchema = new Schema<IStaff>(
     partnerId: {
       type: String,
       required: true,
-      index: true,
       trim: true,
     },
     staffName: {
@@ -70,8 +69,7 @@ const StaffSchema = new Schema<IStaff>(
 
 // Indexes for better query performance
 StaffSchema.index({ partnerId: 1 });
-StaffSchema.index({ email: 1 });
-StaffSchema.index({ username: 1 });
+// Note: email and username already have indexes from unique: true
 StaffSchema.index({ status: 1 });
 StaffSchema.index({ role: 1 });
 

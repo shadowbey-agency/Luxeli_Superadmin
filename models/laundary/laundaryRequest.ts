@@ -25,7 +25,6 @@ const LaundryRequestSchema: Schema = new Schema(
     partnerId: {
       type: String,
       required: true,
-      index: true,
       trim: true,
     },
     service: { type: String, default: "laundry" },

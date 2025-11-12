@@ -20,7 +20,6 @@ const RoomHistorySchema = new Schema<IRoomHistory>(
     partnerId: {
       type: String,
       required: true,
-      index: true,
       trim: true,
     },
     roomId: {

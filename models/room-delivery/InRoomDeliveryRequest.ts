@@ -24,7 +24,6 @@ const inRoomDeliverySchema = new Schema<IInRoomDeliveryRequest>(
     partnerId: {
       type: String,
       required: true,
-      index: true,
       trim: true,
     },
     requestId: {

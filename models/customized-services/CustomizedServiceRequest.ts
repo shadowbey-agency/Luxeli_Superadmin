@@ -22,7 +22,6 @@ const customizedServiceRequestSchema = new Schema<ICustomizedServiceRequest>(
     partnerId: {
       type: String,
       required: true,
-      index: true,
       trim: true,
     },
     customId: { type: String },

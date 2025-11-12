@@ -19,7 +19,6 @@ const ActivityRequestSchema = new Schema<IActivityRequest>(
     partnerId: {
       type: String,
       required: true,
-      index: true,
       trim: true,
     },
     roomName: { type: String, required: true },

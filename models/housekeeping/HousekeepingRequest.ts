@@ -39,7 +39,6 @@ const housekeepingRequestSchema = new Schema<IHousekeepingRequest>(
     partnerId: {
       type: String,
       required: true,
-      index: true,
       trim: true,
     },
     roomId: { type: String, required: true },

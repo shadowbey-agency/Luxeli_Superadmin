@@ -22,7 +22,6 @@ const RoomSchema = new Schema<IRoom>(
     partnerId: {
       type: String,
       required: true,
-      index: true,
       trim: true,
     },
     roomId: {

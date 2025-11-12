@@ -21,7 +21,6 @@ const ticketSchema = new Schema<ITicket>(
     partnerId: {
       type: String,
       required: true,
-      index: true,
       trim: true,
     },
     ticketId: {
