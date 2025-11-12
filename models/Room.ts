@@ -2,10 +2,13 @@ import mongoose, { Document, Schema } from "mongoose";
 
 export interface IRoom extends Document {
   _id: string;
+  partnerId: string; // Reference to Partner
   roomId: string; // e.g. "#01", "#02"
   roomName: string;
   roomStatus: "full" | "empty";
   resident: string | null;
+  residentEmail: string | null;
+  residentPhoneNo: string | null;
   checkInDate: Date | null;
   checkInTime: string | null; // e.g. "10:30"
   checkOutDate: Date | null;
@@ -16,10 +19,15 @@ export interface IRoom extends Document {
 
 const RoomSchema = new Schema<IRoom>(
   {
+    partnerId: {
+      type: String,
+      required: true,
+      index: true,
+      trim: true,
+    },
     roomId: {
       type: String,
       required: false, // ✅ changed to false (auto-generated)
-      unique: true,
       trim: true,
     },
     roomName: {
@@ -33,6 +41,16 @@ const RoomSchema = new Schema<IRoom>(
       default: "empty",
     },
     resident: {
+      type: String,
+      default: null,  
+      trim: true,
+    },
+    residentEmail: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    residentPhoneNo: {
       type: String,
       default: null,
       trim: true,
@@ -59,8 +77,9 @@ const RoomSchema = new Schema<IRoom>(
   { timestamps: true }
 );
 
-// ✅ Index on roomId for uniqueness
-RoomSchema.index({ roomId: 1 }, { unique: true });
+// ✅ Indexes for better query performance
+RoomSchema.index({ partnerId: 1 });
+RoomSchema.index({ partnerId: 1, roomId: 1 }, { unique: true }); // Unique roomId per partner
 
 // ✅ Auto-generate sequential roomId (#01, #02, #03...)
 RoomSchema.pre("save", async function (next) {

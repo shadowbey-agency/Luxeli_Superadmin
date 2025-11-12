@@ -54,6 +54,8 @@ export class RoomController {
     roomName: string;
     roomStatus?: 'full' | 'empty';
     resident?: string | null;
+    residentEmail?: string | null;
+    residentPhoneNo?: string | null;
     checkInDate?: string | null;
     checkInTime?: string | null;
     checkOutDate?: string | null;
@@ -66,6 +68,8 @@ export class RoomController {
         roomName,
         roomStatus,
         resident,
+        residentEmail,
+        residentPhoneNo,
         checkInDate,
         checkInTime,
         checkOutDate,
@@ -80,6 +84,8 @@ export class RoomController {
         roomName: roomName.trim(),
         roomStatus: roomStatus === 'full' ? 'full' : 'empty',
         resident: resident?.trim?.() || null,
+        residentEmail: residentEmail?.trim?.() || null,
+        residentPhoneNo: residentPhoneNo?.trim?.() || null,
         checkInDate: checkInDate ? new Date(checkInDate) : null,
         checkInTime: checkInTime || null,
         checkOutDate: checkOutDate ? new Date(checkOutDate) : null,
@@ -100,6 +106,8 @@ export class RoomController {
     roomName?: string;
     roomStatus?: 'full' | 'empty' | string;
     resident?: string | null;
+    residentEmail?: string | null;
+    residentPhoneNo?: string | null;
     checkInDate?: string | null;
     checkInTime?: string | null;
     checkOutDate?: string | null;
@@ -112,6 +120,8 @@ export class RoomController {
       if (typeof body.roomName === 'string') update.roomName = body.roomName.trim();
       if (typeof body.roomStatus === 'string') update.roomStatus = body.roomStatus === 'full' ? 'full' : 'empty';
       if (typeof body.resident === 'string' || body.resident === null) update.resident = body.resident ?? null;
+      if (typeof body.residentEmail === 'string' || body.residentEmail === null) update.residentEmail = body.residentEmail?.trim() || null;
+      if (typeof body.residentPhoneNo === 'string' || body.residentPhoneNo === null) update.residentPhoneNo = body.residentPhoneNo?.trim() || null;
       if (body.checkInDate !== undefined) update.checkInDate = body.checkInDate ? new Date(body.checkInDate) : null;
       if (body.checkInTime !== undefined) update.checkInTime = body.checkInTime || null;
       if (body.checkOutDate !== undefined) update.checkOutDate = body.checkOutDate ? new Date(body.checkOutDate) : null;
@@ -134,6 +144,8 @@ export class RoomController {
     roomName?: string;
     roomStatus?: 'full' | 'empty' | string;
     resident?: string | null;
+    residentEmail?: string | null;
+    residentPhoneNo?: string | null;
     checkInDate?: string | null;
     checkInTime?: string | null;
     checkOutDate?: string | null;
@@ -146,6 +158,8 @@ export class RoomController {
       if (typeof body.roomName === 'string') update.roomName = body.roomName.trim();
       if (typeof body.roomStatus === 'string') update.roomStatus = body.roomStatus === 'full' ? 'full' : 'empty';
       if (typeof body.resident === 'string' || body.resident === null) update.resident = body.resident ?? null;
+      if (typeof body.residentEmail === 'string' || body.residentEmail === null) update.residentEmail = body.residentEmail?.trim() || null;
+      if (typeof body.residentPhoneNo === 'string' || body.residentPhoneNo === null) update.residentPhoneNo = body.residentPhoneNo?.trim() || null;
       if (body.checkInDate !== undefined) update.checkInDate = body.checkInDate ? new Date(body.checkInDate) : null;
       if (body.checkInTime !== undefined) update.checkInTime = body.checkInTime || null;
       if (body.checkOutDate !== undefined) update.checkOutDate = body.checkOutDate ? new Date(body.checkOutDate) : null;
@@ -187,6 +201,8 @@ export class RoomController {
    */
   static async assignRoom(id: string, body: {
     resident: string;
+    residentEmail?: string | null;
+    residentPhoneNo?: string | null;
     checkInDate?: string;
     checkInTime?: string | null;
     checkOutDate?: string | null;
@@ -195,7 +211,7 @@ export class RoomController {
     try {
       await connectDB();
 
-      const { resident, checkInDate, checkInTime, checkOutDate, checkOutTime } = body;
+      const { resident, residentEmail, residentPhoneNo, checkInDate, checkInTime, checkOutDate, checkOutTime } = body;
 
       if (!resident || typeof resident !== 'string') {
         return NextResponse.json({ error: 'resident is required' }, { status: 400 });
@@ -204,6 +220,8 @@ export class RoomController {
       const update = {
         roomStatus: 'full' as const,
         resident: resident.trim(),
+        residentEmail: residentEmail?.trim() || null,
+        residentPhoneNo: residentPhoneNo?.trim() || null,
         checkInDate: checkInDate ? new Date(checkInDate) : new Date(),
         checkInTime: checkInTime || null,
         checkOutDate: checkOutDate ? new Date(checkOutDate) : null,
@@ -255,6 +273,8 @@ export class RoomController {
       const update = {
         roomStatus: 'empty' as const,
         resident: null,
+        residentEmail: null,
+        residentPhoneNo: null,
         checkInDate: null,
         checkInTime: null,
         checkOutDate: null,

@@ -100,6 +100,22 @@ export function withSuperAdminAuth(handler: (req: AuthenticatedRequest) => Promi
 }
 
 /**
+ * Get partner ID from authenticated request
+ * For partner users, userId in token is the partnerId
+ */
+export function getPartnerId(request: AuthenticatedRequest): string | null {
+  const user = request.user;
+  if (!user) return null;
+  
+  // If user is a partner, userId is the partnerId
+  if (user.role === 'partner' || user.userType === 'partner') {
+    return user.userId;
+  }
+  
+  return null;
+}
+
+/**
  * Error handler utility
  */
 export function handleApiError(error: any, message: string = 'Internal server error') {

@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IStaff extends Document {
+  partnerId: string; // Reference to Partner
   staffName: string;
   email: string;
   phoneNumber: string;
@@ -15,6 +16,12 @@ export interface IStaff extends Document {
 
 const StaffSchema = new Schema<IStaff>(
   {
+    partnerId: {
+      type: String,
+      required: true,
+      index: true,
+      trim: true,
+    },
     staffName: {
       type: String,
       required: true,
@@ -62,6 +69,7 @@ const StaffSchema = new Schema<IStaff>(
 );
 
 // Indexes for better query performance
+StaffSchema.index({ partnerId: 1 });
 StaffSchema.index({ email: 1 });
 StaffSchema.index({ username: 1 });
 StaffSchema.index({ status: 1 });

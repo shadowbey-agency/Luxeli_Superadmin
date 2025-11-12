@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IBookingInternRequest extends Document {
+  partnerId: string; // Reference to Partner
   roomName: string;
   residentEmail: string;
   category: "spa/clubs" | "restaurant";
@@ -21,6 +22,12 @@ export interface IBookingInternRequest extends Document {
 
 const bookingInternRequestSchema = new Schema<IBookingInternRequest>(
   {
+    partnerId: {
+      type: String,
+      required: true,
+      index: true,
+      trim: true,
+    },
     roomName: { type: String, required: true },
     residentEmail: { type: String, required: true },
 
@@ -51,6 +58,11 @@ const bookingInternRequestSchema = new Schema<IBookingInternRequest>(
   },
   { timestamps: true } // auto adds createdAt and updatedAt
 );
+
+// Indexes for better query performance
+bookingInternRequestSchema.index({ partnerId: 1 });
+bookingInternRequestSchema.index({ status: 1 });
+bookingInternRequestSchema.index({ createdAt: -1 });
 
 // Avoid model overwrite error in dev
 if (

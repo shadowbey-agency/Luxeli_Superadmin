@@ -16,11 +16,14 @@ import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 import StatCard from "@/app/superadmin/components/stat-card"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
 import { getAuthToken } from "@/lib/auth-utils"
-import { QRCodeCanvas } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react"
+import * as XLSX from "xlsx"
+import { saveAs } from "file-saver"
 
 interface Room {
   id: string
   roomNumber: string
+  roomName: string
   hotelName: string
   roomType: string
   capacity: string
@@ -29,6 +32,8 @@ interface Room {
   dateAdded: string
   avatar: string
   resident?: string
+  residentEmail?: string
+  residentPhoneNo?: string
   checkIn?: string
   checkOut?: string
 }
@@ -36,6 +41,7 @@ interface Room {
 const mockRooms: Room[] = Array.from({ length: 15 }, (_, i) => ({
   id: `${i + 1}`,
   roomNumber: `${100 + i}`,
+  roomName: `Room ${100 + i}`,
   hotelName: "Hotel Name",
   roomType: i % 3 === 0 ? "Deluxe" : i % 3 === 1 ? "Suite" : "Standard",
   capacity: `${2 + (i % 3)}`,
@@ -76,6 +82,8 @@ export default function RoomPage() {
   const [roomToAssign, setRoomToAssign] = useState<Room | null>(null)
   // Assign room form state
   const [assignResident, setAssignResident] = useState("")
+  const [assignResidentEmail, setAssignResidentEmail] = useState("")
+  const [assignResidentPhoneNo, setAssignResidentPhoneNo] = useState("")
   const [assignCheckInDate, setAssignCheckInDate] = useState("")
   const [assignCheckInTime, setAssignCheckInTime] = useState("")
   const [assignCheckOutDate, setAssignCheckOutDate] = useState("")
@@ -101,6 +109,8 @@ export default function RoomPage() {
   const [selectedRooms, setSelectedRooms] = useState<Set<string>>(new Set())
   // Form state for full room details
   const [newResident, setNewResident] = useState("")
+  const [newResidentEmail, setNewResidentEmail] = useState("")
+  const [newResidentPhoneNo, setNewResidentPhoneNo] = useState("")
   const [newCheckInDate, setNewCheckInDate] = useState("")
   const [newCheckInTime, setNewCheckInTime] = useState("")
   const [newCheckOutDate, setNewCheckOutDate] = useState("")
@@ -144,6 +154,7 @@ export default function RoomPage() {
     return {
       id: apiRoom._id || apiRoom.id,
       roomNumber: apiRoom.roomId || apiRoom.roomName || '',
+      roomName: apiRoom.roomName || '',
       hotelName: "Hotel Name", // Could come from API if available
       roomType: "Standard", // Default
       capacity: "2", // Default
@@ -152,6 +163,8 @@ export default function RoomPage() {
       dateAdded: apiRoom.createdAt ? (formatDate(apiRoom.createdAt) || new Date().toLocaleDateString()) : new Date().toLocaleDateString(),
       avatar: (apiRoom.roomId || apiRoom.roomName || 'R').charAt(0).toUpperCase(),
       resident: apiRoom.resident || null,
+      residentEmail: apiRoom.residentEmail || null,
+      residentPhoneNo: apiRoom.residentPhoneNo || null,
       checkIn: formatDateTime(apiRoom.checkInDate, apiRoom.checkInTime),
       checkOut: formatDateTime(apiRoom.checkOutDate, apiRoom.checkOutTime),
     }
@@ -302,10 +315,49 @@ export default function RoomPage() {
     document.body.removeChild(downloadLink);
   };
 
+  // Export rooms to Excel
+  const handleExportRooms = () => {
+    if (!rooms || rooms.length === 0) {
+      alert("No room data available to export");
+      return;
+    }
+
+    // Prepare data for export - map room data to Excel format
+    const exportData = rooms.map((room) => ({
+      "Room ID": room.roomNumber || room.id,
+      "Room Name": `R${room.id}`,
+      "Status": room.status === "Available" ? "Empty" : "Full",
+      "The Resident": room.status === "Available" ? "-" : (room.resident || "-"),
+      "Check In": room.status === "Available" ? "-" : (room.checkIn || "-"),
+      "Check Out": room.status === "Available" ? "-" : (room.checkOut || "-"),
+    }));
+
+    // Create worksheet
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Rooms");
+
+    // Generate Excel file
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const blob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    // Download file
+    const fileName = `rooms-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+    saveAs(blob, fileName);
+  };
+
   const handleAssignRoom = (room: Room) => {
     setRoomToAssign(room)
     // Pre-fill form with existing data if room is already assigned
     setAssignResident(room.resident || "")
+    setAssignResidentEmail(room.residentEmail || "")
+    setAssignResidentPhoneNo(room.residentPhoneNo || "")
     setAssignCheckInDate(room.checkIn ? room.checkIn.split(',')[0] : "")
     setAssignCheckInTime(room.checkIn ? room.checkIn.split(',')[1]?.trim() || "" : "")
     setAssignCheckOutDate(room.checkOut ? room.checkOut.split(',')[0] : "")
@@ -318,6 +370,8 @@ export default function RoomPage() {
     setShowAssignModal(false)
     setRoomToAssign(null)
     setAssignResident("")
+    setAssignResidentEmail("")
+    setAssignResidentPhoneNo("")
     setAssignCheckInDate("")
     setAssignCheckInTime("")
     setAssignCheckOutDate("")
@@ -405,6 +459,8 @@ export default function RoomPage() {
         },
         body: JSON.stringify({
           resident: assignResident.trim(),
+          residentEmail: assignResidentEmail.trim() || null,
+          residentPhoneNo: assignResidentPhoneNo.trim() || null,
           checkInDate: assignCheckInDate || undefined, // HTML date input already returns ISO format (YYYY-MM-DD)
           checkInTime: assignCheckInTime || null,
           checkOutDate: assignCheckOutDate || null,
@@ -588,6 +644,8 @@ export default function RoomPage() {
     setNewRoomName("")
     setNewRoomStatus("Empty")
     setNewResident("")
+    setNewResidentEmail("")
+    setNewResidentPhoneNo("")
     setNewCheckInDate("")
     setNewCheckInTime("")
     setNewCheckOutDate("")
@@ -615,6 +673,8 @@ export default function RoomPage() {
           roomName: newRoomName.trim(),
           roomStatus: 'full',
           resident: newResident.trim() || null,
+          residentEmail: newResidentEmail.trim() || null,
+          residentPhoneNo: newResidentPhoneNo.trim() || null,
           checkInDate: newCheckInDate || null,
           checkInTime: newCheckInTime || null,
           checkOutDate: newCheckOutDate || null,
@@ -866,6 +926,7 @@ export default function RoomPage() {
                  Select all items
                </button>
                <button 
+                 onClick={handleExportRooms}
                  style={{ 
                    color: "#1F2A44", 
                    fontSize: "14px", 
@@ -975,7 +1036,11 @@ export default function RoomPage() {
                </div>
              </div>
 
-             <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
+             <button 
+               onClick={handleExportRooms}
+               className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" 
+               style={{ borderRadius: "6px" }}
+             >
                <svg
                  xmlns="http://www.w3.org/2000/svg"
                  width="14"
@@ -1123,7 +1188,7 @@ export default function RoomPage() {
                      fontWeight: "400",
                      lineHeight: "19.5px"
                    }}>
-                     {`R${room.id}`}
+                     {room.roomName || `R${room.id}`}
                    </td>
                    <td className="px-4 py-4">
                      <div
@@ -1481,31 +1546,74 @@ export default function RoomPage() {
       {/* Room QR Code Modal */}
       {showQRModal && roomForQR && (
         <div className="fixed inset-0 bg-black/40 bg-opacity-80 flex items-center justify-center z-50 " style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
-          <div className="bg-white rounded-lg  flex flex-col rounded-xl w-[500px] min-w-md items-center h-[350px]">
+          <div className="bg-white rounded-lg  flex flex-col rounded-xl w-[450px] min-w-md items-center">
+            {/* Heading */}
+            <div 
+              className="w-full flex items-center justify-center"
+              style={{
+                height: "32px",
+                gap: "10px",
+                paddingRight: "20px",
+                paddingLeft: "20px",
+                marginTop: "20px",
+                marginBottom: "0px",
+                opacity: 1
+              }}
+            >
+              <h3 
+                style={{
+                  fontWeight: 600,
+                  fontSize: "25px",
+                  lineHeight: "32px",
+                  letterSpacing: "0px",
+                  textAlign: "center",
+                  verticalAlign: "middle",
+                  color: "#1F1F1F"
+                }}
+              >
+                Room QR code
+              </h3>
+            </div>
 
           <div
-        className="flex items-center justify-center "
+        className="flex items-center justify-center relative"
         style={{
           width: "300px",
           height: "300px",
+          marginTop: "0px",
+          marginBottom: "20px",
           opacity: 1,
         }}
       >
-        {/* Real QR Code */}
-        <QRCodeCanvas
-          id="room-qr"
-          value={JSON.stringify({
-            roomNumber: roomForQR?.roomNumber,
-            resident: roomForQR?.resident,
-            checkIn: roomForQR?.checkIn,
-            checkOut: roomForQR?.checkOut,
-          })}
-          size={190}
-          bgColor="#ffffff"
-          fgColor="#000000"
-          level="H"
-          includeMargin={true}
-        />
+        {/* Union Icon Background */}
+        <div className="absolute inset-0 flex items-center justify-center" style={{ marginTop: '15px', marginBottom: '15px' }}>
+          <PublicIcon 
+            src="/assets/icons/Union.svg" 
+            alt="Union" 
+            width={250} 
+            height={250}
+            className="w-auto h-auto"
+          />
+        </div>
+        {/* QR Code inside Union Icon */}
+        <div className="relative z-10 flex items-center justify-center">
+          <QRCodeCanvas
+            id="room-qr"
+            value={JSON.stringify({
+              roomName: roomForQR?.roomName || "",
+              resident: roomForQR?.resident || "",
+              residentEmail: roomForQR?.residentEmail || "",
+              residentPhoneNo: roomForQR?.residentPhoneNo || "",
+              checkIn: roomForQR?.checkIn || "",
+              checkOut: roomForQR?.checkOut || "",
+            })}
+            size={220}
+            bgColor="#ffffff"
+            fgColor="#000000"
+            level="H"
+            includeMargin={true}
+          />
+        </div>
          </div>
          <div className="w-full">
 
@@ -1528,7 +1636,8 @@ export default function RoomPage() {
             className="bg-white flex flex-col"
             style={{
               width: "704px",
-              height: "443.1300048828125px",
+              height: "auto",
+              minHeight: "443.1300048828125px",
               top: "290.5px",
               left: "368px",
               opacity: 1,
@@ -1599,7 +1708,8 @@ export default function RoomPage() {
               className="flex flex-col border-b"
               style={{
                 width: "704px",
-                height: "272.0899963378906px",
+                height: "auto",
+                minHeight: "272.0899963378906px",
                 gap: "20px",
                 opacity: 1,
                 borderBottomWidth: "1px",
@@ -1613,7 +1723,8 @@ export default function RoomPage() {
                 className="flex flex-col"
                 style={{
                   width: "672px",
-                  height: "232.08999633789062px",
+                  height: "auto",
+                  minHeight: "232.08999633789062px",
                   gap: "20px",
                   opacity: 1,
                 }}
@@ -1714,7 +1825,102 @@ export default function RoomPage() {
                   </div>
                 </div>
 
-                {/* Second Row */}
+                {/* Second Row - Resident Email and Phone */}
+                <div
+                  className="flex justify-between"
+                  style={{
+                    width: "672px",
+                    height: "64.02999877929688px",
+                    justifyContent: "space-between",
+                    opacity: 1,
+                  }}
+                >
+                  {/* Resident Email */}
+                  <div
+                    className="flex flex-col"
+                    style={{
+                      width: "328px",
+                      height: "64.02999877929688px",
+                      opacity: 1,
+                    }}
+                  >
+                    <label
+                      className="text-sm font-medium mb-1"
+                      style={{
+                        height: "20px",
+                        fontWeight: 500,
+                        fontSize: "13px",
+                        lineHeight: "19.5px",
+                        color: "#212121",
+                      }}
+                    >
+                      Resident Email
+                    </label>
+                    <input
+                      type="email"
+                      value={assignResidentEmail}
+                      onChange={(e) => setAssignResidentEmail(e.target.value)}
+                      placeholder="Write Here..."
+                      className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                      style={{
+                        width: "326px",
+                        height: "35.040000915527344px",
+                        paddingTop: "7.52px",
+                        paddingRight: "12px",
+                        paddingBottom: "7.52px",
+                        paddingLeft: "12px",
+                        borderRadius: "4px",
+                        borderWidth: "1px",
+                        border: "1px solid #CED4DA",
+                        opacity: 1,
+                      }}
+                    />
+                  </div>
+
+                  {/* Resident Phone No */}
+                  <div
+                    className="flex flex-col"
+                    style={{
+                      width: "328px",
+                      height: "64.02999877929688px",
+                      opacity: 1,
+                    }}
+                  >
+                    <label
+                      className="text-sm font-medium mb-1"
+                      style={{
+                        height: "20px",
+                        fontWeight: 500,
+                        fontSize: "13px",
+                        lineHeight: "19.5px",
+                        color: "#212121",
+                      }}
+                    >
+                      Resident Phone No
+                    </label>
+                    <input
+                      type="tel"
+                      value={assignResidentPhoneNo}
+                      onChange={(e) => setAssignResidentPhoneNo(e.target.value)}
+                      placeholder="Write Here..."
+                      className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                      style={{
+                        width: "326px",
+                        height: "35.040000915527344px",
+                        paddingTop: "7.52px",
+                        paddingRight: "12px",
+                        paddingBottom: "7.52px",
+                        paddingLeft: "12px",
+                        borderRadius: "4px",
+                        borderWidth: "1px",
+                        border: "1px solid #CED4DA",
+                        opacity: 1,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Third Row */}
                 <div
                   className="flex justify-between"
                   style={{
@@ -1809,7 +2015,7 @@ export default function RoomPage() {
                   </div>
                 </div>
 
-                {/* Third Row */}
+                {/* Fourth Row */}
                 <div
                   className="flex justify-between"
                   style={{
@@ -2324,6 +2530,28 @@ export default function RoomPage() {
              placeholder="Write Here..."
              value={newResident}
              onChange={(e) => setNewResident(e.target.value)}
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+           />
+         </div>
+
+         {/* Second Row - Resident Email and Phone */}
+         <div className="flex flex-col gap-2">
+           <label className="text-sm font-medium text-gray-700">Resident Email</label>
+           <input
+             type="email"
+             placeholder="Write Here..."
+             value={newResidentEmail}
+             onChange={(e) => setNewResidentEmail(e.target.value)}
+             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+           />
+         </div>
+         <div className="flex flex-col gap-2">
+           <label className="text-sm font-medium text-gray-700">Resident Phone No</label>
+           <input
+             type="tel"
+             placeholder="Write Here..."
+             value={newResidentPhoneNo}
+             onChange={(e) => setNewResidentPhoneNo(e.target.value)}
              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
            />
          </div>

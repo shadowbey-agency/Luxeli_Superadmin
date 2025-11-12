@@ -1,21 +1,31 @@
 import { NextRequest } from 'next/server';
 import { PartnerMemberController } from '@/controllers/partner/PartnerMemberController';
-import { withAuth } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 
-export const GET = withAuth(async (request: NextRequest) => {
+export const GET = withAuth(async (request: AuthenticatedRequest) => {
   const { searchParams } = new URL(request.url);
+  const partnerId = getPartnerId(request);
   const query = {
     page: searchParams.get('page') || undefined,
     limit: searchParams.get('limit') || undefined,
     search: searchParams.get('search') || undefined,
     status: searchParams.get('status') || undefined,
+    partnerId: partnerId || undefined,
   };
 
   return await PartnerMemberController.getPartnerMembers(query);
 });
 
-export const POST = withAuth(async (request: NextRequest) => {
+export const POST = withAuth(async (request: AuthenticatedRequest) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return Response.json(
+        { success: false, error: 'Partner ID is required' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const {
       memberName,
@@ -62,6 +72,7 @@ export const POST = withAuth(async (request: NextRequest) => {
     }
 
     return await PartnerMemberController.createPartnerMember({
+      partnerId,
       memberName: memberName.trim(),
       email: email.toLowerCase().trim(),
       phoneNumber: phoneNumber.trim(),

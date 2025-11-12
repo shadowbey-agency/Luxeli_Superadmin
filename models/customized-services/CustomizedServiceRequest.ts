@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface ICustomizedServiceRequest extends Document {
+  partnerId: string; // Reference to Partner
   customId: string; // CSR0001, CSR0002, ...
   roomName: string;
   residentEmail: string;
@@ -18,7 +19,13 @@ export interface ICustomizedServiceRequest extends Document {
 
 const customizedServiceRequestSchema = new Schema<ICustomizedServiceRequest>(
   {
-    customId: { type: String, unique: true },
+    partnerId: {
+      type: String,
+      required: true,
+      index: true,
+      trim: true,
+    },
+    customId: { type: String },
     roomName: { type: String, required: true },
     residentEmail: { type: String, required: true },
     title: { type: String, required: true },
@@ -63,6 +70,12 @@ customizedServiceRequestSchema.pre("save", async function (next) {
   }
   next();
 });
+
+// Indexes for better query performance
+customizedServiceRequestSchema.index({ partnerId: 1 });
+customizedServiceRequestSchema.index({ partnerId: 1, customId: 1 }, { unique: true }); // Unique customId per partner
+customizedServiceRequestSchema.index({ status: 1 });
+customizedServiceRequestSchema.index({ createdAt: -1 });
 
 // Avoid model overwrite error in dev
 if (

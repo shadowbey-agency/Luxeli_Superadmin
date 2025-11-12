@@ -9,6 +9,8 @@ import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 import ViewLaundryModal from "@/app/partner/components/view-laundry-modal"
 import AssignStaffModal from "@/app/partner/components/assign-staff-modal"
 import { getAuthToken } from "@/lib/auth-utils"
+import * as XLSX from "xlsx"
+import { saveAs } from "file-saver"
 
 interface LaundryRequest {
   _id: string
@@ -313,6 +315,45 @@ export default function LaundryRequestsPage() {
     }
   }
 
+  // Export laundry requests to Excel
+  const handleExportRequests = () => {
+    if (!requests || requests.length === 0) {
+      alert("No request data available to export")
+      return
+    }
+
+    const exportData = requests.map((request) => {
+      const mapped = mapApiRequestToUI(request, 0)
+      return {
+        "ID": mapped.id,
+        "Room": mapped.room,
+        "Guest": mapped.guest,
+        "Piece": mapped.piece,
+        "Pick Up": mapped.pickup,
+        "Created": mapped.created,
+        "Status": mapped.status.charAt(0).toUpperCase() + mapped.status.slice(1),
+        "Priority": mapped.priority.charAt(0).toUpperCase() + mapped.priority.slice(1),
+        "Assignee": mapped.hasAssignee ? mapped.assignee : "-",
+      }
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Laundry Requests")
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    })
+
+    const blob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    })
+
+    const fileName = `laundry-requests-export-${new Date().toISOString().split('T')[0]}.xlsx`
+    saveAs(blob, fileName)
+  }
+
 
   const tabs = [
     {
@@ -506,7 +547,11 @@ export default function LaundryRequestsPage() {
               </button>
               
               {/* Export button */}
-              <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
+              <button 
+                onClick={handleExportRequests}
+                className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" 
+                style={{ borderRadius: "6px" }}
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="14"

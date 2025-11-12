@@ -2,6 +2,7 @@ import mongoose, { Document, Schema } from "mongoose";
 
 export interface IRoomHistory extends Document {
   _id: string;
+  partnerId: string; // Reference to Partner
   roomId: string; // Reference to the room
   roomName: string; // Room name at time of assignment
   resident: string;
@@ -16,6 +17,12 @@ export interface IRoomHistory extends Document {
 
 const RoomHistorySchema = new Schema<IRoomHistory>(
   {
+    partnerId: {
+      type: String,
+      required: true,
+      index: true,
+      trim: true,
+    },
     roomId: {
       type: String,
       required: true,
@@ -57,7 +64,8 @@ const RoomHistorySchema = new Schema<IRoomHistory>(
   { timestamps: true }
 );
 
-// Index on roomId for faster queries
+// Indexes for faster queries
+RoomHistorySchema.index({ partnerId: 1 });
 RoomHistorySchema.index({ roomId: 1 });
 RoomHistorySchema.index({ createdAt: -1 });
 

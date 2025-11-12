@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 
 export interface IPartnerMember extends Document {
   comparePassword(enteredPassword: string): Promise<boolean>;
+  partnerId: string; // Reference to Partner
   memberName: string;
   email: string;
   phoneNumber: string;
@@ -56,6 +57,12 @@ export interface IPartnerMember extends Document {
 
 const PartnerMemberSchema = new Schema<IPartnerMember>(
   {
+    partnerId: {
+      type: String,
+      required: true,
+      index: true,
+      trim: true,
+    },
     memberName: {
       type: String,
       required: true,
@@ -138,6 +145,7 @@ const PartnerMemberSchema = new Schema<IPartnerMember>(
 );
 
 // Indexes for better query performance
+PartnerMemberSchema.index({ partnerId: 1 });
 PartnerMemberSchema.index({ email: 1 });
 PartnerMemberSchema.index({ username: 1 });
 PartnerMemberSchema.index({ status: 1 });

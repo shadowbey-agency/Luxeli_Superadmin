@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IInRoomDeliveryRequest extends Document {
+  partnerId: string; // Reference to Partner
   requestId: string; // Auto-generated like IRD0001
   roomName: string;
   residentialName: string;
@@ -20,9 +21,14 @@ export interface IInRoomDeliveryRequest extends Document {
 
 const inRoomDeliverySchema = new Schema<IInRoomDeliveryRequest>(
   {
+    partnerId: {
+      type: String,
+      required: true,
+      index: true,
+      trim: true,
+    },
     requestId: {
       type: String,
-      unique: true,
     },
     roomName: {
       type: String,
@@ -84,6 +90,12 @@ inRoomDeliverySchema.pre<IInRoomDeliveryRequest>("save", async function (next) {
   this.requestId = newId;
   next();
 });
+
+// Indexes for better query performance
+inRoomDeliverySchema.index({ partnerId: 1 });
+inRoomDeliverySchema.index({ partnerId: 1, requestId: 1 }, { unique: true }); // Unique requestId per partner
+inRoomDeliverySchema.index({ status: 1 });
+inRoomDeliverySchema.index({ createdAt: -1 });
 
 export const InRoomDeliveryRequest =
   mongoose.models.InRoomDeliveryRequest ||

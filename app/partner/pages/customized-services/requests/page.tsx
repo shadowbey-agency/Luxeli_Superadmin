@@ -8,6 +8,8 @@ import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 import ViewCustomizedServiceModal from "@/app/partner/components/view-customized-service-modal"
 import AssignStaffModal from "@/app/partner/components/assign-staff-modal"
 import { getAuthToken } from "@/lib/auth-utils"
+import * as XLSX from "xlsx"
+import { saveAs } from "file-saver"
 
 interface CustomizedServiceRequest {
   _id: string
@@ -242,6 +244,44 @@ export default function CustomizedServicesRequestsPage() {
     }
   }
 
+  // Export customized service requests to Excel
+  const handleExportRequests = () => {
+    if (!requests || requests.length === 0) {
+      alert("No request data available to export")
+      return
+    }
+
+    const exportData = requests.map((request) => {
+      const statusColors = getStatusColors(request.status)
+      return {
+        "ID": request.customId || `#${request._id.substring(request._id.length - 6).toUpperCase()}`,
+        "Room": request.roomName,
+        "Guest": request.residentEmail,
+        "Title": request.title,
+        "Description": request.description || "-",
+        "Created": formatDate(request.createdAt),
+        "Status": request.status.charAt(0).toUpperCase() + request.status.slice(1),
+        "Assignee": request.assignee?.name || "-",
+      }
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Customized Services")
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    })
+
+    const blob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    })
+
+    const fileName = `customized-services-export-${new Date().toISOString().split('T')[0]}.xlsx`
+    saveAs(blob, fileName)
+  }
+
 
 
   return (
@@ -363,7 +403,11 @@ export default function CustomizedServicesRequestsPage() {
               </button>
               
               {/* Export button */}
-              <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
+              <button 
+                onClick={handleExportRequests}
+                className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" 
+                style={{ borderRadius: "6px" }}
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="14"

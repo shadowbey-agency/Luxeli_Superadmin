@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PartnerMemberController } from '@/controllers/partner/PartnerMemberController';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 
 export const GET = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -21,7 +22,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest, context?: { pa
       );
     }
 
-    return await PartnerMemberController.getPartnerMemberById(id);
+    return await PartnerMemberController.getPartnerMemberById(id, partnerId || undefined);
   } catch (error: any) {
     console.error('Get Member API Error:', error);
     return NextResponse.json(
@@ -77,7 +78,9 @@ export const PUT = withAuth(async (request: AuthenticatedRequest, context?: { pa
       );
     }
 
+    const partnerId = getPartnerId(request);
     return await PartnerMemberController.updatePartnerMember(id, {
+      partnerId: partnerId || undefined,
       memberName,
       email,
       phoneNumber,
@@ -115,7 +118,8 @@ export const DELETE = withAuth(async (request: AuthenticatedRequest, context?: {
       );
     }
 
-    return await PartnerMemberController.deletePartnerMember(id);
+    const partnerId = getPartnerId(request);
+    return await PartnerMemberController.deletePartnerMember(id, partnerId || undefined);
   } catch (error: any) {
     console.error('Delete Member API Error:', error);
     return NextResponse.json(

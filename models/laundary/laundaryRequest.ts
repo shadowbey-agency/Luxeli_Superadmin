@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document, model, models } from "mongoose";
 
 export interface ILaundryRequest extends Document {
+  partnerId: string; // Reference to Partner
   service: string;
   roomName: string;
   residentialName: string;
@@ -21,6 +22,12 @@ export interface ILaundryRequest extends Document {
 
 const LaundryRequestSchema: Schema = new Schema(
   {
+    partnerId: {
+      type: String,
+      required: true,
+      index: true,
+      trim: true,
+    },
     service: { type: String, default: "laundry" },
     roomName: { type: String, required: true },
     residentialName: { type: String, required: true },
@@ -48,6 +55,11 @@ const LaundryRequestSchema: Schema = new Schema(
   },
   { timestamps: true }
 );
+
+// Indexes for better query performance
+LaundryRequestSchema.index({ partnerId: 1 });
+LaundryRequestSchema.index({ status: 1 });
+LaundryRequestSchema.index({ createdAt: -1 });
 
 // 🔹 Use existing model if it exists
 const LaundryRequest =

@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IHousekeepingRequest extends Document {
+  partnerId: string; // Reference to Partner
   roomId: string;
   roomName: string;
   guest: {
@@ -35,6 +36,12 @@ export interface IHousekeepingRequest extends Document {
 
 const housekeepingRequestSchema = new Schema<IHousekeepingRequest>(
   {
+    partnerId: {
+      type: String,
+      required: true,
+      index: true,
+      trim: true,
+    },
     roomId: { type: String, required: true },
     roomName: { type: String, required: true },
     guest: {
@@ -79,6 +86,11 @@ const housekeepingRequestSchema = new Schema<IHousekeepingRequest>(
   },
   { timestamps: true }
 );
+
+// Indexes for better query performance
+housekeepingRequestSchema.index({ partnerId: 1 });
+housekeepingRequestSchema.index({ status: 1 });
+housekeepingRequestSchema.index({ createdAt: -1 });
 
 // ✅ Avoid re-compiling model in dev (hot reload)
 if (process.env.NODE_ENV !== "production" && mongoose.models.HousekeepingRequest) {

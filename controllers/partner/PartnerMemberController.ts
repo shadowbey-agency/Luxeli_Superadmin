@@ -13,6 +13,7 @@ export class PartnerMemberController {
     limit?: string;
     search?: string;
     status?: string;
+    partnerId?: string;
   }) {
     try {
       await connectDB();
@@ -23,6 +24,11 @@ export class PartnerMemberController {
 
       // Build filter object
       const filter: any = {};
+      
+      // Always filter by partnerId if provided
+      if (query.partnerId) {
+        filter.partnerId = query.partnerId;
+      }
       
       if (query.search) {
         filter.$or = [
@@ -67,11 +73,16 @@ export class PartnerMemberController {
   /**
    * Get partner member by ID
    */
-  static async getPartnerMemberById(memberId: string) {
+  static async getPartnerMemberById(memberId: string, partnerId?: string) {
     try {
       await connectDB();
 
-      const member = await PartnerMember.findById(memberId);
+      const filter: any = { _id: memberId };
+      if (partnerId) {
+        filter.partnerId = partnerId;
+      }
+
+      const member = await PartnerMember.findOne(filter);
       if (!member) {
         return NextResponse.json(
           { success: false, error: 'Partner member not found' },
@@ -94,6 +105,7 @@ export class PartnerMemberController {
    * Create new partner member
    */
   static async createPartnerMember(data: {
+    partnerId: string;
     memberName: string;
     email: string;
     phoneNumber: string;
@@ -145,8 +157,9 @@ export class PartnerMemberController {
     try {
       await connectDB();
 
-      // Check if member with email or username already exists
+      // Check if member with email or username already exists for this partner
       const existingMember = await PartnerMember.findOne({
+        partnerId: data.partnerId,
         $or: [
           { email: data.email.toLowerCase() },
           { username: data.username }
@@ -165,6 +178,7 @@ export class PartnerMemberController {
 
       // Create new partner member
       const member = new PartnerMember({
+        partnerId: data.partnerId,
         memberName: data.memberName.trim(),
         email: data.email.toLowerCase().trim(),
         phoneNumber: data.phoneNumber.trim(),
@@ -192,6 +206,7 @@ export class PartnerMemberController {
    * Update partner member
    */
   static async updatePartnerMember(memberId: string, data: {
+    partnerId?: string;
     memberName?: string;
     email?: string;
     phoneNumber?: string;
@@ -243,7 +258,12 @@ export class PartnerMemberController {
     try {
       await connectDB();
 
-      const member = await PartnerMember.findById(memberId);
+      const filter: any = { _id: memberId };
+      if (data.partnerId) {
+        filter.partnerId = data.partnerId;
+      }
+
+      const member = await PartnerMember.findOne(filter);
       if (!member) {
         return NextResponse.json(
           { success: false, error: 'Partner member not found' },
@@ -253,13 +273,15 @@ export class PartnerMemberController {
 
       // Check if email or username is being changed and if it conflicts
       if (data.email || data.username) {
-        const existingMember = await PartnerMember.findOne({
+        const conflictFilter: any = {
           _id: { $ne: memberId },
+          partnerId: data.partnerId || member.partnerId,
           $or: [
             ...(data.email ? [{ email: data.email.toLowerCase() }] : []),
             ...(data.username ? [{ username: data.username }] : []),
           ]
-        });
+        };
+        const existingMember = await PartnerMember.findOne(conflictFilter);
 
         if (existingMember) {
           return NextResponse.json(
@@ -386,11 +408,16 @@ export class PartnerMemberController {
   /**
    * Delete partner member
    */
-  static async deletePartnerMember(memberId: string) {
+  static async deletePartnerMember(memberId: string, partnerId?: string) {
     try {
       await connectDB();
 
-      const member = await PartnerMember.findById(memberId);
+      const filter: any = { _id: memberId };
+      if (partnerId) {
+        filter.partnerId = partnerId;
+      }
+
+      const member = await PartnerMember.findOne(filter);
       if (!member) {
         return NextResponse.json(
           { success: false, error: 'Partner member not found' },
@@ -398,7 +425,7 @@ export class PartnerMemberController {
         );
       }
 
-      await PartnerMember.findByIdAndDelete(memberId);
+      await PartnerMember.findOneAndDelete(filter);
 
       return NextResponse.json({
         success: true,
@@ -412,12 +439,17 @@ export class PartnerMemberController {
   /**
    * Update partner member status (toggle active/disable)
    */
-  static async updatePartnerMemberStatus(memberId: string, status: "active" | "disable") {
+  static async updatePartnerMemberStatus(memberId: string, status: "active" | "disable", partnerId?: string) {
     try {
       await connectDB();
 
-      const member = await PartnerMember.findByIdAndUpdate(
-        memberId,
+      const filter: any = { _id: memberId };
+      if (partnerId) {
+        filter.partnerId = partnerId;
+      }
+
+      const member = await PartnerMember.findOneAndUpdate(
+        filter,
         { status },
         { new: true }
       );
