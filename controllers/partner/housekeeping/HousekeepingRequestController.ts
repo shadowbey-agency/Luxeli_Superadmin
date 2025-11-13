@@ -15,7 +15,7 @@ export class HousekeepingRequestController {
     type?: string;
     priority?: string;
     roomId?: string;
-  }) {
+  }, partnerId: string) {
     try {
       await connectDB();
 
@@ -23,8 +23,8 @@ export class HousekeepingRequestController {
       const limit = parseInt(query.limit || '20', 10);
       const skip = (page - 1) * limit;
 
-      // Build filter object
-      const filter: any = {};
+      // Build filter object - always filter by partnerId
+      const filter: any = { partnerId };
       
       if (query.search) {
         filter.$or = [
@@ -128,7 +128,7 @@ export class HousekeepingRequestController {
       profilePic?: string;
     };
     notes?: string;
-  }) {
+  }, partnerId: string) {
     try {
       await connectDB();
 
@@ -138,6 +138,17 @@ export class HousekeepingRequestController {
           { 
             success: false, 
             error: 'roomId, roomName, guest.name, and type are required' 
+          },
+          { status: 400 }
+        );
+      }
+
+      // Validate type enum
+      if (data.type !== "custom cleaning" && data.type !== "item needed") {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: `Invalid type: "${data.type}". Type must be either "custom cleaning" or "item needed"` 
           },
           { status: 400 }
         );
@@ -184,6 +195,7 @@ export class HousekeepingRequestController {
 
       // Create new request
       const request = new HousekeepingRequest({
+        partnerId: partnerId,
         roomId: data.roomId.trim(),
         roomName: data.roomName.trim(),
         guest: {
