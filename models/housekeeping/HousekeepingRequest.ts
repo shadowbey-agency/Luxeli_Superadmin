@@ -4,6 +4,7 @@ export interface IHousekeepingRequest extends Document {
   partnerId: string; // Reference to Partner
   roomId: string;
   roomName: string;
+  userId?: string; // Reference to Guest user (optional for backward compatibility)
   guest: {
     name: string;
     email?: string;
@@ -43,6 +44,11 @@ const housekeepingRequestSchema = new Schema<IHousekeepingRequest>(
     },
     roomId: { type: String, required: true },
     roomName: { type: String, required: true },
+    userId: { 
+      type: String, 
+      trim: true,
+      index: true,
+    },
     guest: {
       name: { type: String, required: true },
       email: String,

@@ -9,8 +9,12 @@ export interface TokenPayload {
   userId: string;
   email: string;
   role: string;
-  userType?: 'superadmin' | 'member' | 'partner';
+  userType?: 'superadmin' | 'member' | 'partner' | 'guest';
   permissions?: string[];
+  // Guest-specific fields
+  partnerId?: string;
+  roomId?: string;
+  roomName?: string;
 }
 
 /**
@@ -55,4 +59,29 @@ export function extractTokenFromHeader(authHeader: string | undefined): string |
     return null;
   }
   return authHeader.substring(7);
+}
+
+/**
+ * Generate guest token with room and partner info
+ */
+export function generateGuestToken(payload: {
+  userId: string;
+  guestName: string;
+  guestEmail?: string;
+  partnerId: string;
+  roomId: string;
+  roomName: string;
+}): string {
+  const tokenPayload: TokenPayload = {
+    userId: payload.userId,
+    email: payload.guestEmail || '',
+    role: 'guest',
+    userType: 'guest',
+    partnerId: payload.partnerId,
+    roomId: payload.roomId,
+    roomName: payload.roomName,
+  };
+  
+  const options = { expiresIn: JWT_EXPIRES_IN } as any;
+  return jwt.sign(tokenPayload as object, JWT_SECRET as Secret, options);
 }

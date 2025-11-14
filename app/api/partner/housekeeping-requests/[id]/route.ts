@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HousekeepingRequestController } from '@/controllers/partner/housekeeping/HousekeepingRequestController';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 
 // GET /api/partner/housekeeping-requests/[id] - Get single housekeeping request
 export const GET = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found in token' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -22,7 +30,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest, context?: { pa
       );
     }
 
-    return await HousekeepingRequestController.getRequestById(id);
+    return await HousekeepingRequestController.getRequestById(id, partnerId);
   } catch (error: any) {
     console.error('Get Housekeeping Request API Error:', error);
     return NextResponse.json(
@@ -35,6 +43,14 @@ export const GET = withAuth(async (request: AuthenticatedRequest, context?: { pa
 // PATCH /api/partner/housekeeping-requests/[id] - Update housekeeping request
 export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found in token' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -53,7 +69,7 @@ export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { 
     }
 
     const body = await request.json();
-    return await HousekeepingRequestController.updateRequest(id, body);
+    return await HousekeepingRequestController.updateRequest(id, partnerId, body);
   } catch (error: any) {
     console.error('Update Housekeeping Request API Error:', error);
     return NextResponse.json(
@@ -66,6 +82,14 @@ export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { 
 // DELETE /api/partner/housekeeping-requests/[id] - Delete housekeeping request
 export const DELETE = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found in token' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -83,7 +107,7 @@ export const DELETE = withAuth(async (request: AuthenticatedRequest, context?: {
       );
     }
 
-    return await HousekeepingRequestController.deleteRequest(id);
+    return await HousekeepingRequestController.deleteRequest(id, partnerId);
   } catch (error: any) {
     console.error('Delete Housekeeping Request API Error:', error);
     return NextResponse.json(

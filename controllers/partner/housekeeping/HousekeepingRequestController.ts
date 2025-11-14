@@ -81,7 +81,7 @@ export class HousekeepingRequestController {
   /**
    * Get a single housekeeping request by ID
    */
-  static async getRequestById(requestId: string) {
+  static async getRequestById(requestId: string, partnerId: string) {
     try {
       await connectDB();
 
@@ -90,6 +90,14 @@ export class HousekeepingRequestController {
         return NextResponse.json(
           { success: false, error: 'Housekeeping request not found' },
           { status: 404 }
+        );
+      }
+
+      // Verify request belongs to this partner
+      if (request.partnerId !== partnerId) {
+        return NextResponse.json(
+          { success: false, error: 'You do not have permission to view this request' },
+          { status: 403 }
         );
       }
 
@@ -229,7 +237,7 @@ export class HousekeepingRequestController {
   /**
    * Update a housekeeping request by ID
    */
-  static async updateRequest(requestId: string, data: {
+  static async updateRequest(requestId: string, partnerId: string, data: {
     roomId?: string;
     roomName?: string;
     guest?: {
@@ -261,6 +269,14 @@ export class HousekeepingRequestController {
         return NextResponse.json(
           { success: false, error: 'Housekeeping request not found' },
           { status: 404 }
+        );
+      }
+
+      // Verify request belongs to this partner
+      if (request.partnerId !== partnerId) {
+        return NextResponse.json(
+          { success: false, error: 'You do not have permission to update this request' },
+          { status: 403 }
         );
       }
 
@@ -308,17 +324,29 @@ export class HousekeepingRequestController {
   /**
    * Delete a housekeeping request by ID
    */
-  static async deleteRequest(requestId: string) {
+  static async deleteRequest(requestId: string, partnerId: string) {
     try {
       await connectDB();
 
-      const request = await HousekeepingRequest.findByIdAndDelete(requestId);
+      // First fetch the request to verify ownership
+      const request = await HousekeepingRequest.findById(requestId);
       if (!request) {
         return NextResponse.json(
           { success: false, error: 'Housekeeping request not found' },
           { status: 404 }
         );
       }
+
+      // Verify request belongs to this partner
+      if (request.partnerId !== partnerId) {
+        return NextResponse.json(
+          { success: false, error: 'You do not have permission to delete this request' },
+          { status: 403 }
+        );
+      }
+
+      // Delete the request
+      await HousekeepingRequest.findByIdAndDelete(requestId);
 
       return NextResponse.json({
         success: true,
@@ -332,22 +360,31 @@ export class HousekeepingRequestController {
   /**
    * Update housekeeping request status
    */
-  static async updateRequestStatus(requestId: string, status: "new" | "accepted" | "completed" | "no-show" | "canceled") {
+  static async updateRequestStatus(requestId: string, partnerId: string, status: "new" | "accepted" | "completed" | "no-show" | "canceled") {
     try {
       await connectDB();
 
-      const request = await HousekeepingRequest.findByIdAndUpdate(
-        requestId,
-        { status },
-        { new: true }
-      );
-
+      // First fetch the request to verify ownership
+      const request = await HousekeepingRequest.findById(requestId);
+      
       if (!request) {
         return NextResponse.json(
           { success: false, error: 'Housekeeping request not found' },
           { status: 404 }
         );
       }
+
+      // Verify request belongs to this partner
+      if (request.partnerId !== partnerId) {
+        return NextResponse.json(
+          { success: false, error: 'You do not have permission to update this request' },
+          { status: 403 }
+        );
+      }
+
+      // Update the status
+      request.status = status;
+      await request.save();
 
       return NextResponse.json({
         success: true,
@@ -363,7 +400,7 @@ export class HousekeepingRequestController {
   /**
    * Assign staff to a housekeeping request
    */
-  static async assignStaff(requestId: string, assignee: {
+  static async assignStaff(requestId: string, partnerId: string, assignee: {
     name: string;
     staffId: string;
     profilePic?: string;
@@ -371,21 +408,28 @@ export class HousekeepingRequestController {
     try {
       await connectDB();
 
-      const request = await HousekeepingRequest.findByIdAndUpdate(
-        requestId,
-        { 
-          assignee,
-          status: 'accepted' // Auto-update status to accepted when assigned
-        },
-        { new: true }
-      );
-
+      // First fetch the request to verify ownership
+      const request = await HousekeepingRequest.findById(requestId);
+      
       if (!request) {
         return NextResponse.json(
           { success: false, error: 'Housekeeping request not found' },
           { status: 404 }
         );
       }
+
+      // Verify request belongs to this partner
+      if (request.partnerId !== partnerId) {
+        return NextResponse.json(
+          { success: false, error: 'You do not have permission to assign staff to this request' },
+          { status: 403 }
+        );
+      }
+
+      // Update assignee and status
+      request.assignee = assignee;
+      request.status = 'accepted'; // Auto-update status to accepted when assigned
+      await request.save();
 
       return NextResponse.json({
         success: true,

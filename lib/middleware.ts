@@ -116,6 +116,71 @@ export function getPartnerId(request: AuthenticatedRequest): string | null {
 }
 
 /**
+ * Middleware to protect guest/user API routes
+ * Verifies guest JWT token
+ */
+export function withGuestAuth(
+  handler: (
+    req: AuthenticatedRequest,
+    context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }
+  ) => Promise<NextResponse>
+) {
+  return async (
+    req: NextRequest,
+    context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }
+  ): Promise<NextResponse> => {
+    try {
+      const authHeader = req.headers.get('authorization');
+      const token = authHeader?.replace('Bearer ', '');
+
+      if (!token) {
+        return NextResponse.json(
+          { error: 'Access token required' },
+          { status: 401 }
+        );
+      }
+
+      const payload = verifyToken(token);
+      if (!payload) {
+        return NextResponse.json(
+          { error: 'Invalid or expired token' },
+          { status: 401 }
+        );
+      }
+
+      // Verify user type is guest
+      if (payload.userType !== 'guest') {
+        return NextResponse.json(
+          { error: 'Guest access required' },
+          { status: 403 }
+        );
+      }
+
+      // Verify guest has required fields
+      if (!payload.partnerId || !payload.roomId) {
+        return NextResponse.json(
+          { error: 'Invalid guest token. Missing partner or room information.' },
+          { status: 401 }
+        );
+      }
+
+      // Add user info to request
+      const authenticatedReq = req as AuthenticatedRequest;
+      authenticatedReq.user = payload;
+
+      // Pass through params if provided
+      return handler(authenticatedReq, context);
+    } catch (error) {
+      console.error('Guest auth middleware error:', error);
+      return NextResponse.json(
+        { error: 'Authentication failed' },
+        { status: 401 }
+      );
+    }
+  };
+}
+
+/**
  * Error handler utility
  */
 export function handleApiError(error: any, message: string = 'Internal server error') {

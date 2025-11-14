@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Room from '@/models/Room';
 import RoomHistory from '@/models/RoomHistory';
+import Guest from '@/models/Guest';
 import { handleApiError } from '@/lib/middleware';
 
 export class RoomController {
@@ -19,12 +20,34 @@ export class RoomController {
       const limit = parseInt(query.limit || '20', 10);
       const skip = (page - 1) * limit;
 
-      const [items, total] = await Promise.all([
+      const [rooms, total] = await Promise.all([
         Room.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
         Room.countDocuments({}),
       ]);
 
-      return NextResponse.json({ items, total, page, limit });
+      // For each room, fetch the active guest if any
+      const roomsWithGuests = await Promise.all(
+        rooms.map(async (room) => {
+          const guest = await Guest.findOne({
+            roomId: room._id.toString(),
+            isActive: true, // Only show active guests
+          }).lean();
+
+          return {
+            ...room,
+            guest: guest ? {
+              _id: guest._id,
+              guestName: guest.guestName,
+              guestEmail: guest.guestEmail,
+              guestPhone: guest.guestPhone,
+              checkInDate: guest.checkInDate,
+              checkOutDate: guest.checkOutDate,
+            } : null,
+          };
+        })
+      );
+
+      return NextResponse.json({ items: roomsWithGuests, total, page, limit });
     } catch (error: any) {
       return handleApiError(error, 'Failed to fetch rooms');
     }
@@ -50,46 +73,23 @@ export class RoomController {
   /**
    * Create a new room
    */
-  static async createRoom(body: {
+  static async createRoom(partnerId: string, body: {
     roomName: string;
     roomStatus?: 'full' | 'empty';
-    resident?: string | null;
-    residentEmail?: string | null;
-    residentPhoneNo?: string | null;
-    checkInDate?: string | null;
-    checkInTime?: string | null;
-    checkOutDate?: string | null;
-    checkOutTime?: string | null;
   }) {
     try {
       await connectDB();
 
-      const {
-        roomName,
-        roomStatus,
-        resident,
-        residentEmail,
-        residentPhoneNo,
-        checkInDate,
-        checkInTime,
-        checkOutDate,
-        checkOutTime,
-      } = body;
+      const { roomName, roomStatus } = body;
 
       if (!roomName || typeof roomName !== 'string') {
         return NextResponse.json({ error: 'roomName is required' }, { status: 400 });
       }
 
       const newRoom = new Room({
+        partnerId,
         roomName: roomName.trim(),
         roomStatus: roomStatus === 'full' ? 'full' : 'empty',
-        resident: resident?.trim?.() || null,
-        residentEmail: residentEmail?.trim?.() || null,
-        residentPhoneNo: residentPhoneNo?.trim?.() || null,
-        checkInDate: checkInDate ? new Date(checkInDate) : null,
-        checkInTime: checkInTime || null,
-        checkOutDate: checkOutDate ? new Date(checkOutDate) : null,
-        checkOutTime: checkOutTime || null,
       });
 
       await newRoom.save();
@@ -105,13 +105,6 @@ export class RoomController {
   static async updateRoom(id: string, body: {
     roomName?: string;
     roomStatus?: 'full' | 'empty' | string;
-    resident?: string | null;
-    residentEmail?: string | null;
-    residentPhoneNo?: string | null;
-    checkInDate?: string | null;
-    checkInTime?: string | null;
-    checkOutDate?: string | null;
-    checkOutTime?: string | null;
   }) {
     try {
       await connectDB();
@@ -119,13 +112,6 @@ export class RoomController {
       const update: any = {};
       if (typeof body.roomName === 'string') update.roomName = body.roomName.trim();
       if (typeof body.roomStatus === 'string') update.roomStatus = body.roomStatus === 'full' ? 'full' : 'empty';
-      if (typeof body.resident === 'string' || body.resident === null) update.resident = body.resident ?? null;
-      if (typeof body.residentEmail === 'string' || body.residentEmail === null) update.residentEmail = body.residentEmail?.trim() || null;
-      if (typeof body.residentPhoneNo === 'string' || body.residentPhoneNo === null) update.residentPhoneNo = body.residentPhoneNo?.trim() || null;
-      if (body.checkInDate !== undefined) update.checkInDate = body.checkInDate ? new Date(body.checkInDate) : null;
-      if (body.checkInTime !== undefined) update.checkInTime = body.checkInTime || null;
-      if (body.checkOutDate !== undefined) update.checkOutDate = body.checkOutDate ? new Date(body.checkOutDate) : null;
-      if (body.checkOutTime !== undefined) update.checkOutTime = body.checkOutTime || null;
 
       const room = await Room.findByIdAndUpdate(id, update, { new: true });
       if (!room) {
@@ -143,13 +129,6 @@ export class RoomController {
   static async updateRoomByName(originalRoomName: string, body: {
     roomName?: string;
     roomStatus?: 'full' | 'empty' | string;
-    resident?: string | null;
-    residentEmail?: string | null;
-    residentPhoneNo?: string | null;
-    checkInDate?: string | null;
-    checkInTime?: string | null;
-    checkOutDate?: string | null;
-    checkOutTime?: string | null;
   }) {
     try {
       await connectDB();
@@ -157,13 +136,6 @@ export class RoomController {
       const update: any = {};
       if (typeof body.roomName === 'string') update.roomName = body.roomName.trim();
       if (typeof body.roomStatus === 'string') update.roomStatus = body.roomStatus === 'full' ? 'full' : 'empty';
-      if (typeof body.resident === 'string' || body.resident === null) update.resident = body.resident ?? null;
-      if (typeof body.residentEmail === 'string' || body.residentEmail === null) update.residentEmail = body.residentEmail?.trim() || null;
-      if (typeof body.residentPhoneNo === 'string' || body.residentPhoneNo === null) update.residentPhoneNo = body.residentPhoneNo?.trim() || null;
-      if (body.checkInDate !== undefined) update.checkInDate = body.checkInDate ? new Date(body.checkInDate) : null;
-      if (body.checkInTime !== undefined) update.checkInTime = body.checkInTime || null;
-      if (body.checkOutDate !== undefined) update.checkOutDate = body.checkOutDate ? new Date(body.checkOutDate) : null;
-      if (body.checkOutTime !== undefined) update.checkOutTime = body.checkOutTime || null;
 
       const room = await Room.findOneAndUpdate(
         { roomName: originalRoomName.trim() },
@@ -196,101 +168,6 @@ export class RoomController {
     }
   }
 
-  /**
-   * Assign a resident to a room (sets room to full)
-   */
-  static async assignRoom(id: string, body: {
-    resident: string;
-    residentEmail?: string | null;
-    residentPhoneNo?: string | null;
-    checkInDate?: string;
-    checkInTime?: string | null;
-    checkOutDate?: string | null;
-    checkOutTime?: string | null;
-  }) {
-    try {
-      await connectDB();
-
-      const { resident, residentEmail, residentPhoneNo, checkInDate, checkInTime, checkOutDate, checkOutTime } = body;
-
-      if (!resident || typeof resident !== 'string') {
-        return NextResponse.json({ error: 'resident is required' }, { status: 400 });
-      }
-
-      const update = {
-        roomStatus: 'full' as const,
-        resident: resident.trim(),
-        residentEmail: residentEmail?.trim() || null,
-        residentPhoneNo: residentPhoneNo?.trim() || null,
-        checkInDate: checkInDate ? new Date(checkInDate) : new Date(),
-        checkInTime: checkInTime || null,
-        checkOutDate: checkOutDate ? new Date(checkOutDate) : null,
-        checkOutTime: checkOutTime || null,
-      };
-
-      const room = await Room.findByIdAndUpdate(id, update, { new: true });
-      if (!room) {
-        return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-      }
-      return NextResponse.json({ success: true, room: room.toObject() });
-    } catch (error: any) {
-      return handleApiError(error, 'Failed to assign room');
-    }
-  }
-
-  /**
-   * Unassign a room (save current assignment to history and clear room)
-   */
-  static async unassignRoom(id: string) {
-    try {
-      await connectDB();
-
-      // Get the current room data
-      const room = await Room.findById(id);
-      if (!room) {
-        return NextResponse.json({ error: 'Room not found' }, { status: 404 });
-      }
-
-      // Only unassign if room is currently assigned
-      if (room.roomStatus !== 'full' || !room.resident) {
-        return NextResponse.json({ error: 'Room is not currently assigned' }, { status: 400 });
-      }
-
-      // Save current assignment to history
-      const historyEntry = new RoomHistory({
-        roomId: room._id.toString(),
-        roomName: room.roomName,
-        resident: room.resident,
-        checkInDate: room.checkInDate,
-        checkInTime: room.checkInTime,
-        checkOutDate: room.checkOutDate,
-        checkOutTime: room.checkOutTime,
-        unassignedAt: new Date(),
-      });
-      await historyEntry.save();
-
-      // Clear the room assignment and set to empty
-      const update = {
-        roomStatus: 'empty' as const,
-        resident: null,
-        residentEmail: null,
-        residentPhoneNo: null,
-        checkInDate: null,
-        checkInTime: null,
-        checkOutDate: null,
-        checkOutTime: null,
-      };
-
-      const updatedRoom = await Room.findByIdAndUpdate(id, update, { new: true });
-      if (!updatedRoom) {
-        return NextResponse.json({ error: 'Failed to update room' }, { status: 500 });
-      }
-
-      return NextResponse.json({ success: true, room: updatedRoom.toObject() });
-    } catch (error: any) {
-      return handleApiError(error, 'Failed to unassign room');
-    }
-  }
 
   /**
    * Get room history by room ID

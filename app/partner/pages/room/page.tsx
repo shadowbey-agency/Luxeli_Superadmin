@@ -36,6 +36,7 @@ interface Room {
   residentPhoneNo?: string
   checkIn?: string
   checkOut?: string
+  qrCodeImage?: string // base64 QR code image from API (contains JWT token)
 }
 
 const mockRooms: Room[] = Array.from({ length: 15 }, (_, i) => ({
@@ -151,6 +152,10 @@ export default function RoomPage() {
       const dateStr = formatDate(date)
       return time ? `${dateStr}, ${time}` : dateStr
     }
+    
+    // Extract guest data from the populated guest field (only if isActive=true)
+    const guest = apiRoom.guest || null
+    
     return {
       id: apiRoom._id || apiRoom.id,
       roomNumber: apiRoom.roomId || apiRoom.roomName || '',
@@ -162,11 +167,12 @@ export default function RoomPage() {
       price: "500 MAD", // Default
       dateAdded: apiRoom.createdAt ? (formatDate(apiRoom.createdAt) || new Date().toLocaleDateString()) : new Date().toLocaleDateString(),
       avatar: (apiRoom.roomId || apiRoom.roomName || 'R').charAt(0).toUpperCase(),
-      resident: apiRoom.resident || null,
-      residentEmail: apiRoom.residentEmail || null,
-      residentPhoneNo: apiRoom.residentPhoneNo || null,
-      checkIn: formatDateTime(apiRoom.checkInDate, apiRoom.checkInTime),
-      checkOut: formatDateTime(apiRoom.checkOutDate, apiRoom.checkOutTime),
+      // Guest data from the guest object (only active guests)
+      resident: guest?.guestName || null,
+      residentEmail: guest?.guestEmail || null,
+      residentPhoneNo: guest?.guestPhone || null,
+      checkIn: guest?.checkInDate ? formatDate(guest.checkInDate) : undefined,
+      checkOut: guest?.checkOutDate ? formatDate(guest.checkOutDate) : undefined,
     }
   }
 
@@ -291,9 +297,52 @@ export default function RoomPage() {
     }
   }
 
-  const handleRoomQRCode = (room: Room) => {
-    setRoomForQR(room)
-    setShowQRModal(true)
+  const handleRoomQRCode = async (room: Room) => {
+    // Check if room has a resident (guest assigned)
+    if (!room.resident) {
+      alert('No guest assigned to this room. Please assign a guest first to generate a QR code.')
+      return
+    }
+
+    // If room already has QR code cached, show it
+    if (room.qrCodeImage) {
+      setRoomForQR(room)
+      setShowQRModal(true)
+      return
+    }
+
+    // Otherwise, fetch the QR code from the API
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to view QR code')
+        return
+      }
+
+      // Call the dedicated QR code endpoint
+      const response = await fetch(`/api/partner/rooms/${room.id}/qr-code`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success && result.data?.qrCode) {
+        // Update room with QR code and show modal
+        setRoomForQR({
+          ...room,
+          qrCodeImage: result.data.qrCode
+        })
+        setShowQRModal(true)
+      } else {
+        alert(result.error || 'Failed to generate QR code.')
+      }
+    } catch (error) {
+      console.error('Error fetching QR code:', error)
+      alert('Failed to fetch QR code. Please try again.')
+    }
   }
 
   const closeQRModal = () => {
@@ -302,17 +351,19 @@ export default function RoomPage() {
   }
 
   const handleDownloadQR = () => {
-    const canvas = document.getElementById("room-qr") as HTMLCanvasElement;
-    if (!canvas || !roomForQR) return;
-    const pngUrl = canvas
-      .toDataURL("image/png")
-      .replace("image/png", "image/octet-stream");
-    const downloadLink = document.createElement("a");
-    downloadLink.href = pngUrl;
-    downloadLink.download = `${roomForQR.roomNumber || "room"}_QR.png`;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
+    if (!roomForQR) return;
+    
+    // If we have the QR code image from API, download it directly
+    if (roomForQR.qrCodeImage) {
+      const downloadLink = document.createElement("a");
+      downloadLink.href = roomForQR.qrCodeImage; // base64 image
+      downloadLink.download = `${roomForQR.roomName || roomForQR.roomNumber || "room"}_QR.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    } else {
+      alert('No QR code available to download. Please assign a guest first.');
+    }
   };
 
   // Export rooms to Excel
@@ -406,12 +457,15 @@ export default function RoomPage() {
         return
       }
 
-      const response = await fetch(`/api/partner/rooms/${roomToUnassign.id}/unassign`, {
+      const response = await fetch(`/api/partner/checkout-guest`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({
+          roomId: roomToUnassign.id
+        })
       })
 
       const result = await response.json()
@@ -419,9 +473,9 @@ export default function RoomPage() {
       if (response.ok && result.success) {
         await fetchRooms()
         closeUnassignModal()
-        alert('Room unassigned successfully. Previous assignment saved to history.')
+        alert('Guest checked out successfully.')
       } else {
-        alert(result.error || 'Failed to unassign room')
+        alert(result.error || 'Failed to checkout guest')
         setIsUnassigning(false)
       }
     } catch (error) {
@@ -451,34 +505,54 @@ export default function RoomPage() {
         return
       }
 
-      const response = await fetch(`/api/partner/rooms/${roomToAssign.id}/assign`, {
+      const response = await fetch(`/api/partner/assign-room`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          resident: assignResident.trim(),
-          residentEmail: assignResidentEmail.trim() || null,
-          residentPhoneNo: assignResidentPhoneNo.trim() || null,
-          checkInDate: assignCheckInDate || undefined, // HTML date input already returns ISO format (YYYY-MM-DD)
-          checkInTime: assignCheckInTime || null,
-          checkOutDate: assignCheckOutDate || null,
-          checkOutTime: assignCheckOutTime || null,
+          guestName: assignResident.trim(),
+          guestEmail: assignResidentEmail.trim() || undefined,
+          guestPhone: assignResidentPhoneNo.trim() || undefined,
+          roomId: roomToAssign.id,
+          roomName: roomToAssign.roomName,
+          checkInDate: assignCheckInDate || undefined,
+          checkOutDate: assignCheckOutDate || undefined,
         }),
       })
 
       const result = await response.json()
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to assign room')
+        throw new Error(result.error || 'Failed to assign guest to room')
       }
+
+      // Store the QR code from API response
+      const qrCodeImage = result.data?.qrCode || null
 
       // Refresh rooms list
       await fetchRooms()
 
-      // Close modal
+      // Close assign modal
       closeAssignModal()
+      
+      // If QR code was generated, show it in the QR modal
+      if (qrCodeImage && roomToAssign) {
+        // Update the room with QR code and show modal
+        setRoomForQR({
+          ...roomToAssign,
+          resident: assignResident,
+          residentEmail: assignResidentEmail,
+          residentPhoneNo: assignResidentPhoneNo,
+          checkIn: assignCheckInDate,
+          checkOut: assignCheckOutDate,
+          qrCodeImage: qrCodeImage
+        })
+        setShowQRModal(true)
+      } else {
+        alert('Guest assigned successfully!')
+      }
     } catch (err: any) {
       console.error('Error assigning room:', err)
       setAssignError(err.message || 'Failed to assign room. Please try again.')
@@ -1595,24 +1669,39 @@ export default function RoomPage() {
             className="w-auto h-auto"
           />
         </div>
-        {/* QR Code inside Union Icon */}
+        {/* QR Code inside Union Icon - Display QR from API (contains JWT token) */}
         <div className="relative z-10 flex items-center justify-center">
-          <QRCodeCanvas
-            id="room-qr"
-            value={JSON.stringify({
-              roomName: roomForQR?.roomName || "",
-              resident: roomForQR?.resident || "",
-              residentEmail: roomForQR?.residentEmail || "",
-              residentPhoneNo: roomForQR?.residentPhoneNo || "",
-              checkIn: roomForQR?.checkIn || "",
-              checkOut: roomForQR?.checkOut || "",
-            })}
-            size={220}
-            bgColor="#ffffff"
-            fgColor="#000000"
-            level="H"
-            includeMargin={true}
-          />
+          {roomForQR?.qrCodeImage ? (
+            // Display the QR code from API response (base64 image with JWT token)
+            <img
+              id="room-qr"
+              src={roomForQR.qrCodeImage}
+              alt="Guest QR Code"
+              style={{
+                width: '220px',
+                height: '220px',
+                objectFit: 'contain'
+              }}
+            />
+          ) : (
+            // Fallback: Show message if no QR code available
+            <div 
+              style={{
+                width: '220px',
+                height: '220px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#f5f5f5',
+                borderRadius: '8px',
+                padding: '20px',
+                textAlign: 'center',
+                color: '#666'
+              }}
+            >
+              <p>No QR code available. Please assign a guest first.</p>
+            </div>
+          )}
         </div>
          </div>
          <div className="w-full">

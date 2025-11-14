@@ -26,25 +26,3 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
   return await HousekeepingRequestController.getRequests(query, partnerId);
 });
 
-// POST /api/partner/housekeeping-requests - Create new housekeeping request
-export const POST = withAuth(async (request: AuthenticatedRequest) => {
-  try {
-    const partnerId = getPartnerId(request);
-    if (!partnerId) {
-      return NextResponse.json(
-        { success: false, error: 'Partner ID not found' },
-        { status: 401 }
-      );
-    }
-
-    const body = await request.json();
-    return await HousekeepingRequestController.createRequest(body, partnerId);
-  } catch (error: any) {
-    console.error('Create Housekeeping Request API Error:', error);
-    return NextResponse.json(
-      { success: false, error: error?.message || 'Invalid request body' },
-      { status: 400 }
-    );
-  }
-});
-

@@ -6,13 +6,6 @@ export interface IRoom extends Document {
   roomId: string; // e.g. "#01", "#02"
   roomName: string;
   roomStatus: "full" | "empty";
-  resident: string | null;
-  residentEmail: string | null;
-  residentPhoneNo: string | null;
-  checkInDate: Date | null;
-  checkInTime: string | null; // e.g. "10:30"
-  checkOutDate: Date | null;
-  checkOutTime: string | null; // e.g. "12:00"
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,7 +19,7 @@ const RoomSchema = new Schema<IRoom>(
     },
     roomId: {
       type: String,
-      required: false, // ✅ changed to false (auto-generated)
+      required: false, // ✅ Auto-generated
       trim: true,
     },
     roomName: {
@@ -38,39 +31,6 @@ const RoomSchema = new Schema<IRoom>(
       type: String,
       enum: ["full", "empty"],
       default: "empty",
-    },
-    resident: {
-      type: String,
-      default: null,  
-      trim: true,
-    },
-    residentEmail: {
-      type: String,
-      default: null,
-      trim: true,
-    },
-    residentPhoneNo: {
-      type: String,
-      default: null,
-      trim: true,
-    },
-    checkInDate: {
-      type: Date,
-      default: null,
-    },     
-    checkInTime: {
-      type: String,
-      default: null,
-      trim: true,
-    },
-    checkOutDate: {
-      type: Date,
-      default: null,
-    },
-    checkOutTime: {
-      type: String,
-      default: null,
-      trim: true,
     },
   },
   { timestamps: true }
