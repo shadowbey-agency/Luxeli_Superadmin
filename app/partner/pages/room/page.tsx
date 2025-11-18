@@ -266,9 +266,11 @@ export default function RoomPage() {
       return
     }
     try {
+      setIsUpdatingRoom(true)
       const token = getAuthToken()
       if (!token) {
         alert('Please log in to edit room')
+        setIsUpdatingRoom(false)
         return
       }
       const response = await fetch(`/api/partner/rooms/update-by-name`, {
@@ -294,6 +296,8 @@ export default function RoomPage() {
     } catch (error) {
       console.error('Error updating room:', error)
       alert('Failed to update room. Please try again.')
+    } finally {
+      setIsUpdatingRoom(false)
     }
   }
 
@@ -726,15 +730,20 @@ export default function RoomPage() {
     setNewCheckOutTime("")
   }
 
+  const [isSavingRoom, setIsSavingRoom] = useState(false)
+  const [isUpdatingRoom, setIsUpdatingRoom] = useState(false)
+
   const handleSaveAddRoom = async () => {
     if (!newRoomName.trim()) {
       alert("Please enter a room name")
       return
     }
     try {
+      setIsSavingRoom(true)
       const token = getAuthToken()
       if (!token) {
         alert('Please log in to add a room')
+        setIsSavingRoom(false)
         return
       }
       const response = await fetch('/api/partner/rooms', {
@@ -745,21 +754,18 @@ export default function RoomPage() {
         },
         body: JSON.stringify({
           roomName: newRoomName.trim(),
-          roomStatus: 'full',
-          resident: newResident.trim() || null,
-          residentEmail: newResidentEmail.trim() || null,
-          residentPhoneNo: newResidentPhoneNo.trim() || null,
-          checkInDate: newCheckInDate || null,
-          checkInTime: newCheckInTime || null,
-          checkOutDate: newCheckOutDate || null,
-          checkOutTime: newCheckOutTime || null,
+          roomStatus: newRoomStatus.toLowerCase() === 'full' ? 'full' : 'empty',
         })
       })
       const result = await response.json()
       if (response.ok && result.success) {
         await fetchRooms()
         closeAddModal()
+        setNewRoomName("")
+        setNewRoomStatus("Full")
         setNewResident("")
+        setNewResidentEmail("")
+        setNewResidentPhoneNo("")
         setNewCheckInDate("")
         setNewCheckInTime("")
         setNewCheckOutDate("")
@@ -770,6 +776,8 @@ export default function RoomPage() {
     } catch (error) {
       console.error('Error adding room:', error)
       alert('Failed to add room. Please try again.')
+    } finally {
+      setIsSavingRoom(false)
     }
   }
 
@@ -830,7 +838,8 @@ export default function RoomPage() {
     onClose, 
     onSave, 
     children,
-    width = "50vw"
+    width = "50vw",
+    isLoading = false
   }: { 
     isOpen: boolean
     title: string
@@ -838,6 +847,7 @@ export default function RoomPage() {
     onSave: () => void
     children: React.ReactNode
     width?: string
+    isLoading?: boolean
   }) => {
     if (!isOpen) return null
 
@@ -852,7 +862,11 @@ export default function RoomPage() {
                 {title === "Add Room" ? "Add a new room to the system" : "Borem ipsum dolor sit amet, consectetur adipiscing elit."}
               </p>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <button 
+              onClick={onClose} 
+              disabled={isLoading}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
                 <path d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244" stroke="#525866" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -868,15 +882,24 @@ export default function RoomPage() {
           <div className="flex justify-end items-center border-t p-5 gap-4">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors bg-gray-50"
+              disabled={isLoading}
+              className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               onClick={onSave}
-              className="px-5 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors bg-primary"
+              disabled={isLoading}
+              className="px-5 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors bg-primary disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              Save
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Saving...</span>
+                </>
+              ) : (
+                'Save'
+              )}
             </button>
           </div>
         </div>
@@ -1416,6 +1439,7 @@ export default function RoomPage() {
           setNewRoomName("")
         }}
         onSave={handleSaveEdit}
+        isLoading={isUpdatingRoom}
       >
         {/* Room name only */}
         <div className="col-span-2 flex flex-col gap-2">
@@ -2586,7 +2610,7 @@ export default function RoomPage() {
          title="Add Room"
          onClose={closeAddModal}
          onSave={handleSaveAddRoom}
-         
+         isLoading={isSavingRoom}
        >
          {/* First Row - Room name and Status (pre-filled) */}
          <div className="flex flex-col gap-2">

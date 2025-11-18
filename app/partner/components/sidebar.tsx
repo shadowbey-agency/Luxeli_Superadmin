@@ -19,6 +19,7 @@ import { useState, useEffect } from "react"
 import React from "react"
 import DashboardSidebarIcon from "./dashboard-sidebar-icon"
 import TeamSidebarIcon from "./team-sidebar-icon"
+import { usePermissions } from "@/hooks/usePermissions"
 
 const menuItems = [
   { icon: DashboardSidebarIcon, label: "Dashboard", href: "/partner/pages/dashboard" },
@@ -102,6 +103,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [expandedServices, setExpandedServices] = useState<string[]>([])
+  const { hasPermission, loading } = usePermissions()
   
   // Get current URL with search params (if any)
   const [currentFullPath, setCurrentFullPath] = useState("")
@@ -109,6 +111,15 @@ export default function Sidebar() {
   useEffect(() => {
     setCurrentFullPath(window.location.pathname + window.location.search)
   }, [pathname])
+  
+  // Filter menu items based on permissions
+  const visibleMenuItems = loading ? [] : menuItems.filter(item => hasPermission(item.href))
+  
+  // Filter service items based on permissions
+  const visibleServicesItems = loading ? [] : servicesItems.map(service => {
+    const visibleSubItems = service.subItems.filter(subItem => hasPermission(subItem.href))
+    return { ...service, subItems: visibleSubItems }
+  }).filter(service => service.subItems.length > 0) // Only show service if it has visible sub-items
 
   // Auto-expand service if on one of its sub-pages
   useEffect(() => {
@@ -186,7 +197,7 @@ export default function Sidebar() {
           gap: "6px",
         }}
       >
-        {menuItems.map((item) => {
+        {visibleMenuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
           const strokeColor = isActive ? "white" : "#71717A"
@@ -224,7 +235,7 @@ export default function Sidebar() {
 
         {/* Services Section */}
         <div className="w-full mt-4" style={{ gap: "6px", display: "flex", flexDirection: "column" }}>
-          {servicesItems.map((service) => {
+          {visibleServicesItems.map((service) => {
             const Icon = service.icon
             const isExpanded = expandedServices.includes(service.label)
             const hasActiveSubItem = service.subItems.some(subItem => currentFullPath === subItem.href)

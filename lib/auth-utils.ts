@@ -130,15 +130,19 @@ export function getAuthHeader(): { Authorization: string } | {} {
 
 /**
  * Login function for superadmin, member, and partner
+ * Auto-detects user type based on identifier (email or username)
  */
 export async function loginUser(identifier: string, password: string, userType?: 'superadmin' | 'member' | 'partner'): Promise<LoginResponse> {
   const body: any = { password };
   
-  // Determine if identifier is email or username based on userType
-  if (userType === 'partner') {
-    body.username = identifier.trim();
-  } else {
+  // Auto-detect: if it looks like an email, use email; otherwise use username
+  // The backend will try both email and username for all user types
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier.trim());
+  
+  if (isEmail) {
     body.email = identifier.trim();
+  } else {
+    body.username = identifier.trim();
   }
 
   const response = await fetch('/api/auth/login', {

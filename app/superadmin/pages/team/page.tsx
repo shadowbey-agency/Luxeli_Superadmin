@@ -89,16 +89,15 @@ export default function TeamPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingMembers, setIsLoadingMembers] = useState(true)
   const [formData, setFormData] = useState({
-    staffName: '',
+    name: '',
     email: '',
-    phoneNumber: '',
-    role: '',
+    phone: '',
     username: '',
     password: '',
-    staffImage: ''
+    permissions: [] as string[]
   })
 
-  // Fetch staff from API
+  // Fetch members from API
   const fetchMembers = async () => {
     try {
       setIsLoadingMembers(true)
@@ -109,50 +108,50 @@ export default function TeamPage() {
         return
       }
 
-      console.log('Fetching staff from API...')
-      const response = await fetch('/api/partner/staff', {
+      console.log('Fetching members from API...')
+      const response = await fetch('/api/superadmin/members', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      console.log('Staff API response status:', response.status)
-      console.log('Staff API response ok:', response.ok)
+      console.log('Members API response status:', response.status)
+      console.log('Members API response ok:', response.ok)
 
       if (response.ok) {
         const result = await response.json()
-        console.log('Staff API result:', result)
+        console.log('Members API result:', result)
         
-        if (result.success && result.data && result.data.staff) {
+        if (result.success && result.data && result.data.members) {
           // Transform API data to match TeamMember interface
-          const transformedMembers: TeamMember[] = result.data.staff.map((staff: any) => ({
-            id: staff._id,
-            name: staff.staffName,
-            email: staff.email,
-            phone: staff.phoneNumber,
-            role: staff.role || '',
-            dateAdded: new Date(staff.createdAt).toLocaleDateString('fr-FR', {
+          const transformedMembers: TeamMember[] = result.data.members.map((member: any) => ({
+            id: member._id,
+            name: member.name,
+            email: member.email,
+            phone: member.phone,
+            role: member.role || 'member',
+            dateAdded: new Date(member.createdAt).toLocaleDateString('fr-FR', {
               day: 'numeric',
               month: 'long',
               year: 'numeric'
             }),
-            status: staff.status || 'active',
-            avatar: staff.staffName ? staff.staffName.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'S'
+            status: member.status || 'active',
+            avatar: member.name ? member.name.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'M'
           }))
           
-          console.log('Transformed staff:', transformedMembers)
+          console.log('Transformed members:', transformedMembers)
           setTeamMembers(transformedMembers)
         } else {
-          console.error('Staff API returned error:', result.error)
+          console.error('Members API returned error:', result.error)
           setTeamMembers([])
         }
       } else {
         const errorResult = await response.json()
-        console.error('Staff API error response:', errorResult)
+        console.error('Members API error response:', errorResult)
         setTeamMembers([])
       }
     } catch (error) {
-      console.error('Error fetching staff:', error)
+      console.error('Error fetching members:', error)
       setTeamMembers([])
     } finally {
       setIsLoadingMembers(false)
@@ -176,9 +175,9 @@ export default function TeamPage() {
       if (!member) return
 
       // Fix: Toggle should save the opposite of current status
-      const newStatus = member.status === 'active' ? 'disabled' : 'active'
+      const newStatus = member.status === 'active' ? 'disable' : 'active'
       
-      const response = await fetch(`/api/partner/staff/${id}`, {
+      const response = await fetch(`/api/superadmin/members/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -194,6 +193,7 @@ export default function TeamPage() {
           setTeamMembers(teamMembers.map((m) => 
             m.id === id ? { ...m, status: newStatus } : m
           ))
+          await fetchMembers() // Refresh the list
           console.log(`Member status updated to: ${newStatus}`)
           alert(`✅ Member status updated to: ${newStatus}`)
         } else {
@@ -225,7 +225,7 @@ export default function TeamPage() {
         return
       }
 
-      const response = await fetch(`/api/partner/staff/${memberToDelete.id}`, {
+      const response = await fetch(`/api/superadmin/members/${memberToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -294,7 +294,7 @@ export default function TeamPage() {
     console.log('Form data before sending:', formData)
     
     // Validate required fields
-    const requiredFields = ['staffName', 'email', 'phoneNumber', 'role', 'username', 'password']
+    const requiredFields = ['name', 'email', 'phone', 'username', 'password']
     const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData])
     
     if (missingFields.length > 0) {
@@ -313,39 +313,46 @@ export default function TeamPage() {
       const finalToken = token || fallbackToken
       
       if (!finalToken) {
-        alert('Please log in to create a staff member')
+        alert('Please log in to create a member')
         setIsLoading(false)
         return
       }
 
-      const response = await fetch('/api/partner/staff', {
+      const response = await fetch('/api/superadmin/members', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${finalToken}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          username: formData.username,
+          password: formData.password,
+          permissions: formData.permissions || []
+        })
       })
 
       const result = await response.json()
       console.log('API Response:', result)
 
       if (result.success) {
-        // Add the new staff to the list
-        const staffData = result.data.staff || result.data;
+        // Add the new member to the list
+        const memberData = result.data.member || result.data;
         const newMember: TeamMember = {
-          id: staffData._id,
-          name: staffData.staffName,
-          email: staffData.email,
-          phone: staffData.phoneNumber,
-          role: staffData.role || '',
-          dateAdded: new Date(staffData.createdAt).toLocaleDateString('fr-FR', {
+          id: memberData._id,
+          name: memberData.name,
+          email: memberData.email,
+          phone: memberData.phone,
+          role: memberData.role || 'member',
+          dateAdded: new Date(memberData.createdAt).toLocaleDateString('fr-FR', {
             day: 'numeric',
             month: 'long',
             year: 'numeric'
           }),
-          status: staffData.status || "active",
-          avatar: staffData.staffName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+          status: memberData.status || "active",
+          avatar: memberData.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
         }
         
         setTeamMembers(prev => [newMember, ...prev])
@@ -353,17 +360,16 @@ export default function TeamPage() {
         
         // Reset form data
         setFormData({
-          staffName: '',
+          name: '',
           email: '',
-          phoneNumber: '',
-          role: '',
+          phone: '',
           username: '',
           password: '',
-          staffImage: ''
+          permissions: []
         })
         
-        alert('Staff member created successfully!')
-        // Refresh the staff list
+        alert('Member created successfully!')
+        // Refresh the members list
         await fetchMembers()
       } else {
         console.error('API Error:', result.error)
@@ -378,8 +384,8 @@ export default function TeamPage() {
         }
       }
     } catch (error) {
-      console.error('Error saving staff:', error)
-      alert('Failed to save staff member. Please try again.')
+      console.error('Error saving member:', error)
+      alert('Failed to save member. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -403,16 +409,16 @@ export default function TeamPage() {
         alert('Please log in to update member')
         return
       }
-      const response = await fetch(`/api/partner/staff/${selectedMember.id}`, {
+      const response = await fetch(`/api/superadmin/members/${selectedMember.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          staffName: editForm.name,
+          name: editForm.name,
           email: editForm.email,
-          phoneNumber: editForm.phone
+          phone: editForm.phone
         })
       })
       if (response.ok) {
@@ -424,6 +430,7 @@ export default function TeamPage() {
           alert('✅ Member updated successfully')
           setShowEditModal(false)
           setSelectedMember(null)
+          await fetchMembers() // Refresh the list
         }
       } else {
         const err = await response.json().catch(() => ({}))
@@ -451,7 +458,7 @@ export default function TeamPage() {
         alert('Please log in to update password')
         return
       }
-      const response = await fetch(`/api/partner/staff/${selectedMember.id}`, {
+      const response = await fetch(`/api/superadmin/members/${selectedMember.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1022,8 +1029,8 @@ export default function TeamPage() {
                           borderRadius: "4px",
                           background: "#FFF"
                         }}
-                        value={formData.staffName}
-                        onChange={(e) => handleInputChange('staffName', e.target.value)}
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
                       />
                     </div>
                     <div className="flex flex-col gap-2">
@@ -1038,8 +1045,8 @@ export default function TeamPage() {
                           borderRadius: "4px",
                           background: "#FFF"
                         }}
-                        value={formData.phoneNumber}
-                        onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
                       />
                     </div>
                   </div>
@@ -1066,16 +1073,17 @@ export default function TeamPage() {
                       <label className="text-sm font-medium text-[#212121]">Role</label>
                       <input
                         type="text"
-                        placeholder="Write Here..."
-                        className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Member (fixed)"
+                        className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-gray-100"
                         style={{
                           padding: "7.52px 12px",
                           border: "1px solid #CED4DA",
                           borderRadius: "4px",
-                          background: "#FFF"
+                          background: "#F3F4F6"
                         }}
-                        value={formData.role}
-                        onChange={(e) => handleInputChange('role', e.target.value)}
+                        value="member"
+                        disabled
+                        readOnly
                       />
                     </div>
                   </div>

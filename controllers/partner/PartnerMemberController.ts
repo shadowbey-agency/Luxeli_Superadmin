@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import PartnerMember from '@/models/PartnerMember';
 import { handleApiError } from '@/lib/middleware';
-import { hashPassword } from '@/lib/auth';
 
 export class PartnerMemberController {
   /**
@@ -173,10 +172,7 @@ export class PartnerMemberController {
         );
       }
 
-      // Hash password
-      const hashedPassword = await hashPassword(data.password);
-
-      // Create new partner member
+      // Create new partner member (password will be hashed by pre-save hook in model)
       const member = new PartnerMember({
         partnerId: data.partnerId,
         memberName: data.memberName.trim(),
@@ -184,7 +180,8 @@ export class PartnerMemberController {
         phoneNumber: data.phoneNumber.trim(),
         memberImage: data.memberImage || '',
         username: data.username.trim(),
-        password: hashedPassword,
+        password: data.password, // Don't hash here - model will hash it
+        role: "partnermember", // Automatically set role as partnermember
         status: data.status || 'active',
         permissions: data.permissions,
       });
@@ -197,7 +194,23 @@ export class PartnerMemberController {
           member: member.toJSON(),
         },
       }, { status: 201 });
-    } catch (error) {
+    } catch (error: any) {
+      // Check for duplicate key error (MongoDB error code 11000)
+      if (error.code === 11000) {
+        // Determine which field caused the duplicate from the keyPattern
+        let duplicateField = 'email or username';
+        if (error.keyPattern) {
+          if (error.keyPattern.email) {
+            duplicateField = 'email';
+          } else if (error.keyPattern.username) {
+            duplicateField = 'username';
+          }
+        }
+        return NextResponse.json(
+          { success: false, error: `Partner member with this ${duplicateField} already exists for this partner` },
+          { status: 409 }
+        );
+      }
       return handleApiError(error, 'Failed to create partner member');
     }
   }
@@ -297,6 +310,8 @@ export class PartnerMemberController {
       if (data.phoneNumber) member.phoneNumber = data.phoneNumber.trim();
       if (data.memberImage !== undefined) member.memberImage = data.memberImage;
       if (data.username) member.username = data.username.trim();
+      // Ensure role always remains "partnermember" for partner members
+      member.role = "partnermember";
       if (data.status) member.status = data.status;
 
       // Update permissions if provided
@@ -381,7 +396,7 @@ export class PartnerMemberController {
         }
       }
 
-      // Update password if provided
+      // Update password if provided (will be hashed by pre-save hook)
       if (data.password) {
         if (data.password.length < 6) {
           return NextResponse.json(
@@ -389,7 +404,7 @@ export class PartnerMemberController {
             { status: 400 }
           );
         }
-        member.password = await hashPassword(data.password);
+        member.password = data.password; // Don't hash here - model will hash it
       }
 
       await member.save();

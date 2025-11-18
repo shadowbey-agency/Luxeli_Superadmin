@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth-context"
 
 const menuItems = [
   { isPublicIcon: true, iconProps: { src: "/assets/icons/dashboard.svg", alt: "Dashboard", width: 20, height: 20 }, label: "Dashboard", href: "/superadmin/pages/dashboard", permission: "dashboard" },
-  { isPublicIcon: true, iconProps: { src: "/assets/icons/partner.svg", alt: "Partners", width: 20, height: 20 }, label: "Partners", href: "/superadmin/pages/partners", permission: "partners" },
+  { isPublicIcon: true, iconProps: { src: "/assets/icons/partner.svg", alt: "Partners", width: 20, height: 20 }, label: "Partners", href: "/superadmin/pages/partners", permission: "partner" },
   { isPublicIcon: true, iconProps: { src: "/assets/icons/support.svg", alt: "Support", width: 20, height: 20 }, label: "Support", href: "/superadmin/pages/support", permission: "support" },
   { isPublicIcon: true, iconProps: { src: "/assets/icons/team.svg", alt: "Team", width: 20, height: 20 }, label: "Team", href: "/superadmin/pages/team", permission: "team" },
   { isPublicIcon: true, iconProps: { src: "/assets/icons/star.svg", alt: "Subscription", width: 20, height: 20 }, label: "Subscription", href: "/superadmin/pages/subscription", permission: "billingFinance" },
@@ -29,15 +29,26 @@ export default function Sidebar() {
     }
     
     // If user is member, filter based on permissions
-    if (userType === 'member' && user && user.permissions) {
-      return menuItems.filter(item => {
-        // Always show settings
-        if (item.permission === 'settings') {
-          return true
-        }
-        // Check if user has the required permission
-        return user.permissions.includes(item.permission)
-      })
+    if (userType === 'member' && user) {
+      // Get permissions from user object
+      // For members, permissions are stored in the user object
+      const userPermissions = Array.isArray((user as any).permissions) 
+        ? (user as any).permissions 
+        : []
+      
+      if (userPermissions.length > 0) {
+        return menuItems.filter(item => {
+          // Always show settings
+          if (item.permission === 'settings') {
+            return true
+          }
+          // Check if user has the required permission (case-insensitive)
+          const hasPermission = userPermissions.some((perm: string) => 
+            perm.toLowerCase() === item.permission.toLowerCase()
+          )
+          return hasPermission
+        })
+      }
     }
     
     // Default: show only settings

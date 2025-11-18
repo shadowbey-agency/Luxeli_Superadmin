@@ -10,6 +10,7 @@ export interface IPartnerMember extends Document {
   memberImage?: string;
   username: string;
   password: string;
+  role: string;
   status: "active" | "disable";
   permissions: {
     dashboard: boolean;
@@ -70,7 +71,6 @@ const PartnerMemberSchema = new Schema<IPartnerMember>(
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
     },
@@ -86,13 +86,17 @@ const PartnerMemberSchema = new Schema<IPartnerMember>(
     username: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
     },
     password: {
       type: String,
       required: true,
       minlength: 6,
+    },
+    role: {
+      type: String,
+      default: "partnermember",
+      enum: ["partnermember"],
     },
     status: {
       type: String,
@@ -145,7 +149,9 @@ const PartnerMemberSchema = new Schema<IPartnerMember>(
 
 // Indexes for better query performance
 PartnerMemberSchema.index({ partnerId: 1 });
-// Note: email and username already have indexes from unique: true
+// Compound unique index: email and username should be unique per partner
+PartnerMemberSchema.index({ partnerId: 1, email: 1 }, { unique: true });
+PartnerMemberSchema.index({ partnerId: 1, username: 1 }, { unique: true });
 PartnerMemberSchema.index({ status: 1 });
 
 // 🔐 Hash password before saving

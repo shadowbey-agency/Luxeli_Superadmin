@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Staff from '@/models/Staff';
 import { handleApiError } from '@/lib/middleware';
-import { hashPassword, comparePassword } from '@/lib/auth';
 
 export class StaffController {
   /**
@@ -99,6 +98,7 @@ export class StaffController {
    * Create new staff
    */
   static async createStaff(data: {
+    partnerId: string;
     staffName: string;
     email: string;
     phoneNumber: string;
@@ -111,8 +111,9 @@ export class StaffController {
     try {
       await connectDB();
 
-      // Check if staff with email or username already exists
+      // Check if staff with email or username already exists for this partner
       const existingStaff = await Staff.findOne({
+        partnerId: data.partnerId,
         $or: [
           { email: data.email.toLowerCase() },
           { username: data.username }
@@ -121,23 +122,21 @@ export class StaffController {
 
       if (existingStaff) {
         return NextResponse.json(
-          { success: false, error: 'Staff with this email or username already exists' },
+          { success: false, error: 'Staff with this email or username already exists for this partner' },
           { status: 409 }
         );
       }
 
-      // Hash password
-      const hashedPassword = await hashPassword(data.password);
-
-      // Create new staff
+      // Create new staff (password will be hashed by pre-save hook in model)
       const staff = new Staff({
+        partnerId: data.partnerId,
         staffName: data.staffName.trim(),
         email: data.email.toLowerCase().trim(),
         phoneNumber: data.phoneNumber.trim(),
-        role: data.role.trim(),
+        role: data.role.trim(), // Role comes from UI
         staffImage: data.staffImage || '',
         username: data.username.trim(),
-        password: hashedPassword,
+        password: data.password, // Don't hash here - model will hash it
         status: data.status || 'active',
       });
 
@@ -149,7 +148,23 @@ export class StaffController {
           staff: staff.toJSON(),
         },
       }, { status: 201 });
-    } catch (error) {
+    } catch (error: any) {
+      // Check for duplicate key error (MongoDB error code 11000)
+      if (error.code === 11000) {
+        // Determine which field caused the duplicate from the keyPattern
+        let duplicateField = 'email or username';
+        if (error.keyPattern) {
+          if (error.keyPattern.email) {
+            duplicateField = 'email';
+          } else if (error.keyPattern.username) {
+            duplicateField = 'username';
+          }
+        }
+        return NextResponse.json(
+          { success: false, error: `Staff with this ${duplicateField} already exists for this partner` },
+          { status: 409 }
+        );
+      }
       return handleApiError(error, 'Failed to create staff');
     }
   }
@@ -200,7 +215,7 @@ export class StaffController {
       if (data.staffName) staff.staffName = data.staffName.trim();
       if (data.email) staff.email = data.email.toLowerCase().trim();
       if (data.phoneNumber) staff.phoneNumber = data.phoneNumber.trim();
-      if (data.role) staff.role = data.role.trim();
+      if (data.role) staff.role = data.role.trim(); // Role can be updated from UI
       if (data.staffImage !== undefined) staff.staffImage = data.staffImage;
       if (data.username) staff.username = data.username.trim();
       // Update status if provided (must be 'active' or 'disabled')
@@ -208,7 +223,7 @@ export class StaffController {
         staff.status = data.status;
       }
 
-      // Update password if provided
+      // Update password if provided (will be hashed by pre-save hook)
       if (data.password) {
         if (data.password.length < 6) {
           return NextResponse.json(
@@ -216,7 +231,7 @@ export class StaffController {
             { status: 400 }
           );
         }
-        staff.password = await hashPassword(data.password);
+        staff.password = data.password; // Don't hash here - model will hash it
       }
 
       await staff.save();

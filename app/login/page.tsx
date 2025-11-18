@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { FiEye, FiEyeOff } from "react-icons/fi"
@@ -14,17 +14,40 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [userType, setUserType] = useState<"superadmin" | "member" | "partner">("superadmin")
-  const [username, setUsername] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [fieldErrors, setFieldErrors] = useState({
     email: "",
-    username: "",
-    password: "",
-    userType: ""
+    password: ""
   })
+  const emailInputRef = useRef<HTMLInputElement>(null)
+  const passwordInputRef = useRef<HTMLInputElement>(null)
+
+  // Update border colors when fieldErrors change
+  useEffect(() => {
+    if (emailInputRef.current) {
+      if (fieldErrors.email) {
+        emailInputRef.current.style.borderColor = "#F46A6A"
+        emailInputRef.current.style.boxShadow = "0 0 0 2px rgba(244, 106, 106, 0.2)"
+      } else {
+        emailInputRef.current.style.borderColor = "#CED4DA"
+        emailInputRef.current.style.boxShadow = "none"
+      }
+    }
+  }, [fieldErrors.email])
+
+  useEffect(() => {
+    if (passwordInputRef.current) {
+      if (fieldErrors.password) {
+        passwordInputRef.current.style.borderColor = "#F46A6A"
+        passwordInputRef.current.style.boxShadow = "0 0 0 2px rgba(244, 106, 106, 0.2)"
+      } else {
+        passwordInputRef.current.style.borderColor = "#CED4DA"
+        passwordInputRef.current.style.boxShadow = "none"
+      }
+    }
+  }, [fieldErrors.password])
 
   const clearFieldError = (field: string) => {
     setFieldErrors(prev => ({
@@ -36,38 +59,68 @@ export default function LoginPage() {
   const validateFields = () => {
     const errors = {
       email: "",
-      username: "",
-      password: "",
-      userType: ""
+      password: ""
     }
 
-    if (userType === "partner") {
-      if (!username.trim()) {
-        errors.username = "This field is remaining"
-      }
-    } else {
+    // Accept both email and username (for partner login)
       if (!email.trim()) {
-        errors.email = "This field is remaining"
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        errors.email = "Invalid email format"
-      }
+      errors.email = "This field is required"
     }
 
     if (!password) {
-      errors.password = "This field is remaining"
-    }
-
-    if (!userType) {
-      errors.userType = "This field is remaining"
+      errors.password = "This field is required"
     }
 
     setFieldErrors(errors)
     return !Object.values(errors).some(error => error !== "")
   }
 
+  // Parse API error to determine which field has the error
+  const parseApiError = (errorMessage: string) => {
+    const lowerError = errorMessage.toLowerCase()
+    const errors = {
+      email: "",
+      password: ""
+    }
+
+    // Check for password-related errors first
+    if (
+      lowerError.includes("password") || 
+      lowerError.includes("wrong password") ||
+      lowerError.includes("incorrect password") ||
+      lowerError.includes("password is incorrect") ||
+      lowerError.includes("password does not match")
+    ) {
+      errors.password = errorMessage
+    }
+    // Check for email/username-related errors
+    else if (
+      lowerError.includes("email") || 
+      lowerError.includes("username") || 
+      lowerError.includes("user not found") || 
+      lowerError.includes("invalid email") ||
+      lowerError.includes("user does not exist") ||
+      lowerError.includes("account not found") ||
+      lowerError.includes("invalid username")
+    ) {
+      errors.email = errorMessage
+    }
+    // For "Invalid credentials" or "authentication failed" - typically means wrong password
+    else if (lowerError.includes("invalid credentials") || lowerError.includes("authentication failed")) {
+      errors.password = errorMessage
+    }
+    // If error doesn't match specific fields, show on email field
+    else {
+      errors.email = errorMessage
+    }
+
+    return errors
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setFieldErrors({ email: "", password: "" })
     
     // Use the same validateFields function that works on test button
     const isValid = validateFields()
@@ -80,15 +133,18 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // Handle superadmin, member, and partner login
-      const loginData = userType === "partner" 
-        ? { username, password }
-        : { email, password }
+      // Auto-detect user type - try email first, then username
+      // The backend will automatically detect the user type
+      const identifier = email.trim()
+      const data = await loginUser(identifier, password)
       
-      const data = await loginUser(loginData.email || loginData.username, password, userType)
-      
-      // Store authentication data
-      storeAuthData(data.token, data.user, rememberMe)
+      // Store authentication data with userType and permissions
+      const userDataWithType = {
+        ...data.user,
+        userType: data.userType,
+        permissions: (data.user as any).permissions || null
+      }
+      storeAuthData(data.token, userDataWithType as any, rememberMe)
       
       console.log("Login successful:", data.message)
       console.log("User type:", data.userType)
@@ -100,10 +156,21 @@ export default function LoginPage() {
         router.push("/superadmin/pages/dashboard") // Members also go to superadmin dashboard for now
       } else if (data.userType === 'partner') {
         router.push("/partner/pages/dashboard") // Partners go to partner dashboard
+      } else if (data.userType === 'partnermember') {
+        router.push("/partner/pages/dashboard") // Partner members go to partner dashboard
+      } else if (data.userType === 'partnerstaff') {
+        router.push("/partner/pages/dashboard") // Partner staff go to partner dashboard
       }
     } catch (error) {
       console.error("Login error:", error)
-      setError(error instanceof Error ? error.message : "Network error. Please try again.")
+      const errorMessage = error instanceof Error ? error.message : "Network error. Please try again."
+      
+      // Parse error and set field-specific errors
+      const apiErrors = parseApiError(errorMessage)
+      setFieldErrors(apiErrors)
+      
+      // Also set general error for display at top
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -168,115 +235,61 @@ export default function LoginPage() {
                 <p className="text-[#6B7280] text-base">Enter your email and password to log in.</p>
               </div>
 
-              {/* Error Message */}
-              {error && (
-                <div className="w-full max-w-[470px] bg-red-50 border border-red-200 rounded-md p-3">
-                  <p className="text-red-600 text-sm">{error}</p>
-                </div>
-              )}
-
-
               {/* Form */}
               <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6 items-center">
-                {/* User Type Selection */}
-                <div className="flex flex-col gap-2 w-full max-w-[470px]">
-                  <label htmlFor="userType" className="text-[#212121] text-sm font-medium">
-                    User Type
-                  </label>
-                  <div className="relative w-full max-w-[470px]">
-                    <select
-                      id="userType"
-                      value={userType}
-                      onChange={(e) => {
-                        setUserType(e.target.value as "superadmin" | "member")
-                        clearFieldError("userType")
-                      }}
-                      className="flex w-full px-3 pr-10 flex-col items-start border bg-white rounded focus:outline-none focus:ring-2 transition-colors"
-                      style={{
-                        padding: "7.52px 12px",
-                        paddingRight: "40px",
-                        borderColor: fieldErrors.userType ? "#F46A6A" : "#CED4DA",
-                        boxShadow: fieldErrors.userType ? "0 0 0 2px rgba(244, 106, 106, 0.2)" : "none",
-                      }}
-                      onFocus={(e) => {
-                        if (fieldErrors.userType) {
-                          e.target.style.borderColor = "#F46A6A";
-                          e.target.style.boxShadow = "0 0 0 2px rgba(244, 106, 106, 0.2)";
-                        } else {
-                          e.target.style.borderColor = "#56C6FF";
-                          e.target.style.boxShadow = "0 0 0 2px rgba(86, 198, 255, 0.2)";
-                        }
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.boxShadow = "none";
-                      }}
-                      required
-                    >
-                      <option value="superadmin">Super Admin</option>
-                      <option value="member">Member</option>
-                      <option value="partner">Partner</option>
-                    </select>
-                    {fieldErrors.userType && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <PublicIcon src="/assets/icons/status error.svg" alt="Error" width={16} height={16} />
-                      </div>
-                    )}
-                  </div>
-                  {fieldErrors.userType && (
-                    <p className="text-[#F46A6A] text-xs">{fieldErrors.userType}</p>
-                  )}
-                </div>
-
                 {/* Email/Username Field */}
                 <div className="flex flex-col gap-2 w-full max-w-[470px]">
-                  <label htmlFor={userType === "partner" ? "username" : "email"} className="text-[#212121] text-sm font-medium">
-                    {userType === "partner" ? "Username" : "Adresse e-mail"}
+                  <label htmlFor="email" className="text-[#212121] text-sm font-medium">
+                    Email or Username
                   </label>
                   <div className="relative w-full max-w-[470px]">
                     <input
-                      id={userType === "partner" ? "username" : "email"}
-                      type={userType === "partner" ? "text" : "email"}
-                      value={userType === "partner" ? username : email}
+                      ref={emailInputRef}
+                      id="email"
+                      type="text"
+                      value={email}
                       onChange={(e) => {
-                        if (userType === "partner") {
-                          setUsername(e.target.value)
-                          clearFieldError("username")
-                        } else {
-                          setEmail(e.target.value)
-                          clearFieldError("email")
-                        }
+                        setEmail(e.target.value)
+                        clearFieldError("email")
                       }}
-                      placeholder="Write Here..."
-                      className="flex w-full px-3 pr-10 flex-col items-start border bg-white rounded focus:outline-none focus:ring-2 transition-colors"
+                      placeholder="Enter your email or username"
+                      className="flex w-full px-3 pr-10 flex-col items-start border bg-white rounded focus:outline-none transition-colors"
                       style={{
                         padding: "7.52px 12px",
                         paddingRight: "40px",
-                        borderColor: (userType === "partner" ? fieldErrors.username : fieldErrors.email) ? "#F46A6A" : "#CED4DA",
-                        boxShadow: (userType === "partner" ? fieldErrors.username : fieldErrors.email) ? "0 0 0 2px rgba(244, 106, 106, 0.2)" : "none",
+                        borderColor: fieldErrors.email ? "#F46A6A" : "#CED4DA",
+                        boxShadow: fieldErrors.email ? "0 0 0 2px rgba(244, 106, 106, 0.2)" : "none",
                       }}
                       onFocus={(e) => {
-                        const hasError = userType === "partner" ? fieldErrors.username : fieldErrors.email;
-                        if (hasError) {
-                          e.target.style.borderColor = "#F46A6A";
-                          e.target.style.boxShadow = "0 0 0 2px rgba(244, 106, 106, 0.2)";
-                        } else {
+                        // If there's an error, keep it red (useEffect will handle it)
+                        // If no error, show blue focus ring
+                        if (!fieldErrors.email) {
                           e.target.style.borderColor = "#56C6FF";
                           e.target.style.boxShadow = "0 0 0 2px rgba(86, 198, 255, 0.2)";
                         }
+                        // If there's an error, useEffect will maintain the red border
                       }}
                       onBlur={(e) => {
-                        e.target.style.boxShadow = "none";
+                        // On blur, maintain error state if error exists
+                        if (fieldErrors.email) {
+                          e.target.style.borderColor = "#F46A6A";
+                          e.target.style.boxShadow = "0 0 0 2px rgba(244, 106, 106, 0.2)";
+                        } else {
+                          // Reset to default if no error
+                          e.target.style.borderColor = "#CED4DA";
+                          e.target.style.boxShadow = "none";
+                        }
                       }}
                       required
                     />
-                    {(userType === "partner" ? fieldErrors.username : fieldErrors.email) && (
+                    {fieldErrors.email && (
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
                         <PublicIcon src="/assets/icons/status error.svg" alt="Error" width={16} height={16} />
                       </div>
                     )}
                   </div>
-                  {(userType === "partner" ? fieldErrors.username : fieldErrors.email) && (
-                    <p className="text-[#F46A6A] text-xs">{userType === "partner" ? fieldErrors.username : fieldErrors.email}</p>
+                  {fieldErrors.email && (
+                    <p className="text-[#F46A6A] text-xs">{fieldErrors.email}</p>
                   )}
                 </div>
 
@@ -287,6 +300,7 @@ export default function LoginPage() {
                   </label>
                   <div className="relative w-full max-w-[470px]">
                     <input
+                      ref={passwordInputRef}
                       id="password"
                       type={showPassword ? "text" : "password"}
                       value={password}
@@ -295,7 +309,7 @@ export default function LoginPage() {
                         clearFieldError("password")
                       }}
                       placeholder="••••••••••"
-                      className="flex w-full px-3 pr-20 flex-col items-start border bg-white rounded focus:outline-none focus:ring-2 transition-colors"
+                      className="flex w-full px-3 pr-20 flex-col items-start border bg-white rounded focus:outline-none transition-colors"
                       style={{
                         padding: "7.52px 12px",
                         paddingRight: "60px",
@@ -303,16 +317,24 @@ export default function LoginPage() {
                         boxShadow: fieldErrors.password ? "0 0 0 2px rgba(244, 106, 106, 0.2)" : "none",
                       }}
                       onFocus={(e) => {
+                        // If there's an error, keep it red (useEffect will handle it)
+                        // If no error, show blue focus ring
+                        if (!fieldErrors.password) {
+                          e.target.style.borderColor = "#56C6FF";
+                          e.target.style.boxShadow = "0 0 0 2px rgba(86, 198, 255, 0.2)";
+                        }
+                        // If there's an error, useEffect will maintain the red border
+                      }}
+                      onBlur={(e) => {
+                        // On blur, maintain error state if error exists
                         if (fieldErrors.password) {
                           e.target.style.borderColor = "#F46A6A";
                           e.target.style.boxShadow = "0 0 0 2px rgba(244, 106, 106, 0.2)";
                         } else {
-                          e.target.style.borderColor = "#56C6FF";
-                          e.target.style.boxShadow = "0 0 0 2px rgba(86, 198, 255, 0.2)";
-                        }
-                      }}
-                      onBlur={(e) => {
+                          // Reset to default if no error
+                          e.target.style.borderColor = "#CED4DA";
                         e.target.style.boxShadow = "none";
+                        }
                       }}
                       required
                     />

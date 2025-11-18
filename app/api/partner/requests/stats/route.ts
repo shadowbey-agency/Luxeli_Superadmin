@@ -8,31 +8,62 @@ import { ActivityRequest } from '@/models/activity-alerts/activities'
 import LaundryRequest from '@/models/laundary/laundaryRequest'
 import { InRoomDeliveryRequest } from '@/models/room-delivery/InRoomDeliveryRequest'
 
-// GET /api/partner/requests/stats - get request statistics for current and last week
+// GET /api/partner/requests/stats - get request statistics by period (week/month/day)
 export const GET = withAuth(async (req: NextRequest) => {
   try {
     await connectDB()
 
+    const { searchParams } = new URL(req.url)
+    const period = searchParams.get('period') || 'week' // week, month, day
+
     const now = new Date()
+    let currentStart: Date
+    let currentEnd: Date
+    let lastStart: Date
+    let lastEnd: Date
     
-    // Current week: from Monday 00:00:00 to Sunday 23:59:59
-    const currentWeekStart = new Date(now)
-    const dayOfWeek = currentWeekStart.getDay()
-    const diff = currentWeekStart.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) // Adjust to Monday
-    currentWeekStart.setDate(diff)
-    currentWeekStart.setHours(0, 0, 0, 0)
-    
-    const currentWeekEnd = new Date(currentWeekStart)
-    currentWeekEnd.setDate(currentWeekStart.getDate() + 6)
-    currentWeekEnd.setHours(23, 59, 59, 999)
-    
-    // Last week: previous Monday to Sunday
-    const lastWeekStart = new Date(currentWeekStart)
-    lastWeekStart.setDate(currentWeekStart.getDate() - 7)
-    
-    const lastWeekEnd = new Date(currentWeekStart)
-    lastWeekEnd.setDate(currentWeekStart.getDate() - 1)
-    lastWeekEnd.setHours(23, 59, 59, 999)
+    if (period === 'day') {
+      // Current day: today 00:00:00 to 23:59:59
+      currentStart = new Date(now)
+      currentStart.setHours(0, 0, 0, 0)
+      currentEnd = new Date(now)
+      currentEnd.setHours(23, 59, 59, 999)
+      
+      // Last day: yesterday
+      lastStart = new Date(now)
+      lastStart.setDate(now.getDate() - 1)
+      lastStart.setHours(0, 0, 0, 0)
+      lastEnd = new Date(now)
+      lastEnd.setDate(now.getDate() - 1)
+      lastEnd.setHours(23, 59, 59, 999)
+    } else if (period === 'week') {
+      // Current week: from Monday 00:00:00 to Sunday 23:59:59
+      currentStart = new Date(now)
+      const dayOfWeek = currentStart.getDay()
+      const diff = currentStart.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) // Adjust to Monday
+      currentStart.setDate(diff)
+      currentStart.setHours(0, 0, 0, 0)
+      
+      currentEnd = new Date(currentStart)
+      currentEnd.setDate(currentStart.getDate() + 6)
+      currentEnd.setHours(23, 59, 59, 999)
+      
+      // Last week: previous Monday to Sunday
+      lastStart = new Date(currentStart)
+      lastStart.setDate(currentStart.getDate() - 7)
+      
+      lastEnd = new Date(currentStart)
+      lastEnd.setDate(currentStart.getDate() - 1)
+      lastEnd.setHours(23, 59, 59, 999)
+    } else { // month
+      // Current month: first day to last day
+      currentStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
+      currentEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+      
+      // Last month: previous month
+      lastStart = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0)
+      lastEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
+    }
 
     // Helper function to count requests by status in a date range
     const countRequests = async (model: any, startDate: Date, endDate: Date) => {
@@ -50,7 +81,7 @@ export const GET = withAuth(async (req: NextRequest) => {
       return { total, accepted, canceled }
     }
 
-    // Count requests for current week from all models
+    // Count requests for current period from all models
     const [
       currentHousekeeping,
       currentBooking,
@@ -59,15 +90,15 @@ export const GET = withAuth(async (req: NextRequest) => {
       currentLaundry,
       currentRoomDelivery
     ] = await Promise.all([
-      countRequests(HousekeepingRequest, currentWeekStart, currentWeekEnd),
-      countRequests(BookingInternRequest, currentWeekStart, currentWeekEnd),
-      countRequests(CustomizedServiceRequest, currentWeekStart, currentWeekEnd),
-      countRequests(ActivityRequest, currentWeekStart, currentWeekEnd),
-      countRequests(LaundryRequest, currentWeekStart, currentWeekEnd),
-      countRequests(InRoomDeliveryRequest, currentWeekStart, currentWeekEnd)
+      countRequests(HousekeepingRequest, currentStart, currentEnd),
+      countRequests(BookingInternRequest, currentStart, currentEnd),
+      countRequests(CustomizedServiceRequest, currentStart, currentEnd),
+      countRequests(ActivityRequest, currentStart, currentEnd),
+      countRequests(LaundryRequest, currentStart, currentEnd),
+      countRequests(InRoomDeliveryRequest, currentStart, currentEnd)
     ])
 
-    // Count requests for last week from all models
+    // Count requests for last period from all models
     const [
       lastHousekeeping,
       lastBooking,
@@ -76,16 +107,16 @@ export const GET = withAuth(async (req: NextRequest) => {
       lastLaundry,
       lastRoomDelivery
     ] = await Promise.all([
-      countRequests(HousekeepingRequest, lastWeekStart, lastWeekEnd),
-      countRequests(BookingInternRequest, lastWeekStart, lastWeekEnd),
-      countRequests(CustomizedServiceRequest, lastWeekStart, lastWeekEnd),
-      countRequests(ActivityRequest, lastWeekStart, lastWeekEnd),
-      countRequests(LaundryRequest, lastWeekStart, lastWeekEnd),
-      countRequests(InRoomDeliveryRequest, lastWeekStart, lastWeekEnd)
+      countRequests(HousekeepingRequest, lastStart, lastEnd),
+      countRequests(BookingInternRequest, lastStart, lastEnd),
+      countRequests(CustomizedServiceRequest, lastStart, lastEnd),
+      countRequests(ActivityRequest, lastStart, lastEnd),
+      countRequests(LaundryRequest, lastStart, lastEnd),
+      countRequests(InRoomDeliveryRequest, lastStart, lastEnd)
     ])
 
     // Sum up all request types
-    const currentWeek = {
+    const current = {
       total: currentHousekeeping.total + currentBooking.total + currentCustomized.total + 
              currentActivity.total + currentLaundry.total + currentRoomDelivery.total,
       accepted: currentHousekeeping.accepted + currentBooking.accepted + currentCustomized.accepted + 
@@ -94,7 +125,7 @@ export const GET = withAuth(async (req: NextRequest) => {
                 currentActivity.canceled + currentLaundry.canceled + currentRoomDelivery.canceled
     }
 
-    const lastWeek = {
+    const last = {
       total: lastHousekeeping.total + lastBooking.total + lastCustomized.total + 
              lastActivity.total + lastLaundry.total + lastRoomDelivery.total,
       accepted: lastHousekeeping.accepted + lastBooking.accepted + lastCustomized.accepted + 
@@ -109,13 +140,13 @@ export const GET = withAuth(async (req: NextRequest) => {
       return ((current - last) / last) * 100
     }
 
-    const percentageChange = calculatePercentageChange(currentWeek.total, lastWeek.total)
+    const percentageChange = calculatePercentageChange(current.total, last.total)
     const isIncrease = percentageChange >= 0
 
     return NextResponse.json({
       success: true,
-      currentWeek,
-      lastWeek,
+      current,
+      last,
       percentageChange: Math.abs(percentageChange).toFixed(0),
       isIncrease
     })

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import { RiSearchLine, RiNotification3Line } from "react-icons/ri"
 import { useAuth } from "@/lib/auth-context"
+import { getUserData } from "@/lib/auth-utils"
 import Image from "next/image"
 
 export default function Header() {
@@ -11,6 +12,9 @@ export default function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
   const { logout } = useAuth()
+  const [userName, setUserName] = useState("")
+  const [userRole, setUserRole] = useState("")
+  const [userInitials, setUserInitials] = useState("")
 
   // Get page name and description based on pathname
   const getPageInfo = () => {
@@ -43,6 +47,51 @@ export default function Header() {
   }
 
   const pageInfo = getPageInfo()
+
+  // Get user data and set name/role
+  useEffect(() => {
+    const user = getUserData()
+    if (user) {
+      const userType = (user as any).userType || (user as any).role
+      const userRoleValue = (user as any).role || user.role
+      
+      // Get user name based on user type
+      let name = ""
+      let role = ""
+      
+      if (userType === 'partner' || user.role === 'partner') {
+        name = (user as any).hotelName || (user as any).name || "Partner"
+        role = "Partner"
+      } else if (userType === 'partnermember' || userRoleValue === 'partnermember') {
+        name = (user as any).memberName || (user as any).name || "Member"
+        role = "Partner Member"
+      } else if (userType === 'partnerstaff' || (userRoleValue && ['housekeeper', 'booking assistant', 'custom service agent', 'activity supervisor', 'laundary attendant', 'delivery staff'].includes(userRoleValue.toLowerCase()))) {
+        name = (user as any).staffName || (user as any).name || "Staff"
+        // Capitalize role
+        role = userRoleValue ? userRoleValue.split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : "Staff"
+      } else if (user.role === 'superadmin') {
+        name = (user as any).fullName || (user as any).name || "Super Admin"
+        role = "Super Admin"
+      } else if (user.role === 'member') {
+        name = (user as any).name || "Member"
+        role = "Member"
+      } else {
+        name = (user as any).name || (user as any).fullName || (user as any).hotelName || "User"
+        role = userRoleValue || "User"
+      }
+      
+      setUserName(name)
+      setUserRole(role)
+      
+      // Generate initials
+      const initials = name
+        .split(' ')
+        .map((word) => word.charAt(0).toUpperCase())
+        .slice(0, 2)
+        .join('')
+      setUserInitials(initials || name.charAt(0).toUpperCase())
+    }
+  }, [])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -107,12 +156,12 @@ export default function Header() {
          <div className="relative" ref={dropdownRef}>
            <div className="flex  gap-3 border-border  rounded-lg">
              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-semibold">
-               YL
+               {userInitials || "U"}
              </div>
              <div className="flex items-center gap-2">
                <div>
-                 <p className="text-sm font-semibold text-foreground">Youssef Lamari</p>
-                 <p className="text-xs text-muted-foreground">Admin</p>
+                 <p className="text-sm font-semibold text-foreground">{userName || "User"}</p>
+                 <p className="text-xs text-muted-foreground">{userRole || "User"}</p>
                </div>
                <button 
                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}

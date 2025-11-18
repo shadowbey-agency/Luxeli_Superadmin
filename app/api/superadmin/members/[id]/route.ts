@@ -58,7 +58,7 @@ export const PUT = withSuperAdminAuth(async (request: NextRequest) => {
     }
 
     // Validate permissions if provided
-    const validPermissions = ['dashboard', 'partner', 'subscription', 'billingFinance', 'support'];
+    const validPermissions = ['dashboard', 'partner', 'subscription', 'billingFinance', 'support', 'team', 'settings'];
     if (permissions && Array.isArray(permissions)) {
       const invalidPermissions = permissions.filter(p => !validPermissions.includes(p));
       if (invalidPermissions.length > 0) {

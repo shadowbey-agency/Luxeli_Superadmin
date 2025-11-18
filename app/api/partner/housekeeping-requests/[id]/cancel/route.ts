@@ -3,7 +3,7 @@ import { UserHousekeepingController } from '@/controllers/UserHousekeepingContro
 import { withGuestAuth, AuthenticatedRequest } from '@/lib/middleware';
 
 /**
- * PATCH /api/housekeeping-requests/[id]/cancel
+ * PATCH /api/partner/housekeeping-requests/[id]/cancel
  * Cancel a housekeeping request
  * Auth: Guest JWT
  */

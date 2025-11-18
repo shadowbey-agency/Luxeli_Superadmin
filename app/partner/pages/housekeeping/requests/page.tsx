@@ -59,6 +59,7 @@ export default function RequestsPage() {
   const [typeFilter, setTypeFilter] = useState("")
   const [showStatusChangeModal, setShowStatusChangeModal] = useState(false)
   const [requestToChangeStatus, setRequestToChangeStatus] = useState<HousekeepingRequest | null>(null)
+  const [statusChangeSuccess, setStatusChangeSuccess] = useState(false)
 
   // Fetch requests from API
   const fetchRequests = async () => {
@@ -248,9 +249,15 @@ export default function RequestsPage() {
       const result = await response.json()
 
       if (response.ok && result.success) {
+        setStatusChangeSuccess(true)
         await fetchRequests()
-        setShowStatusChangeModal(false)
-        setRequestToChangeStatus(null)
+        
+        // Close modal after showing success message
+        setTimeout(() => {
+          setShowStatusChangeModal(false)
+          setRequestToChangeStatus(null)
+          setStatusChangeSuccess(false)
+        }, 1500)
       } else {
         alert(result.error || 'Failed to update status')
       }
@@ -915,17 +922,32 @@ export default function RequestsPage() {
 
       {/* Change Status Modal */}
       {showStatusChangeModal && requestToChangeStatus && (
-        <div className="fixed inset-0 bg-black/40 bg-opacity-80 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
-          <div className="bg-white rounded-lg w-full max-w-md mx-4">
+        <div 
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm"
+          onClick={() => {
+            if (!statusChangeSuccess) {
+              setShowStatusChangeModal(false)
+              setRequestToChangeStatus(null)
+            }
+          }}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 transform transition-all"
+            style={{ borderRadius: "12px" }}
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
-            <div className="flex justify-between items-center px-6 py-4 border-b">
-              <h2 className="text-xl font-bold text-black">Change Status</h2>
+            <div className="flex justify-between items-center px-6 py-5 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Change Status</h2>
               <button
                 onClick={() => {
-                  setShowStatusChangeModal(false)
-                  setRequestToChangeStatus(null)
+                  if (!statusChangeSuccess) {
+                    setShowStatusChangeModal(false)
+                    setRequestToChangeStatus(null)
+                  }
                 }}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full p-1"
+                disabled={statusChangeSuccess}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -935,20 +957,48 @@ export default function RequestsPage() {
 
             {/* Content */}
             <div className="px-6 py-6">
-              <p className="text-gray-700 mb-4">Select new status for this request:</p>
+              {/* Success Message */}
+              {statusChangeSuccess && (
+                <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2 transition-all duration-300 ease-in-out">
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="font-medium">Status updated successfully!</span>
+                </div>
+              )}
+
+              <p className="text-gray-700 mb-4 font-medium">Select new status for this request:</p>
               <div className="space-y-2">
-                {(["new", "accepted", "completed", "no-show", "canceled"] as const).map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => handleStatusChange(status)}
-                    className="w-full text-left px-4 py-2 rounded-md hover:bg-gray-100 transition-colors capitalize"
-                    style={{
-                      backgroundColor: requestToChangeStatus.status === status ? "#E9EAEC" : "transparent"
-                    }}
-                  >
-                    {status}
-                  </button>
-                ))}
+                {(["new", "accepted", "completed", "no-show", "canceled"] as const).map((status) => {
+                  const isActive = requestToChangeStatus.status === status
+                  return (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusChange(status)}
+                      disabled={statusChangeSuccess}
+                      className={`
+                        w-full text-left px-4 py-3 rounded-lg 
+                        transition-all duration-200 
+                        capitalize font-medium
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                        ${isActive 
+                          ? 'bg-blue-50 text-blue-700 border-2 border-blue-200' 
+                          : 'bg-gray-50 text-gray-700 border-2 border-transparent hover:bg-gray-100 hover:border-gray-200 active:bg-gray-200'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{status.replace('-', ' ')}</span>
+                        {isActive && (
+                          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </div>

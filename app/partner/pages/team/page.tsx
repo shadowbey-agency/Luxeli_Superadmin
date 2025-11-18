@@ -1255,11 +1255,13 @@ export default function TeamPage() {
                               background: "#FFF"
                             }}
                           >
-                            <option value="">Select</option>
-                            <option value="admin">Admin</option>
-                            <option value="manager">Manager</option>
-                            <option value="staff">Staff</option>
-                            <option value="receptionist">Receptionist</option>
+                            <option value="">Select Role</option>
+                            <option value="housekeeper">Housekeeper</option>
+                            <option value="booking assistant">Booking Assistant</option>
+                            <option value="custom service agent">Custom Service Agent</option>
+                            <option value="activity supervisor">Activity Supervisor</option>
+                            <option value="laundary attendant">Laundary Attendant</option>
+                            <option value="delivery staff">Delivery Staff</option>
                           </select>
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                             <svg width="12" height="8" viewBox="0 0 12 8" fill="none">

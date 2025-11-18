@@ -1,8 +1,8 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { StaffController } from '@/controllers/partner/StaffController';
-import { withAuth } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 
-export const GET = withAuth(async (request: NextRequest) => {
+export const GET = withAuth(async (request: AuthenticatedRequest) => {
   const { searchParams } = new URL(request.url);
   const query = {
     page: searchParams.get('page') || undefined,
@@ -15,8 +15,16 @@ export const GET = withAuth(async (request: NextRequest) => {
   return await StaffController.getStaff(query);
 });
 
-export const POST = withAuth(async (request: NextRequest) => {
+export const POST = withAuth(async (request: AuthenticatedRequest) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID is required' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const {
       staffName,
@@ -31,7 +39,7 @@ export const POST = withAuth(async (request: NextRequest) => {
 
     // Validate required fields
     if (!staffName || !email || !phoneNumber || !role || !username || !password) {
-      return Response.json(
+      return NextResponse.json(
         { success: false, error: 'staffName, email, phoneNumber, role, username, and password are required' },
         { status: 400 }
       );
@@ -40,7 +48,7 @@ export const POST = withAuth(async (request: NextRequest) => {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return Response.json(
+      return NextResponse.json(
         { success: false, error: 'Invalid email format' },
         { status: 400 }
       );
@@ -48,7 +56,7 @@ export const POST = withAuth(async (request: NextRequest) => {
 
     // Validate password strength
     if (password.length < 6) {
-      return Response.json(
+      return NextResponse.json(
         { success: false, error: 'Password must be at least 6 characters long' },
         { status: 400 }
       );
@@ -56,13 +64,14 @@ export const POST = withAuth(async (request: NextRequest) => {
 
     // Validate status if provided
     if (status && !['active', 'disabled'].includes(status)) {
-      return Response.json(
+      return NextResponse.json(
         { success: false, error: 'Status must be either "active" or "disabled"' },
         { status: 400 }
       );
     }
 
     return await StaffController.createStaff({
+      partnerId,
       staffName: staffName.trim(),
       email: email.toLowerCase().trim(),
       phoneNumber: phoneNumber.trim(),
@@ -74,12 +83,13 @@ export const POST = withAuth(async (request: NextRequest) => {
     });
   } catch (error) {
     console.error('Create Staff API Error:', error);
-    return Response.json(
+    return NextResponse.json(
       { success: false, error: 'Invalid request body' },
       { status: 400 }
     );
   }
 });
+
 
 
 

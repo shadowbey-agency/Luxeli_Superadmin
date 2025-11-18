@@ -9,8 +9,8 @@ export interface TokenPayload {
   userId: string;
   email: string;
   role: string;
-  userType?: 'superadmin' | 'member' | 'partner' | 'guest';
-  permissions?: string[];
+  userType?: 'superadmin' | 'member' | 'partner' | 'guest' | 'partnermember' | 'partnerstaff';
+  permissions?: string[] | any; // Can be array for members or object for partner members
   // Guest-specific fields
   partnerId?: string;
   roomId?: string;

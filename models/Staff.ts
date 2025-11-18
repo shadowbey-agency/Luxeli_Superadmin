@@ -1,6 +1,8 @@
 import mongoose, { Schema, Document } from "mongoose";
+import bcrypt from "bcryptjs";
 
 export interface IStaff extends Document {
+  comparePassword(enteredPassword: string): Promise<boolean>;
   partnerId: string; // Reference to Partner
   staffName: string;
   email: string;
@@ -29,7 +31,6 @@ const StaffSchema = new Schema<IStaff>(
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
     },
@@ -50,7 +51,6 @@ const StaffSchema = new Schema<IStaff>(
     username: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
     },
     password: {
@@ -69,9 +69,30 @@ const StaffSchema = new Schema<IStaff>(
 
 // Indexes for better query performance
 StaffSchema.index({ partnerId: 1 });
-// Note: email and username already have indexes from unique: true
+// Compound unique index: email and username should be unique per partner
+StaffSchema.index({ partnerId: 1, email: 1 }, { unique: true });
+StaffSchema.index({ partnerId: 1, username: 1 }, { unique: true });
 StaffSchema.index({ status: 1 });
 StaffSchema.index({ role: 1 });
+
+// 🔐 Hash password before saving
+StaffSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
+});
+
+// 🔍 Compare passwords for login
+StaffSchema.methods.comparePassword = async function (enteredPassword: string) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Hide sensitive fields
+StaffSchema.methods.toJSON = function () {
+  const obj = this.toObject();
+  delete obj.password;
+  return obj;
+};
 
 // Force model recompilation to avoid overwrite issues
 if (mongoose.models.Staff) {

@@ -248,11 +248,13 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
                     className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
                     style={{ borderRadius: "4px" }}
                   >
-                    <option value="">Select</option>
-                    <option value="admin">Admin</option>
-                    <option value="manager">Manager</option>
-                    <option value="staff">Staff</option>
-                    <option value="receptionist">Receptionist</option>
+                    <option value="">Select Role</option>
+                    <option value="housekeeper">Housekeeper</option>
+                    <option value="booking assistant">Booking Assistant</option>
+                    <option value="custom service agent">Custom Service Agent</option>
+                    <option value="activity supervisor">Activity Supervisor</option>
+                    <option value="laundary attendant">Laundary Attendant</option>
+                    <option value="delivery staff">Delivery Staff</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

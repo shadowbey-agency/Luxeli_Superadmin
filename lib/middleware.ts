@@ -102,6 +102,7 @@ export function withSuperAdminAuth(handler: (req: AuthenticatedRequest) => Promi
 /**
  * Get partner ID from authenticated request
  * For partner users, userId in token is the partnerId
+ * For partner members and staff, partnerId is in the token payload
  */
 export function getPartnerId(request: AuthenticatedRequest): string | null {
   const user = request.user;
@@ -110,6 +111,11 @@ export function getPartnerId(request: AuthenticatedRequest): string | null {
   // If user is a partner, userId is the partnerId
   if (user.role === 'partner' || user.userType === 'partner') {
     return user.userId;
+  }
+  
+  // If user is a partner member or staff, partnerId is in the token
+  if (user.userType === 'partnermember' || user.userType === 'partnerstaff') {
+    return user.partnerId || null;
   }
   
   return null;

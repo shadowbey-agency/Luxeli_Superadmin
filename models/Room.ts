@@ -39,17 +39,19 @@ const RoomSchema = new Schema<IRoom>(
 // ✅ Indexes for better query performance
 RoomSchema.index({ partnerId: 1 });
 RoomSchema.index({ partnerId: 1, roomId: 1 }, { unique: true }); // Unique roomId per partner
+RoomSchema.index({ partnerId: 1, roomName: 1 }, { unique: true }); // Unique roomName per partner
 
-// ✅ Auto-generate sequential roomId (#01, #02, #03...)
+// ✅ Auto-generate sequential roomId (#01, #02, #03...) per partner
 RoomSchema.pre("save", async function (next) {
   // if roomId already set, skip auto-generation
   if (this.roomId) return next();
 
   try {
+    // Find the last room for THIS partner only
     const lastRoom = await mongoose
       .model<IRoom>("Room")
-      .findOne()
-      .sort({ _id: -1 })
+      .findOne({ partnerId: this.partnerId })
+      .sort({ roomId: -1 })
       .lean();
 
     let nextNumber = 1;
@@ -60,7 +62,29 @@ RoomSchema.pre("save", async function (next) {
       }
     }
 
-    this.roomId = `#${String(nextNumber).padStart(2, "0")}`;
+    // Generate roomId and check for uniqueness
+    let attempts = 0;
+    let roomId = `#${String(nextNumber).padStart(2, "0")}`;
+    
+    // Check if this roomId already exists for this partner
+    while (attempts < 100) {
+      const existingRoom = await mongoose
+        .model<IRoom>("Room")
+        .findOne({ partnerId: this.partnerId, roomId: roomId })
+        .lean();
+      
+      if (!existingRoom) {
+        // roomId is available
+        break;
+      }
+      
+      // roomId exists, try next number
+      nextNumber++;
+      roomId = `#${String(nextNumber).padStart(2, "0")}`;
+      attempts++;
+    }
+
+    this.roomId = roomId;
     next();
   } catch (err) {
     next(err as any);

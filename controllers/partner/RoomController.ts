@@ -86,6 +86,19 @@ export class RoomController {
         return NextResponse.json({ error: 'roomName is required' }, { status: 400 });
       }
 
+      // Check if room with same name already exists for this partner
+      const existingRoom = await Room.findOne({
+        partnerId,
+        roomName: roomName.trim()
+      }).lean();
+
+      if (existingRoom) {
+        return NextResponse.json(
+          { success: false, error: 'Room with this name already exists for this partner' },
+          { status: 409 }
+        );
+      }
+
       const newRoom = new Room({
         partnerId,
         roomName: roomName.trim(),
@@ -95,6 +108,21 @@ export class RoomController {
       await newRoom.save();
       return NextResponse.json({ success: true, room: newRoom.toObject() }, { status: 201 });
     } catch (error: any) {
+      // Handle duplicate entry errors
+      if (error.code === 11000) {
+        let duplicateField = 'roomId';
+        if (error.keyPattern) {
+          if (error.keyPattern.roomName) {
+            duplicateField = 'roomName';
+          } else if (error.keyPattern.roomId) {
+            duplicateField = 'roomId';
+          }
+        }
+        return NextResponse.json(
+          { success: false, error: `Room with this ${duplicateField} already exists for this partner` },
+          { status: 409 }
+        );
+      }
       return handleApiError(error, 'Failed to create room');
     }
   }

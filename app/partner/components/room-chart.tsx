@@ -10,13 +10,17 @@ interface RoomStatsData {
   full: number
 }
 
-export default function RoomChart() {
+interface RoomChartProps {
+  period?: "week" | "month" | "day"
+}
+
+export default function RoomChart({ period = "day" }: RoomChartProps) {
   const [data, setData] = useState<RoomStatsData[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     fetchRoomStats()
-  }, [])
+  }, [period])
 
   const fetchRoomStats = async () => {
     try {
@@ -28,8 +32,11 @@ export default function RoomChart() {
         return
       }
 
-      // Fetch all rooms to calculate daily stats
-      const response = await fetch(`/api/partner/rooms?page=1&limit=10000`, {
+      // Fetch stats from API with period parameter
+      const queryParams = new URLSearchParams({
+        period: period
+      })
+      const response = await fetch(`/api/partner/rooms/daily-stats?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -37,35 +44,15 @@ export default function RoomChart() {
 
       if (response.ok) {
         const result = await response.json()
-        const rooms = result.items || []
-        
-        // Get last 7 days
-        const days: RoomStatsData[] = []
-        const now = new Date()
-        
-        for (let i = 6; i >= 0; i--) {
-          const date = new Date(now)
-          date.setDate(now.getDate() - i)
-          date.setHours(0, 0, 0, 0)
-          
-          // Format day label (e.g., "Mon 21")
-          const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-          const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-          const dayLabel = `${dayNames[date.getDay()]} ${date.getDate()}`
-          
-          // For now, use current room status (in a real scenario, you'd track historical data)
-          // This is a simplified version - you might want to create a daily stats API
-          const emptyCount = rooms.filter((room: any) => room.roomStatus === 'empty').length
-          const fullCount = rooms.filter((room: any) => room.roomStatus === 'full').length
-          
-          days.push({
-            day: dayLabel,
-            empty: emptyCount,
-            full: fullCount
-          })
+        if (result.success && result.data) {
+          // Map API response to chart data format
+          const chartData: RoomStatsData[] = result.data.map((item: any) => ({
+            day: item.label || item.day || item.week || item.month,
+            empty: item.empty,
+            full: item.full
+          }))
+          setData(chartData)
         }
-        
-        setData(days)
       } else {
         console.error('Failed to fetch room stats')
       }
@@ -173,7 +160,7 @@ export default function RoomChart() {
               fontFamily: 'inherit'
             }}
             label={{ 
-              value: 'Days', 
+              value: period === 'month' ? 'Months' : 'Days', 
               position: 'insideBottom', 
               offset: -5, 
               style: {  
