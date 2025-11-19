@@ -1,93 +1,44 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:luxeli_app/features/housekeeping/providers/housekeeping_provider.dart';
-import 'package:luxeli_app/providers/guest_provider.dart';
-import 'package:luxeli_app/features/services/service_screen.dart';
+import 'package:luxeli_app/features/specials/views/specials_screen.dart';
 
-class SpecialsScreen extends StatefulWidget {
-  const SpecialsScreen({super.key});
+class SpecialsListView extends StatefulWidget {
+  const SpecialsListView({super.key});
 
   @override
-  State<SpecialsScreen> createState() => _SpecialsScreenState();
+  State<SpecialsListView> createState() => _SpecialsListViewState();
 }
 
-class _SpecialsScreenState extends State<SpecialsScreen> {
+class _SpecialsListViewState extends State<SpecialsListView> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descController.dispose();
-    super.dispose();
-  }
 
   void _sendRequest() async {
     final title = _titleController.text.trim();
     final desc = _descController.text.trim();
 
-    if (title.isEmpty && desc.isEmpty) {
+    if (title.isEmpty || desc.isEmpty) {
+      // Show validation error
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a title or description')),
-      );
-      return;
-    }
-
-    // Get the guest token for API authentication
-    final guestProvider = Provider.of<GuestProvider>(context, listen: false);
-    final token = guestProvider.guestData?.token;
-
-    if (token == null) {
-      // Show error if no token
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Authentication error. Please login again.'),
+        SnackBar(
+          content: const Text('Please fill in all fields'),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: const EdgeInsets.all(16),
         ),
       );
       return;
     }
 
-    // Show loading indicator
-    final loadingSnackBar = SnackBar(
-      content: Row(
-        children: [
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-          ),
-          const SizedBox(width: 16),
-          const Text('Submitting request...'),
-        ],
-      ),
-      backgroundColor: Colors.blue,
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(loadingSnackBar);
-
-    // Submit request through the provider
-    final success =
-        await Provider.of<HousekeepingProvider>(
-          context,
-          listen: false,
-        ).addRequest(
-          type: 'custom cleaning', // Default type for special requests
-          requestedFor: title.isNotEmpty ? title : 'Special Request',
-          notes: (title.isNotEmpty ? '$title - ' : '') + desc,
-        );
-
-    // Hide loading indicator
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    // Simulate API call
+    bool success = await Future.delayed(const Duration(seconds: 1), () => true);
 
     if (success) {
-      // Navigate to ServiceScreen for Specials so the user sees the list (filtered by 'Special')
+      // Navigate to SpecialsScreen for Specials so the user sees the list
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => ServiceScreen(
-            title: 'Special',
-            subtitle: 'Customized service',
-            icon: Icons.star_border,
-          ),
-        ),
+        MaterialPageRoute(builder: (_) => const SpecialsScreen()),
       );
 
       // Show success confirmation

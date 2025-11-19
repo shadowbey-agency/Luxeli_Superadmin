@@ -19,60 +19,64 @@ class CleaningTypeCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        height: 100,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFE3F2FD) : const Color(0xFFF5F5F5),
+          color: isSelected ? const Color(0xFFE3F2FD) : const Color(0xFFEEEEEE),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
                 ? const Color(0xFF2196F3)
-                : const Color(0xFFE0E0E0),
+                : const Color(0xFFB0B0B0),
             width: isSelected ? 2 : 1,
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Stack(
-              alignment: Alignment.topRight,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Icon(
-                  icon,
-                  size: 32,
-                  color: isSelected
-                      ? const Color(0xFF2196F3)
-                      : const Color(0xFF333333),
-                ),
-                if (isSelected)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      width: 16,
-                      height: 16,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF2196F3),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check,
-                        size: 10,
-                        color: Colors.white,
-                      ),
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF2196F3)
+                          : const Color(0xFFB0B0B0),
+                      width: 1,
                     ),
                   ),
+                  child: isSelected
+                      ? Center(
+                          child: Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF2196F3),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
               ],
             ),
+            Icon(icon, size: 32, color: Colors.black),
+
             const SizedBox(height: 8),
             Text(
               title,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                color: isSelected
-                    ? const Color(0xFF2196F3)
-                    : const Color(0xFF333333),
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: Colors.black,
               ),
             ),
           ],

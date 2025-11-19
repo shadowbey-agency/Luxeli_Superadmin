@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:luxeli_app/core/utils/app_logger.dart';
+import 'package:luxeli_app/providers/guest_provider.dart';
+import 'package:luxeli_app/features/laundry/providers/laundry_provider.dart';
+import 'package:provider/provider.dart';
 import '../models/request_model.dart';
+import '../../laundry/models/laundry_request.dart'; // Import LaundryStatus enum
 
 class RequestProvider extends ChangeNotifier {
   List<RequestModel> _allRequests = [];
@@ -24,7 +28,7 @@ class RequestProvider extends ChangeNotifier {
       _filteredRequests.where((r) => !r.isToday).toList();
 
   RequestProvider() {
-    _loadMockRequests();
+    // Don't load mock requests, we'll load real data when needed
   }
 
   void _setLoading(bool loading) {
@@ -37,24 +41,111 @@ class RequestProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Method to be implemented for real API integration
+  // Method to load real requests from all services
   Future<void> loadRequestsFromAPI() async {
     _setLoading(true);
     _setError(null);
 
     try {
-      // This is where you would make an actual API call
-      // For now, we'll keep using mock data
-      await Future.delayed(
-        Duration(milliseconds: 500),
-      ); // Simulate network delay
-      _loadMockRequests();
+      // This will be called from a context where we have access to providers
+      // For now, we'll implement the logic but it will be called from the UI
     } catch (e) {
       _setError('Failed to load requests. Please try again.');
       AppLogger.log('Error loading requests: $e');
     } finally {
       _setLoading(false);
     }
+  }
+
+  // Method to load requests from all services using context
+  Future<void> loadAllRequests(BuildContext context) async {
+    print('loadAllRequests called');
+    _setLoading(true);
+    _setError(null);
+    _allRequests.clear();
+    _filteredRequests.clear();
+
+    try {
+      final guestProvider = Provider.of<GuestProvider>(context, listen: false);
+      print('GuestProvider obtained');
+      final token = guestProvider.guestData?.token;
+
+      print('Token available: ${token != null}');
+      if (token != null) {
+        print('Token value: $token');
+      }
+
+      if (token == null) {
+        print('No token available, setting error');
+        _setError('Not logged in');
+        return;
+      }
+
+      // Load laundry requests
+      print('Loading laundry requests...');
+      final laundryProvider = Provider.of<LaundryProvider>(
+        context,
+        listen: false,
+      );
+      print('LaundryProvider obtained');
+      laundryProvider.setToken(token);
+      print('Token set in LaundryProvider, calling loadRequests');
+      await laundryProvider.loadRequests();
+
+      print('Laundry requests loaded: ${laundryProvider.requests.length}');
+
+      // Convert laundry requests to RequestModel format
+      for (var laundryRequest in laundryProvider.requests) {
+        print('Processing laundry request: ${laundryRequest.id}');
+        _allRequests.add(
+          RequestModel(
+            id: laundryRequest.id,
+            type: RequestType.laundry,
+            status: _mapLaundryStatus(laundryRequest.status),
+            date: laundryRequest.pickup,
+            service: laundryRequest.servicesSummary,
+            itemCount: laundryRequest.piece,
+            isToday: _isToday(laundryRequest.pickup),
+          ),
+        );
+      }
+
+      // TODO: Add other service types (housekeeping, delivery, etc.) when their providers are ready
+
+      _filteredRequests = List.from(_allRequests);
+      print('Total requests after processing: ${_allRequests.length}');
+      notifyListeners();
+    } catch (e, stackTrace) {
+      print('Error loading requests: $e');
+      print('Stack trace: $stackTrace');
+      _setError('Failed to load requests. Please try again.');
+      AppLogger.log('Error loading requests: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  RequestStatus _mapLaundryStatus(LaundryStatus status) {
+    switch (status) {
+      case LaundryStatus.newStatus:
+        return RequestStatus.pending;
+      case LaundryStatus.accepted:
+        return RequestStatus
+            .pending; // There's no "in progress" status in RequestStatus
+      case LaundryStatus.completed:
+        return RequestStatus.completed;
+      case LaundryStatus.noShow:
+        return RequestStatus.cancelled;
+      case LaundryStatus.canceled:
+        return RequestStatus.cancelled;
+    }
+  }
+
+  bool _isToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
   }
 
   void _loadMockRequests() {

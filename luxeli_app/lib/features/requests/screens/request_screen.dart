@@ -6,11 +6,41 @@ import 'package:luxeli_app/features/requests/widgets/request_list.dart';
 import 'package:provider/provider.dart';
 import '../providers/request_provider.dart';
 
-class RequestScreen extends StatelessWidget {
+class RequestScreen extends StatefulWidget {
   const RequestScreen({super.key});
 
   @override
+  State<RequestScreen> createState() => _RequestScreenState();
+}
+
+class _RequestScreenState extends State<RequestScreen> {
+  @override
+  void initState() {
+    super.initState();
+    print('RequestScreen initState called');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('RequestScreen post frame callback called');
+      _loadRequests(context);
+    });
+  }
+
+  void _loadRequests(BuildContext context) {
+    print('Loading requests...');
+    try {
+      final requestProvider = Provider.of<RequestProvider>(
+        context,
+        listen: false,
+      );
+      print('RequestProvider obtained, calling loadAllRequests');
+      requestProvider.loadAllRequests(context);
+    } catch (e) {
+      print('Error getting RequestProvider or loading requests: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    print('Building RequestScreen...');
     return Scaffold(
       backgroundColor: Color(0xFF1F2A44),
       body: Stack(
@@ -39,14 +69,28 @@ class RequestScreen extends StatelessWidget {
                       ),
                       child: Consumer<RequestProvider>(
                         builder: (context, provider, child) {
+                          print(
+                            'Consumer builder called - hasRequests: ${provider.hasRequests}, requests count: ${provider.requests.length}, isLoading: ${provider.isLoading}',
+                          );
+
                           if (provider.errorMessage != null) {
+                            print(
+                              'Showing error state: ${provider.errorMessage}',
+                            );
                             return _buildErrorState(provider);
                           }
 
+                          if (provider.isLoading) {
+                            print('Showing loading indicator');
+                            return Center(child: CircularProgressIndicator());
+                          }
+
                           if (!provider.hasRequests) {
+                            print('Showing empty state');
                             return RequestEmptyState();
                           }
 
+                          print('Showing request list');
                           return RequestList();
                         },
                       ),
@@ -86,7 +130,7 @@ class RequestScreen extends StatelessWidget {
           ),
           SizedBox(height: 16),
           GestureDetector(
-            onTap: provider.loadRequestsFromAPI,
+            onTap: () => _loadRequests(context),
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(

@@ -21,7 +21,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
 export const POST = withAuth(async (request: AuthenticatedRequest) => {
   try {
     const body = await request.json();
-    return await InRoomDeliveryRequestController.createRequest(body);
+    return await InRoomDeliveryRequestController.createRequest(request, body);
   } catch (error: any) {
     console.error('Create In-Room Delivery Request API Error:', error);
     return NextResponse.json(
@@ -30,5 +30,3 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
     );
   }
 });
-
-

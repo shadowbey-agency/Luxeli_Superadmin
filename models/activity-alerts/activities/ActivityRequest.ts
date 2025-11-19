@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document, models } from "mongoose";
 
 export interface IActivityRequest extends Document {
+  userId: string; // Reference to the user who made the request
   partnerId: string; // Reference to Partner
   roomName: string;
   residentName: string;
@@ -16,6 +17,11 @@ export interface IActivityRequest extends Document {
 
 const ActivityRequestSchema = new Schema<IActivityRequest>(
   {
+    userId: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     partnerId: {
       type: String,
       required: true,
@@ -40,11 +46,10 @@ const ActivityRequestSchema = new Schema<IActivityRequest>(
 );
 
 // Indexes for better query performance
+ActivityRequestSchema.index({ userId: 1 });
 ActivityRequestSchema.index({ partnerId: 1 });
 ActivityRequestSchema.index({ status: 1 });
 ActivityRequestSchema.index({ createdAt: -1 });
 
 export const ActivityRequest =
   models.ActivityRequest || mongoose.model<IActivityRequest>("ActivityRequest", ActivityRequestSchema);
-
-

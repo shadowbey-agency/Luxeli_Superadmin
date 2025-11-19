@@ -16,6 +16,7 @@ export interface ILaundryRequest extends Document {
     staffId: string;
     profilePic?: string;
   };
+  userId?: string; // Reference to Guest user (optional for backward compatibility)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,6 +51,11 @@ const LaundryRequestSchema: Schema = new Schema(
       name: { type: String },
       staffId: { type: String },
       profilePic: { type: String },
+    },
+    userId: { 
+      type: String, 
+      trim: true,
+      index: true,
     },
   },
   { timestamps: true }

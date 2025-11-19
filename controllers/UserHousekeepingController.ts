@@ -144,6 +144,7 @@ export class UserHousekeepingController {
       page?: string;
       limit?: string;
       status?: string;
+      type?: string; // Add type filter
     }
   ) {
     try {
@@ -179,6 +180,11 @@ export class UserHousekeepingController {
 
       if (query.status) {
         filter.status = query.status;
+      }
+      
+      // Add type filter if provided
+      if (query.type) {
+        filter.type = query.type;
       }
 
       // Fetch requests

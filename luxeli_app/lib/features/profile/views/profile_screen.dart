@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/profile_provider.dart';
+import '../widgets/profile_info_card.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -8,67 +9,15 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(
-        0xFFF8F8F8,
-      ), // Light grey background for the whole screen
+      backgroundColor: Color(0xFF1A2B47),
       body: Stack(
         children: [
-          // Dark blue background with curved shapes
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 280, // Height of the dark blue section
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF1A2B47), // Dark blue color
-              ),
-              child: Stack(
-                children: [
-                  // Large curve on the right
-                  Positioned(
-                    top: -100,
-                    right: -100,
-                    child: Container(
-                      width: 300,
-                      height: 300,
-                      decoration: BoxDecoration(
-                        color: const Color(
-                          0xFF2A3E5C,
-                        ).withAlpha(128), // Slightly lighter blue for curve
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                  // Smaller curve on the left
-                  Positioned(
-                    bottom: -50,
-                    left: -50,
-                    child: Container(
-                      width: 200,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2A3E5C).withAlpha(128),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Content Layer
           SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header: Profile text and Logout button
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24.0,
-                    vertical: 20.0,
-                  ),
+                  padding: const EdgeInsets.only(top: 45, left: 24, right: 24),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -114,105 +63,22 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(
-                  height: 20,
+                  height: 16,
                 ), // Space between header and white card
-                // White card section
                 Expanded(
                   child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16.0),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(13),
-                          spreadRadius: 0,
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
                     ),
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(vertical: 20.0),
                       child: Column(
                         children: [
-                          ProfileListItem(
-                            icon: Icons.person_outline,
-                            title: 'Name',
-                            value: 'Yassine ZABIR',
-                          ),
-                          const Divider(
-                            indent: 24,
-                            endIndent: 24,
-                            height: 0,
-                            thickness: 0.8,
-                            color: Color(0xFFE0E0E0),
-                          ),
-                          ProfileListItem(
-                            icon: Icons.phone_outlined,
-                            title: 'Phone Number',
-                            value: '+212/56486234',
-                          ),
-                          const Divider(
-                            indent: 24,
-                            endIndent: 24,
-                            height: 0,
-                            thickness: 0.8,
-                            color: Color(0xFFE0E0E0),
-                          ),
-                          ProfileListItem(
-                            icon: Icons.email_outlined,
-                            title: 'Email Address',
-                            value: 'Email@gmail.com',
-                          ),
-                          const Divider(
-                            indent: 24,
-                            endIndent: 24,
-                            height: 0,
-                            thickness: 0.8,
-                            color: Color(0xFFE0E0E0),
-                          ),
-                          ProfileListItem(
-                            icon: Icons.apartment_outlined,
-                            title: 'Hotel',
-                            value: 'Hotel name',
-                          ),
-                          const Divider(
-                            indent: 24,
-                            endIndent: 24,
-                            height: 0,
-                            thickness: 0.8,
-                            color: Color(0xFFE0E0E0),
-                          ),
-                          ProfileListItem(
-                            icon: Icons.bed_outlined,
-                            title: 'Room Number',
-                            value: '304',
-                          ),
-                          const Divider(
-                            indent: 24,
-                            endIndent: 24,
-                            height: 0,
-                            thickness: 0.8,
-                            color: Color(0xFFE0E0E0),
-                          ),
-                          ProfileListItem(
-                            icon: Icons.access_time,
-                            title: 'Check-in',
-                            value: 'Jan 15, 10:30 AM',
-                          ),
-                          const Divider(
-                            indent: 24,
-                            endIndent: 24,
-                            height: 0,
-                            thickness: 0.8,
-                            color: Color(0xFFE0E0E0),
-                          ),
-                          ProfileListItem(
-                            icon: Icons.access_time,
-                            title: 'Check-out',
-                            value: 'Jan 15, 10:30 AM',
-                          ),
+                          const ProfileInfoCard(),
                           const Divider(
                             indent: 24,
                             endIndent: 24,
@@ -308,14 +174,14 @@ class ProfileListItem extends StatelessWidget {
             Icon(
               icon,
               color: const Color(0xFF424242),
-              size: 24,
+              size: 13.333333969116211,
             ), // Dark grey icon
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 13,
                   color: Color(0xFF424242), // Dark grey text
                   fontWeight: FontWeight.w500,
                 ),
@@ -326,8 +192,8 @@ class ProfileListItem extends StatelessWidget {
               Text(
                 value!,
                 style: const TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF757575), // Medium grey value text
+                  fontSize: 13,
+                  color: Color(0xFF757575),
                   fontWeight: FontWeight.w400,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -366,17 +232,17 @@ class ProfileLanguageItem extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: 24.0,
-        vertical: 10.0,
+        vertical: 2.0,
       ), // Adjusted vertical padding
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF424242), size: 24),
-          const SizedBox(width: 16),
+          Icon(icon, color: const Color(0xFF424242), size: 13.333333969116211),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               title,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 13,
                 color: Color(0xFF424242),
                 fontWeight: FontWeight.w500,
               ),
@@ -391,7 +257,7 @@ class ProfileLanguageItem extends StatelessWidget {
                 color: Color(0xFF757575),
               ),
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 13,
                 color: Color(0xFF757575),
                 fontWeight: FontWeight.w400,
               ),
@@ -425,16 +291,16 @@ class ProfileNotificationItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 2.0),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF424242), size: 24),
+          Icon(icon, color: const Color(0xFF424242), size: 13.333333969116211),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
               title,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 13,
                 color: Color(0xFF424242),
                 fontWeight: FontWeight.w500,
               ),
@@ -444,7 +310,6 @@ class ProfileNotificationItem extends StatelessWidget {
           Builder(
             builder: (BuildContext context) {
               try {
-                // Try to access the provider
                 final profileProvider = Provider.of<ProfileProvider>(
                   context,
                   listen: false,

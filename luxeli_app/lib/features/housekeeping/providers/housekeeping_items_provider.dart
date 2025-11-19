@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:luxeli_app/features/housekeeping/models/housekeeping_item_model.dart';
 import 'package:luxeli_app/features/housekeeping/services/housekeeping_items_service.dart';
 
 class HousekeepingItemsProvider with ChangeNotifier {
-  List<HousekeepingItem> _items = [];
+  List<Map<String, dynamic>> _items = [];
   bool _isLoading = false;
   String? _errorMessage;
   String? _token;
 
-  List<HousekeepingItem> get items => _items;
+  List<Map<String, dynamic>> get items => _items;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 

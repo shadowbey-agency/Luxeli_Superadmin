@@ -1,37 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:luxeli_app/ui_components/widgets/svg_icon.dart';
+import 'package:luxeli_app/ui_components/widgets/png_icon.dart';
+import 'package:luxeli_app/ui_components/widgets/service_screen_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:luxeli_app/features/housekeeping/providers/housekeeping_provider.dart';
 import 'package:luxeli_app/features/housekeeping/widgets/list/housekeeping_list.dart';
 import 'package:luxeli_app/features/housekeeping/widgets/request/add_request_options_modal.dart';
-import 'package:luxeli_app/core/constants/app_icons.dart';
 import 'package:luxeli_app/providers/guest_provider.dart';
-
-// Temporary style definitions to maintain UI consistency
-class HousekeepingTextStyles {
-  static const cleaningTypeTitle = TextStyle(
-    fontSize: 22,
-    fontWeight: FontWeight.bold,
-    color: Color(0xFF333333),
-  );
-
-  static const labelText = TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w600,
-    color: Color(0xFF333333),
-  );
-
-  static const pendingStatusText = TextStyle(
-    fontSize: 14,
-    color: Color(0xFF666666),
-  );
-
-  static const confirmButtonText = TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w600,
-    color: Colors.white,
-  );
-}
 
 class HousekeepingButtonStyles {
   static ButtonStyle elevatedButtonStyle = ElevatedButton.styleFrom(
@@ -52,154 +26,52 @@ class HousekeepingScreen extends StatelessWidget {
       _loadRequests(context);
     });
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
-      body: SafeArea(
-        child: Consumer<HousekeepingProvider>(
+    return ServiceScreenWidget(
+      title: 'Housekeeping',
+      serviceTitle: 'Housekeeping service',
+      description: 'Keep your room spotless and comfortable.',
+      assetName: 'assets/images/icons/housekeepingicon.png',
+      fallbackIcon: Icons.cleaning_services,
+      buildContent: (context) {
+        return Consumer<HousekeepingProvider>(
           builder: (context, housekeepingProvider, child) {
             final hasRequests = housekeepingProvider.requests.isNotEmpty;
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: IconButton(
-                              icon: const Icon(Icons.arrow_back),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Housekeeping',
-                            style: HousekeepingTextStyles.cleaningTypeTitle,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
-                                  Text(
-                                    'Housekeeping service',
-                                    style: HousekeepingTextStyles.labelText,
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Keep your room spotless and comfortable.',
-                                    style: HousekeepingTextStyles
-                                        .pendingStatusText,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Flexible(
-                            flex: 1,
-                            child: Container(
-                              height: 80,
-                              alignment: Alignment.centerRight,
-                              child: SvgIcon(
-                                assetName: AppIcons.housekeeping,
-                                size: 80,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(14.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Requests',
-                                style: HousekeepingTextStyles.cleaningTypeTitle,
-                              ),
-                              Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: const BoxDecoration(
-                                  color: Colors.grey,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: GestureDetector(
-                                  onTap: () {},
-                                  child: SvgIcon(
-                                    assetName: AppIcons.filter,
-                                    size: 24,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Expanded(
-                          child: housekeepingProvider.isLoading
-                              ? const Center(child: CircularProgressIndicator())
-                              : hasRequests
-                              ? const HousekeepingList()
-                              : _buildNoRequestsState(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            );
+            if (housekeepingProvider.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return hasRequests
+                ? const HousekeepingList()
+                : _buildNoRequestsState();
           },
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ElevatedButton(
-          onPressed: () {
-            showModalBottomSheet(
-              context: context,
-              backgroundColor: Colors.transparent,
-              isScrollControlled: true,
-              builder: (context) => const AddRequestOptionsModal(),
-            );
-          },
-          style: HousekeepingButtonStyles.elevatedButtonStyle,
-          child: const Text(
-            'Add new request',
-            style: HousekeepingTextStyles.confirmButtonText,
+        );
+      },
+      onAddRequest: () {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(24)),
           ),
-        ),
-      ),
+          builder: (context) => DraggableScrollableSheet(
+            initialChildSize: 0.5,
+            minChildSize: 0.3,
+            maxChildSize: 1,
+            expand: false,
+            builder: (context, scrollController) {
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.all(Radius.circular(24)),
+                  ),
+                  child: const AddRequestOptionsModal(),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -229,7 +101,12 @@ class HousekeepingScreen extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: const Color(0xFFBBDEFB), width: 2),
             ),
-            child: SvgIcon(assetName: AppIcons.cleaning, size: 40),
+            child: PngIcon(
+              assetName: 'assets/images/icons/housekeepingemptyicon.png',
+              width: 40,
+              height: 40,
+              fallbackIcon: Icons.cleaning_services,
+            ),
           ),
           const SizedBox(height: 16),
           const Text(

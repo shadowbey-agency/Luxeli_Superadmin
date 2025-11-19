@@ -15,6 +15,7 @@ export interface IInRoomDeliveryRequest extends Document {
     profilePic?: string;
   };
   notes?: string;
+  userId?: string; // Reference to Guest user (optional for backward compatibility)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +67,11 @@ const inRoomDeliverySchema = new Schema<IInRoomDeliveryRequest>(
     notes: {
       type: String,
       trim: true,
+    },
+    userId: { 
+      type: String, 
+      trim: true,
+      index: true,
     },
   },
   { timestamps: true }

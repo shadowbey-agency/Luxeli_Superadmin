@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:luxeli_app/features/activities/providers/activities_provider.dart';
 import 'package:luxeli_app/features/activities/models/activity_model.dart';
 import 'package:luxeli_app/features/activities/widgets/detail/activity_detail_modal.dart';
+import 'package:luxeli_app/ui_components/widgets/png_icon.dart';
 
 class DiscoverActivitiesView extends StatelessWidget {
   const DiscoverActivitiesView({super.key});
@@ -15,9 +16,21 @@ class DiscoverActivitiesView extends StatelessWidget {
 
         if (activities.isEmpty) {
           return const Center(
-            child: Text(
-              'No activities available',
-              style: TextStyle(fontSize: 16, color: Color(0xFF9E9E9E)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                PngIcon(
+                  assetName: 'assets/images/icons/activityemptyicon.png',
+                  width: 48,
+                  height: 48,
+                  fallbackIcon: Icons.local_activity,
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'No activities available',
+                  style: TextStyle(fontSize: 16, color: Color(0xFF9E9E9E)),
+                ),
+              ],
             ),
           );
         }
@@ -25,8 +38,8 @@ class DiscoverActivitiesView extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 200,
               childAspectRatio: 0.8,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
@@ -36,6 +49,11 @@ class DiscoverActivitiesView extends StatelessWidget {
               final activity = activities[index];
               return _buildActivityCard(context, activity);
             },
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.only(
+              bottom: 20,
+            ), // Add some bottom padding
           ),
         );
       },

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:luxeli_app/features/housekeeping/providers/housekeeping_provider.dart';
 import 'package:luxeli_app/providers/guest_provider.dart';
-import 'package:luxeli_app/features/housekeeping/models/housekeeping_item_model.dart';
-import 'package:luxeli_app/features/housekeeping/services/housekeeping_items_service.dart';
+import 'package:luxeli_app/features/housekeeping/services/requests_management_service.dart';
 
 class HousekeepingItemsNeededSheet extends StatefulWidget {
   final String serviceTitle;
@@ -17,10 +16,10 @@ class HousekeepingItemsNeededSheet extends StatefulWidget {
 
 class _HousekeepingItemsNeededSheetState
     extends State<HousekeepingItemsNeededSheet> {
-  final List<String> categories = ['All', 'Bathroom', 'Bedroom', 'Kitchen'];
+  final List<String> categories = ['All', 'Pillows', 'Kitchen', 'Cleaning'];
   int selectedCategory = 0;
-  List<HousekeepingItem> items = [];
-  final Map<int, int> selected = {}; // key: item index, value: quantity
+  List<Map<String, dynamic>> items = [];
+  final Map<int, int> selected = {};
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -48,10 +47,12 @@ class _HousekeepingItemsNeededSheetState
           ? categories[selectedCategory]
           : null;
 
-      final fetchedItems = await HousekeepingItemsService.getHousekeepingItems(
-        token: token,
-        category: category,
-      );
+      final fetchedItems =
+          await RequestsManagementService.getRequestsManagementItems(
+            token: token,
+            category: category,
+            status: 'published', // Only show published items
+          );
 
       if (fetchedItems != null) {
         setState(() {
@@ -72,6 +73,64 @@ class _HousekeepingItemsNeededSheetState
     }
   }
 
+  /// Helper method to load images properly based on source type
+  Widget _buildImage(String imageUrl) {
+    // Check if it's a local asset (starts with 'assets/')
+    if (imageUrl.startsWith('assets/')) {
+      return Image.asset(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to reliable placeholder service
+          return Image.network(
+            'https://picsum.photos/200/200',
+            fit: BoxFit.cover,
+          );
+        },
+      );
+    } else {
+      // It's a network image - load the exact image URL provided
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          // Show a loading indicator while the image is loading
+          if (loadingProgress == null) return child;
+          return Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                  : null,
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          // Log the error for debugging
+          print('Image loading failed for URL: $imageUrl');
+          print('Error: $error');
+
+          // Show error message to user
+          return Container(
+            color: Colors.grey[300],
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.broken_image, color: Colors.grey[600]),
+                  Text(
+                    'Failed to load image',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -84,10 +143,7 @@ class _HousekeepingItemsNeededSheetState
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
+            borderRadius: BorderRadius.all(Radius.circular(24)),
           ),
           child: Center(
             child: Column(
@@ -111,10 +167,7 @@ class _HousekeepingItemsNeededSheetState
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
+            borderRadius: BorderRadius.all(Radius.circular(24)),
           ),
           child: Center(
             child: Column(
@@ -142,10 +195,7 @@ class _HousekeepingItemsNeededSheetState
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
+          borderRadius: BorderRadius.all(Radius.circular(24)),
         ),
         child: Column(
           children: [
@@ -241,7 +291,7 @@ class _HousekeepingItemsNeededSheetState
                 ),
                 itemBuilder: (context, idx) {
                   final item = items[idx];
-                  final it = _Item.fromHousekeepingItem(item);
+                  final it = _Item.fromRequestManagementItem(item);
                   final isSelected = selected.containsKey(idx);
                   return Container(
                     decoration: BoxDecoration(
@@ -288,10 +338,7 @@ class _HousekeepingItemsNeededSheetState
                                   width: double.infinity,
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(10),
-                                    child: Image.network(
-                                      it.imageUrl,
-                                      fit: BoxFit.cover,
-                                    ),
+                                    child: _buildImage(it.imageUrl),
                                   ),
                                 ),
                                 const SizedBox(height: 10),
@@ -434,13 +481,15 @@ class _Item {
 
   _Item({required this.title, required this.subtitle, required this.imageUrl});
 
-  // Factory constructor to create _Item from HousekeepingItem
-  factory _Item.fromHousekeepingItem(HousekeepingItem item) {
-    return _Item(
-      title: item.title,
-      subtitle: item.description,
-      imageUrl: item.imageUrl,
-    );
+  // Factory constructor to create _Item from requests management item
+  factory _Item.fromRequestManagementItem(Map<String, dynamic> item) {
+    // Extract item details from the requests management item
+    final title = item['name'] as String? ?? 'Item';
+    final description = item['description'] as String? ?? '';
+    // Use the actual image URL from the item, with a reliable fallback
+    final image = item['image'] as String? ?? 'https://picsum.photos/200/200';
+
+    return _Item(title: title, subtitle: description, imageUrl: image);
   }
 }
 
@@ -463,6 +512,64 @@ class _ItemDetailModalState extends State<_ItemDetailModal> {
     qty = widget.initialQty;
   }
 
+  /// Helper method to load images properly based on source type
+  Widget _buildImage(String imageUrl) {
+    // Check if it's a local asset (starts with 'assets/')
+    if (imageUrl.startsWith('assets/')) {
+      return Image.asset(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to reliable placeholder service
+          return Image.network(
+            'https://picsum.photos/200/200',
+            fit: BoxFit.cover,
+          );
+        },
+      );
+    } else {
+      // It's a network image - load the exact image URL provided
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          // Show a loading indicator while the image is loading
+          if (loadingProgress == null) return child;
+          return Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                  : null,
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          // Log the error for debugging
+          print('Image loading failed for URL: $imageUrl');
+          print('Error: $error');
+
+          // Show error message to user
+          return Container(
+            color: Colors.grey[300],
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.broken_image, color: Colors.grey[600]),
+                  Text(
+                    'Failed to load image',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -470,10 +577,7 @@ class _ItemDetailModalState extends State<_ItemDetailModal> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
+          borderRadius: BorderRadius.all(Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: Column(
@@ -502,7 +606,7 @@ class _ItemDetailModalState extends State<_ItemDetailModal> {
               width: double.infinity,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.network(widget.item.imageUrl, fit: BoxFit.cover),
+                child: _buildImage(widget.item.imageUrl),
               ),
             ),
             const SizedBox(height: 12),
@@ -560,8 +664,7 @@ class _ItemDetailModalState extends State<_ItemDetailModal> {
 class ConfirmRequestModal extends StatefulWidget {
   final String serviceTitle;
   final Map<int, int> selected; // item index -> qty
-  // ignore: library_private_types_in_public_api
-  final List<HousekeepingItem> items;
+  final List<Map<String, dynamic>> items;
 
   const ConfirmRequestModal({
     super.key,
@@ -579,7 +682,7 @@ class _ConfirmRequestModalState extends State<ConfirmRequestModal> {
   String deliveryMethod = 'Drop at door';
   TimeOfDay? startTime;
   TimeOfDay? endTime;
-  String priority = 'Normal';
+  String priority = 'medium';
 
   @override
   void initState() {
@@ -632,8 +735,9 @@ class _ConfirmRequestModalState extends State<ConfirmRequestModal> {
     // Build items map for notes
     final List<String> itemsList = [];
     selected.forEach((idx, qty) {
-      final it = widget.items[idx];
-      itemsList.add('${it.title} (x$qty)');
+      final item = widget.items[idx];
+      final requestedFor = item['title'] as String? ?? 'Item Request';
+      itemsList.add('$requestedFor (x$qty)');
     });
 
     final itemsString = itemsList.join(', ');
@@ -658,7 +762,8 @@ class _ConfirmRequestModalState extends State<ConfirmRequestModal> {
             'deliveryWindow':
                 '${startTime?.format(context) ?? ''} - ${endTime?.format(context) ?? ''}',
           },
-          priority: priority.toLowerCase(),
+          priority:
+              priority, // Removed .toLowerCase() since we're using valid enum values directly
           notes: notes,
         );
 
@@ -706,10 +811,7 @@ class _ConfirmRequestModalState extends State<ConfirmRequestModal> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
+          borderRadius: BorderRadius.all(Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: Column(
@@ -754,17 +856,19 @@ class _ConfirmRequestModalState extends State<ConfirmRequestModal> {
                   ),
                   const SizedBox(height: 8),
                   ...selected.entries.map((entry) {
-                    final it = widget.items[entry.key];
+                    final item = widget.items[entry.key];
+                    final requestedFor =
+                        item['title'] as String? ?? 'Item Request';
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Row(
                         children: [
-                          Text('${it.title} x${entry.value}'),
+                          Text('$requestedFor x${entry.value}'),
                           Spacer(),
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ),
@@ -826,11 +930,15 @@ class _ConfirmRequestModalState extends State<ConfirmRequestModal> {
                     trailing: DropdownButton<String>(
                       value: priority,
                       items: [
+                        DropdownMenuItem(value: 'low', child: Text('Low')),
                         DropdownMenuItem(
-                          value: 'Normal',
-                          child: Text('Normal'),
+                          value: 'medium',
+                          child: Text('Medium'),
                         ),
-                        DropdownMenuItem(value: 'High', child: Text('High')),
+                        DropdownMenuItem(
+                          value: 'urgent',
+                          child: Text('Urgent'),
+                        ),
                       ],
                       onChanged: (value) => setState(() => priority = value!),
                     ),

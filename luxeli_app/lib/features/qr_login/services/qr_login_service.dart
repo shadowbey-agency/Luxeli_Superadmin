@@ -4,19 +4,10 @@ import 'package:luxeli_app/core/models/guest_model.dart';
 import 'package:luxeli_app/core/constants/app_config.dart';
 
 class QRLoginService {
-  static final String baseUrl =
-      AppConfig.dev.apiUrl; // Use the app config base URL
+  static final String baseUrl = AppConfig.dev.apiUrl;
 
   /// Login with QR code token
   static Future<GuestData?> loginWithQR(String token) async {
-    // Log the token being sent for debugging
-    print('QR Login Service - Token length: ${token.length}');
-    final previewLength = token.length < 50 ? token.length : 50;
-    print(
-      'QR Login Service - Token preview: ${token.substring(0, previewLength)}',
-    );
-    print('QR Login Service - Base URL: $baseUrl');
-
     // Validate that we have a proper token
     if (token.isEmpty) {
       throw Exception('Empty token provided');
@@ -44,51 +35,37 @@ class QRLoginService {
     while (retryCount < maxRetries) {
       try {
         final Uri url = Uri.parse('$baseUrl/api/user/login-qr');
-        print('Making request to: $url');
+        print('Making request to: $url'); // Debug log
 
         // Create the request body
         final requestBody = {'token': token};
         final jsonString = jsonEncode(requestBody);
-        print('Request body JSON: $jsonString');
-        print('Request body length: ${jsonString.length}');
 
         final response = await http
             .post(
               url,
-              headers: {'Content-Type': 'application/json'},
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
               body: jsonString,
             )
-            .timeout(Duration(seconds: 10)); // Add timeout
+            .timeout(Duration(seconds: 15)); // Increased timeout
 
-        print('Response status: ${response.statusCode}');
-        print('Response body: ${response.body}');
+        print('Response status: ${response.statusCode}'); // Debug log
+        print('Response body: ${response.body}'); // Debug log
 
         if (response.statusCode == 200) {
           final Map<String, dynamic> data = jsonDecode(response.body);
 
           if (data['success'] == true) {
             final guestData = GuestData.fromJson(data['data']);
-
-            // Print complete guest data to console
-            print('=== Guest Data ===');
-            print('User ID: ${guestData.userId}');
-            print('Partner ID: ${guestData.partnerId}');
-            print('Room ID: ${guestData.roomId}');
-            print('Room Name: ${guestData.roomName}');
-            print('Guest Name: ${guestData.guestName}');
-            print('Guest Email: ${guestData.guestEmail ?? "Not provided"}');
-            print('Guest Phone: ${guestData.guestPhone ?? "Not provided"}');
-            print('Token: ${guestData.token}');
-            print('==================');
-
             return guestData;
           } else {
             throw Exception(data['error'] ?? 'Login failed');
           }
         } else if (response.statusCode == 400) {
           // Handle bad request - likely JSON parsing error on server
-          final responseBody = response.body;
-          print('Bad request response: $responseBody');
           throw Exception(
             'Invalid request format. Please try scanning the QR code again.',
           );
@@ -106,18 +83,19 @@ class QRLoginService {
           throw Exception('Server error. Please try again later.');
         } else {
           throw Exception(
-            'Failed to login. Status code: ${response.statusCode}',
+            'Failed to login. Status code: ${response.statusCode}. Please check your network connection and try again.',
           );
         }
       } catch (e) {
-        print('QR Login Error (attempt ${retryCount + 1}): $e');
+        print('Error during QR login: $e'); // Debug log
 
         // If this is the last retry, rethrow the error
         if (retryCount == maxRetries - 1) {
           // Check if it's a network error and provide a more helpful message
           final errorMessage = e.toString();
           if (errorMessage.contains('Connection refused') ||
-              errorMessage.contains('SocketException')) {
+              errorMessage.contains('SocketException') ||
+              errorMessage.contains('HandshakeException')) {
             throw Exception(
               'Unable to connect to server. Please make sure you are connected to the same WiFi network as the server and try again.',
             );

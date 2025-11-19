@@ -6,6 +6,9 @@ class ActivitiesService {
   static String get _baseUrl =>
       '${AppConfig.dev.apiUrl}/api/partner/activities';
 
+  static String get _activityRequestsBaseUrl =>
+      '${AppConfig.dev.apiUrl}/api/activity-requests';
+
   static Future<Map<String, dynamic>?> getActivities({
     required String token,
     int page = 1,
@@ -68,6 +71,55 @@ class ActivitiesService {
       return null;
     } catch (e) {
       print('Error creating activity: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> createActivityRequest({
+    required String token,
+    required String service,
+    String? notes,
+  }) async {
+    try {
+      final url = Uri.parse(_activityRequestsBaseUrl);
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'service': service,
+          if (notes != null) 'notes': notes,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Error creating activity request: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getMyRequests({
+    required String token,
+  }) async {
+    try {
+      final url = Uri.parse('$_activityRequestsBaseUrl/my');
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching my activity requests: $e');
       return null;
     }
   }

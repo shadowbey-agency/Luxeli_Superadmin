@@ -5,6 +5,7 @@ import 'package:luxeli_app/core/models/guest_model.dart';
 import 'package:provider/provider.dart';
 import 'package:luxeli_app/providers/guest_provider.dart';
 import 'package:luxeli_app/features/get_started/providers/scanner_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -15,6 +16,39 @@ class QRScannerScreen extends StatefulWidget {
 
 class _QRScannerScreenState extends State<QRScannerScreen> {
   bool _isProcessing = false;
+  MobileScannerController? _cameraController;
+  bool _permissionsGranted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _requestCameraPermission();
+  }
+
+  Future<void> _requestCameraPermission() async {
+    final status = await Permission.camera.request();
+    setState(() {
+      _permissionsGranted = status == PermissionStatus.granted;
+    });
+
+    if (_permissionsGranted) {
+      _initializeScanner();
+    }
+  }
+
+  void _initializeScanner() {
+    _cameraController = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates,
+      torchEnabled: false,
+      autoStart: true,
+    );
+  }
+
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,31 +60,44 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       ),
       body: Column(
         children: [
-          Expanded(
-            child: MobileScanner(
-              onDetect: (capture) {
-                if (_isProcessing) return;
+          if (!_permissionsGranted)
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Camera permission is required to scan QR codes',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _requestCameraPermission,
+                      child: const Text('Grant Permission'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: MobileScanner(
+                controller: _cameraController,
+                onDetect: (capture) {
+                  if (_isProcessing) return;
 
-                _isProcessing = true;
-                final List<Barcode> barcodes = capture.barcodes;
-                for (final barcode in barcodes) {
-                  // Log barcode details for debugging
-                  print('=== BARCODE DETECTED ===');
-                  print('Raw value: ${barcode.rawValue}');
-                  print('Raw value length: ${barcode.rawValue?.length ?? 0}');
-                  print('Format: ${barcode.format}');
-                  print('Type: ${barcode.type}');
-                  print('Display value: ${barcode.displayValue}');
-                  print('========================');
-
-                  if (barcode.rawValue != null) {
-                    _handleQRCode(barcode.rawValue!);
-                    break;
+                  _isProcessing = true;
+                  final List<Barcode> barcodes = capture.barcodes;
+                  for (final barcode in barcodes) {
+                    if (barcode.rawValue != null) {
+                      _handleQRCode(barcode.rawValue!);
+                      break;
+                    }
                   }
-                }
-              },
+                },
+              ),
             ),
-          ),
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Text(
@@ -59,6 +106,15 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ),
+          // Add a button to toggle flashlight
+          if (_permissionsGranted)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton(
+                onPressed: () => _cameraController?.toggleTorch(),
+                child: const Text('Toggle Flashlight'),
+              ),
+            ),
         ],
       ),
     );
@@ -74,15 +130,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           return const Center(child: CircularProgressIndicator());
         },
       );
-
-      // Log the raw QR code data for debugging
-      print('=== RAW QR CODE DATA ===');
-      print('Raw data length: ${qrCodeData.length}');
-      print('Raw data: $qrCodeData');
-      print(
-        'Raw data (first 200 chars): ${qrCodeData.substring(0, qrCodeData.length < 200 ? qrCodeData.length : 200)}',
-      );
-      print('========================');
 
       // Check if the data looks like a data URL (starts with data:image)
       if (qrCodeData.startsWith('data:image')) {
@@ -100,11 +147,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
       // Trim whitespace from QR code data
       final trimmedData = qrCodeData.trim();
-      print('Original QR Code Data Length: ${qrCodeData.length}');
-      print('Trimmed QR Code Data Length: ${trimmedData.length}');
-      print(
-        'Scanned QR Code Data Preview: ${trimmedData.substring(0, trimmedData.length < 100 ? trimmedData.length : 100)}',
-      );
 
       // Validate that we have data
       if (trimmedData.isEmpty) {
@@ -115,10 +157,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
       // Basic validation - JWT tokens should have 3 parts separated by dots
       final parts = trimmedData.split('.');
-      print('JWT parts count: ${parts.length}');
-      for (int i = 0; i < parts.length; i++) {
-        print('Part $i length: ${parts[i].length}');
-      }
 
       if (parts.length != 3) {
         throw Exception(
@@ -135,14 +173,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       Navigator.of(context).pop();
 
       if (guestData != null) {
-        // Log that we're navigating with guest data
-        print('Navigating to confirmation screen with guest data:');
-        print('- Guest Name: ${guestData.guestName}');
-        print('- Room Name: ${guestData.roomName}');
-        print('- Room ID: ${guestData.roomId}');
-        print('- Check-in Date: ${guestData.checkInDate ?? "Not provided"}');
-        print('- Check-out Date: ${guestData.checkOutDate ?? "Not provided"}');
-
         // Store guest data in provider
         Provider.of<GuestProvider>(
           context,
@@ -166,11 +196,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
         // Convert to a format that can be parsed by getParsedData()
         final jsonString =
-            '{' +
-            guestDataJson.entries
-                .map((e) => '"${e.key}":"${e.value}"')
-                .join(',') +
-            '}';
+            '{${guestDataJson.entries.map((e) => '"${e.key}":"${e.value}"').join(',')}}';
         scannerProvider.setScannedData(jsonString);
 
         // Navigate to confirmation screen
@@ -192,7 +218,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
       // Show more detailed error message
       String errorMessage = e.toString();
-      print('Full error details: $errorMessage');
 
       if (errorMessage.startsWith('Exception: ')) {
         errorMessage = errorMessage.substring(

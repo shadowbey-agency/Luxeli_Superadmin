@@ -22,7 +22,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
 export const POST = withAuth(async (request: AuthenticatedRequest) => {
   try {
     const body = await request.json();
-    return await LaundryRequestController.createRequest(body);
+    return await LaundryRequestController.createRequest(request, body);
   } catch (error: any) {
     console.error('Create Laundry Request API Error:', error);
     return NextResponse.json(

@@ -11,12 +11,9 @@ class AddRequestOptionsModal extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
+        borderRadius: BorderRadius.all(Radius.circular(24)),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+      padding: const EdgeInsets.fromLTRB(16, 12, 30, 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -24,55 +21,84 @@ class AddRequestOptionsModal extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              const Spacer(),
               const Text(
                 'Add new request',
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF333333),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Color(0xFF757575)),
-                onPressed: () => Navigator.of(context).pop(),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFfafafa),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFB0B0B0),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Color(0xFF757575),
+                    size: 15,
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           const Text(
             'Tell us what kind of request you want to make.',
-            style: TextStyle(fontSize: 15, color: Color(0xFF757575)),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF757575),
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: RequestOptionCard(
-                  icon: Icons
-                      .cleaning_services_outlined, // Or Icons.shopping_bag_outlined
+                  icon: Icons.cleaning_services_outlined,
                   title: 'Custom cleaning',
                   onTap: () {
-                    // Close the options modal then open the detailed cleaning request modal (bottom sheet)
-                    Navigator.of(
-                      context,
-                    ).pop(); // Close the AddRequestOptionsModal
+                    Navigator.of(context).pop();
                     showModalBottomSheet(
                       context: context,
                       backgroundColor: Colors.transparent,
                       isScrollControlled: true,
-                      builder: (context) => const CleaningRequestModal(),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(24)),
+                      ),
+                      builder: (context) => Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 50),
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.all(Radius.circular(24)),
+                          ),
+                          child: const CleaningRequestModal(),
+                        ),
+                      ),
                     );
                   },
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: RequestOptionCard(
                   icon: Icons.format_list_bulleted, // Or Icons.menu
                   title: 'Items needed',
                   onTap: () {
                     Navigator.of(context).pop(); // Close the modal
-                    // Open the ItemsNeededSheet bottom sheet
                     showModalBottomSheet(
                       context: context,
                       backgroundColor: Colors.transparent,

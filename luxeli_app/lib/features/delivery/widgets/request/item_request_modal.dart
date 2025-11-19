@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:luxeli_app/features/housekeeping/providers/housekeeping_provider.dart';
+import 'package:luxeli_app/features/delivery/providers/delivery_provider.dart';
 import 'package:luxeli_app/providers/guest_provider.dart';
 import 'package:luxeli_app/features/delivery/models/delivery_item.dart';
 
 class ItemRequestModal extends StatefulWidget {
   final List<DeliveryItem> items;
 
-  const ItemRequestModal({Key? key, required this.items}) : super(key: key);
+  const ItemRequestModal({super.key, required this.items});
 
   @override
   State<ItemRequestModal> createState() => _ItemRequestModalState();
@@ -23,6 +23,9 @@ class _ItemRequestModalState extends State<ItemRequestModal> {
     // Get the guest token for API authentication
     final guestProvider = Provider.of<GuestProvider>(context, listen: false);
     final token = guestProvider.guestData?.token;
+    final roomName = guestProvider.guestData?.roomName ?? 'Unknown Room';
+    final residentialName =
+        guestProvider.guestData?.guestName ?? 'Unknown Guest';
 
     if (token == null) {
       // Show error if no token
@@ -64,26 +67,20 @@ class _ItemRequestModalState extends State<ItemRequestModal> {
       itemsList.add('${it.title} (x$qty)');
     });
 
-    final itemsString = itemsList.join(', ');
+    itemsList.join(', ');
 
     final notes =
         'Method: $deliveryMethod; Window: ${startTime?.format(context) ?? ''} - ${endTime?.format(context) ?? ''}';
 
     // Submit request through the provider
-    final success =
-        await Provider.of<HousekeepingProvider>(
-          context,
-          listen: false,
-        ).addRequest(
-          type: 'item needed',
-          requestedFor: itemsString,
-          itemQuantity: selected.values.fold<int>(0, (sum, qty) => sum + qty),
-          deliveryDetail: {
-            'deliveryMethod': deliveryMethod,
-            'deliveryWindow':
-                '${startTime?.format(context) ?? ''} - ${endTime?.format(context) ?? ''}',
-          },
-          priority: 'medium', // Default priority
+    final success = await Provider.of<DeliveryProvider>(context, listen: false)
+        .addRequest(
+          roomName: roomName,
+          residentialName: residentialName,
+          items: itemsList,
+          restaurant: 'Delivery Service',
+          pickup:
+              '${startTime?.format(context) ?? ''} - ${endTime?.format(context) ?? ''}',
           notes: notes,
         );
 

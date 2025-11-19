@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import LaundryRequest, { ILaundryRequest } from '@/models/laundary/laundaryRequest';
-import { handleApiError } from '@/lib/middleware';
+import { handleApiError, AuthenticatedRequest } from '@/lib/middleware';
 
 export class LaundryRequestController {
 
@@ -88,7 +88,7 @@ export class LaundryRequestController {
   /**
    * Create a new laundry request
    */
-  static async createRequest(data: {
+  static async createRequest(request: AuthenticatedRequest, data: {
     roomName: string;
     residentialName: string;
     services: string[];
@@ -106,12 +106,22 @@ export class LaundryRequestController {
     try {
       await connectDB();
 
+      // Get partnerId from authenticated user
+      const partnerId = request.user?.userId;
+      if (!partnerId) {
+        return NextResponse.json(
+          { success: false, error: 'Partner ID is required' },
+          { status: 400 }
+        );
+      }
+
       // Validation
       if (!data.roomName || !data.residentialName || !data.services || !data.piece || !data.pickup) {
         return NextResponse.json({ success: false, error: 'Required fields missing' }, { status: 400 });
       }
 
-      const request = new LaundryRequest({
+      const requestDoc = new LaundryRequest({
+        partnerId, // Add partnerId from authenticated user
         service: 'laundry',
         roomName: data.roomName.trim(),
         residentialName: data.residentialName.trim(),
@@ -124,9 +134,9 @@ export class LaundryRequestController {
         assigne: data.assigne,
       });
 
-      await request.save();
+      await requestDoc.save();
 
-      return NextResponse.json({ success: true, data: { request: request.toJSON() } }, { status: 201 });
+      return NextResponse.json({ success: true, data: { request: requestDoc.toJSON() } }, { status: 201 });
     } catch (error) {
       return handleApiError(error, 'Failed to create laundry request');
     }

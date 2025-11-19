@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import { InRoomDeliveryRequest, IInRoomDeliveryRequest } from '@/models/room-delivery/InRoomDeliveryRequest';
-import { handleApiError } from '@/lib/middleware';
+import { handleApiError, AuthenticatedRequest } from '@/lib/middleware';
 
 export class InRoomDeliveryRequestController {
   /**
@@ -90,7 +90,7 @@ export class InRoomDeliveryRequestController {
   /**
    * Create a new in-room delivery request
    */
-  static async createRequest(data: {
+  static async createRequest(request: AuthenticatedRequest, data: {
     roomName: string;
     residentialName: string;
     items: string[];
@@ -107,6 +107,15 @@ export class InRoomDeliveryRequestController {
     try {
       await connectDB();
 
+      // Get partnerId from authenticated user
+      const partnerId = request.user?.userId;
+      if (!partnerId) {
+        return NextResponse.json(
+          { success: false, error: 'Partner ID is required' },
+          { status: 400 }
+        );
+      }
+
       // Validation
       if (!data.roomName || !data.residentialName || !data.items || !data.restaurant || !data.pickup) {
         return NextResponse.json(
@@ -122,7 +131,8 @@ export class InRoomDeliveryRequestController {
         );
       }
 
-      const request = new InRoomDeliveryRequest({
+      const requestDoc = new InRoomDeliveryRequest({
+        partnerId, // Add partnerId from authenticated user
         roomName: data.roomName.trim(),
         residentialName: data.residentialName.trim(),
         items: data.items,
@@ -133,10 +143,10 @@ export class InRoomDeliveryRequestController {
         notes: data.notes?.trim(),
       });
 
-      await request.save();
+      await requestDoc.save();
 
       return NextResponse.json(
-        { success: true, data: { request: request.toJSON() } },
+        { success: true, data: { request: requestDoc.toJSON() } },
         { status: 201 }
       );
     } catch (error) {

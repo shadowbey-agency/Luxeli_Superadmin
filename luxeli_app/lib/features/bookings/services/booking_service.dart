@@ -1,101 +1,234 @@
-import '../models/booking_model.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:luxeli_app/core/constants/app_config.dart';
+import '../models/booking_model.dart' as booking_model;
+
+typedef BookingModel = booking_model.Booking;
 
 class BookingService {
-  // In a real app, you would use a proper HTTP client and handle errors
-  // For now, we'll simulate API calls with delays
-  
-  // Get all bookings for a user
-  Future<List<Booking>> getBookings(String userId) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // For demo purposes, return some mock data
-    return [
-      Booking(
-        id: '1',
-        serviceId: 'service_1',
-        serviceName: 'House Cleaning',
-        serviceImage: 'assets/images/house_cleaning.jpg',
-        serviceDescription: 'Professional house cleaning service',
-        price: 120.0,
-        bookingDate: DateTime.now().add(const Duration(days: 2)),
-        timeSlot: '10:00 AM - 12:00 PM',
-        customerNotes: 'Please focus on the kitchen and bathrooms',
-        status: 'Confirmed',
-        createdAt: DateTime.now().subtract(const Duration(days: 1)),
-        updatedAt: DateTime.now().subtract(const Duration(hours: 12)),
-      ),
-      Booking(
-        id: '2',
-        serviceId: 'service_2',
-        serviceName: 'Laundry Service',
-        serviceImage: 'assets/images/laundry.jpg',
-        serviceDescription: 'Complete laundry and dry cleaning service',
-        price: 45.0,
-        bookingDate: DateTime.now().add(const Duration(days: 3)),
-        timeSlot: '2:00 PM - 4:00 PM',
-        customerNotes: 'Separate colors from whites',
-        status: 'Pending',
-        createdAt: DateTime.now().subtract(const Duration(days: 2)),
-        updatedAt: DateTime.now().subtract(const Duration(days: 2)),
-      ),
-    ];
-  }
-  
-  // Create a new booking
-  Future<Booking> createBooking(Booking booking) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // For demo purposes, return the booking with an ID
-    return booking.copyWith(id: '3');
-  }
-  
-  // Update a booking
-  Future<Booking> updateBooking(Booking booking) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // For demo purposes, return the booking
-    return booking;
-  }
-  
-  // Cancel a booking
-  Future<void> cancelBooking(String bookingId) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 500));
-  }
-}
+  static String get _baseUrl => '${AppConfig.dev.apiUrl}/api/bookings/requests';
+  static String get _internBaseUrl =>
+      '${AppConfig.dev.apiUrl}/api/user/booking-intern-requests';
+  static String get _servicesBaseUrl =>
+      '${AppConfig.dev.apiUrl}/api/user/booking-services';
 
-// Extension to allow copying a Booking with modifications
-extension BookingCopyWith on Booking {
-  Booking copyWith({
-    String? id,
-    String? serviceId,
-    String? serviceName,
-    String? serviceImage,
-    String? serviceDescription,
-    double? price,
-    DateTime? bookingDate,
-    String? timeSlot,
+  static Future<Map<String, dynamic>?> getMyRequests({
+    required String token,
+  }) async {
+    try {
+      final url = Uri.parse('$_baseUrl/my');
+      print('Fetching booking requests from: $url');
+      print('Using token: $token');
+
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      print('Booking requests response status: ${response.statusCode}');
+      print('Booking requests response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching booking requests: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getMyInternRequests({
+    required String token,
+  }) async {
+    try {
+      final url = Uri.parse(_internBaseUrl);
+      print('Fetching booking intern requests from: $url');
+      print('Using token: $token');
+
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      print('Booking intern requests response status: ${response.statusCode}');
+      print('Booking intern requests response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching booking intern requests: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getAvailableServices({
+    required String token,
+  }) async {
+    try {
+      final url = Uri.parse(_servicesBaseUrl);
+      print('Fetching available services from: $url');
+      print('Using token: $token');
+
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      print('Available services response status: ${response.statusCode}');
+      print('Available services response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching available services: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> createBooking({
+    required String token,
+    required BookingModel booking,
+  }) async {
+    try {
+      final url = Uri.parse(_baseUrl);
+      print('Creating booking at: $url');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(booking.toJson()),
+      );
+
+      print('Create booking response status: ${response.statusCode}');
+      print('Create booking response body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Error creating booking: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> createRequest({
+    required String token,
+    required String serviceId,
+    required String serviceName,
+    required String serviceImage,
+    required String serviceDescription,
+    required double price,
+    required DateTime bookingDate,
+    required String timeSlot,
     String? customerNotes,
-    String? status,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) {
-    return Booking(
-      id: id ?? this.id,
-      serviceId: serviceId ?? this.serviceId,
-      serviceName: serviceName ?? this.serviceName,
-      serviceImage: serviceImage ?? this.serviceImage,
-      serviceDescription: serviceDescription ?? this.serviceDescription,
-      price: price ?? this.price,
-      bookingDate: bookingDate ?? this.bookingDate,
-      timeSlot: timeSlot ?? this.timeSlot,
-      customerNotes: customerNotes ?? this.customerNotes,
-      status: status ?? this.status,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
+  }) async {
+    try {
+      final url = Uri.parse(_baseUrl);
+      print('Creating booking request at: $url');
+      print(
+        'Request data: serviceId=$serviceId, serviceName=$serviceName, price=$price, bookingDate=$bookingDate, timeSlot=$timeSlot',
+      );
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'serviceId': serviceId,
+          'serviceName': serviceName,
+          'serviceImage': serviceImage,
+          'serviceDescription': serviceDescription,
+          'price': price,
+          'bookingDate': bookingDate.toIso8601String(),
+          'timeSlot': timeSlot,
+          if (customerNotes != null) 'customerNotes': customerNotes,
+        }),
+      );
+
+      print('Create request response status: ${response.statusCode}');
+      print('Create request response body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Error creating booking request: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> createInternRequest({
+    required String token,
+    required String category,
+    required Map<String, String> reservation,
+    String? notes,
+  }) async {
+    try {
+      final url = Uri.parse(_internBaseUrl);
+      print('Creating booking intern request at: $url');
+      print('Request data: category=$category, reservation=$reservation');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'category': category,
+          'reservation': reservation,
+          if (notes != null) 'notes': notes,
+        }),
+      );
+
+      print('Create intern request response status: ${response.statusCode}');
+      print('Create intern request response body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Error creating booking intern request: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> cancelRequest({
+    required String token,
+    required String requestId,
+  }) async {
+    try {
+      final url = Uri.parse('$_baseUrl/$requestId/cancel');
+      print('Canceling booking request at: $url');
+
+      final response = await http.patch(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      print('Cancel request response status: ${response.statusCode}');
+      print('Cancel request response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Error canceling booking request: $e');
+      return null;
+    }
   }
 }

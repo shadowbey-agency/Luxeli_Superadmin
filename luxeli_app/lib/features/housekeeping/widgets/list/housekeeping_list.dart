@@ -65,17 +65,23 @@ class HousekeepingList extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
+                    horizontal: 16,
+                    vertical: 16,
                   ),
                   child: Text(
                     dateKey,
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                       color: Color(0xFF333333),
                     ),
                   ),
+                ),
+                Divider(
+                  endIndent: 16,
+                  indent: 16,
+                  thickness: 1,
+                  color: Color(0xFFE0E0E0),
                 ),
                 ...requestsForDate.map(
                   (request) => HousekeepingRequestCard(request: request),

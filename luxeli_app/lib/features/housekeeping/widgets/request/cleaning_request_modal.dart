@@ -16,18 +16,18 @@ class CleaningRequestModal extends StatelessWidget {
     final ValueNotifier<String> selectedTime = ValueNotifier('09:00 AM');
 
     final List<String> availableTimes = [
-      '07:00 AM',
-      '08:00 AM',
-      '09:00 AM',
-      '10:00 AM',
-      '11:00 AM',
-      '12:00 PM',
-      '01:00 PM',
-      '02:00 PM',
-      '03:00 PM',
-      '04:00 PM',
-      '05:00 PM',
-      '06:00 PM',
+      '7:00am',
+      '8:00am',
+      '10:00am',
+      '11:00am',
+      '12:00pm',
+      '12:00pm',
+      '01:00pm',
+      '02:00pm',
+      '03:00pm',
+      '04:00pm',
+      '05:00pm',
+      '06:00pm',
     ];
 
     void submitCleaningRequest() async {
@@ -107,12 +107,9 @@ class CleaningRequestModal extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
+        borderRadius: BorderRadius.all(Radius.circular(24)),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,14 +120,30 @@ class CleaningRequestModal extends StatelessWidget {
               const Text(
                 '15/09/2025',
                 style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
                   color: Color(0xFF333333),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Color(0xFF757575)),
-                onPressed: () => Navigator.of(context).pop(),
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0E0E0),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFB0B0B0),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Color(0xFF757575),
+                    size: 20,
+                  ),
+                ),
               ),
             ],
           ),
@@ -138,7 +151,7 @@ class CleaningRequestModal extends StatelessWidget {
           const Text(
             'Cleaning type',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
               color: Color(0xFF333333),
             ),
@@ -180,17 +193,19 @@ class CleaningRequestModal extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
+          Divider(thickness: 1, color: Color(0xFFE0E0E0)),
+          const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(Icons.access_time, color: Color(0xFF757575)),
+              const Icon(Icons.access_time, color: Color(0xFF757575), size: 15),
               const SizedBox(width: 8),
               ValueListenableBuilder<String>(
                 valueListenable: selectedTime,
                 builder: (context, currentTime, child) {
                   return Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
+                      horizontal: 22,
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
@@ -201,20 +216,24 @@ class CleaningRequestModal extends StatelessWidget {
                     child: Text(
                       currentTime,
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
                         color: Color(0xFF333333),
                       ),
                     ),
                   );
                 },
               ),
-              const SizedBox(width: 12),
-              const Icon(Icons.arrow_forward, color: Color(0xFF757575)),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.arrow_forward,
+                color: Color(0xFF757575),
+                size: 14,
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
+                  horizontal: 22,
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
@@ -225,62 +244,68 @@ class CleaningRequestModal extends StatelessWidget {
                 child: const Text(
                   '09:30 AM',
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
                     color: Color(0xFF333333),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           ValueListenableBuilder<String>(
             valueListenable: selectedTime,
             builder: (context, currentTime, child) {
-              return Container(
-                height: 150,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE0E0E0)),
-                ),
-                child: ListView.builder(
-                  itemCount: availableTimes.length,
-                  itemBuilder: (context, index) {
-                    final time = availableTimes[index];
-                    final isSelected = time == currentTime;
-                    return GestureDetector(
-                      onTap: () => selectedTime.value = time,
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? const Color(0xFFE3F2FD)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          time,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
+              return Padding(
+                padding: const EdgeInsets.only(left: 22),
+                child: Container(
+                  height: 150,
+                  width: 100,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE0E0E0)),
+                  ),
+                  child: ListView.builder(
+                    itemCount: availableTimes.length,
+                    itemBuilder: (context, index) {
+                      final time = availableTimes[index];
+                      final isSelected = time == currentTime;
+                      return GestureDetector(
+                        onTap: () => selectedTime.value = time,
+                        child: Container(
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          decoration: BoxDecoration(
                             color: isSelected
-                                ? const Color(0xFF2196F3)
-                                : const Color(0xFF333333),
+                                ? const Color(0xFFE3F2FD)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            time,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: isSelected
+                                  ? FontWeight.w400
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? const Color(0xFF2196F3)
+                                  : const Color(0xFF333333),
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               );
             },
           ),
+          // ... existing code ...
           const SizedBox(height: 24),
-          Center(
+          SizedBox(
+            width: double.infinity,
             child: ElevatedButton(
               onPressed: submitCleaningRequest,
               style: ElevatedButton.styleFrom(
@@ -303,6 +328,7 @@ class CleaningRequestModal extends StatelessWidget {
               ),
             ),
           ),
+          // ... existing code ...
         ],
       ),
     );

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:luxeli_app/ui_components/widgets/svg_icon.dart';
+import 'package:luxeli_app/ui_components/widgets/service_screen_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:luxeli_app/features/activities/providers/activities_provider.dart';
 import 'package:luxeli_app/features/activities/widgets/list/discover_activities_view.dart';
@@ -7,7 +7,6 @@ import 'package:luxeli_app/features/activities/widgets/request/add_activity_requ
 import 'package:luxeli_app/core/constants/app_icons.dart';
 import 'package:luxeli_app/providers/guest_provider.dart';
 
-// Temporary style definitions to maintain UI consistency
 class ActivitiesTextStyles {
   static const cleaningTypeTitle = TextStyle(
     fontSize: 22,
@@ -51,141 +50,31 @@ class ActivitiesScreen extends StatelessWidget {
       _loadActivities(context);
     });
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
-      body: SafeArea(
-        child: Consumer<ActivitiesProvider>(
+    return ServiceScreenWidget(
+      title: 'Discover activities',
+      serviceTitle: 'Activity service',
+      description: 'Select and join in just a few taps.',
+      assetName: AppIcons.activity,
+      fallbackIcon: Icons.local_activity,
+      buildContent: (context) {
+        return Consumer<ActivitiesProvider>(
           builder: (context, activitiesProvider, child) {
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: IconButton(
-                              icon: const Icon(Icons.arrow_back),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Discover activities',
-                            style: ActivitiesTextStyles.cleaningTypeTitle,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
-                                  Text(
-                                    'Activity service',
-                                    style: ActivitiesTextStyles.labelText,
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Select and join in just a few taps.',
-                                    style:
-                                        ActivitiesTextStyles.pendingStatusText,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Flexible(
-                            flex: 1,
-                            child: Container(
-                              height: 80,
-                              alignment: Alignment.centerRight,
-                              child: SvgIcon(
-                                assetName: AppIcons.housekeeping,
-                                size: 80,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(),
-                      const SizedBox(height: 16),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Discover activities',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.search),
-                              onPressed: () {},
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
-                      ),
-                    ),
-                    child: activitiesProvider.isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : const DiscoverActivitiesView(),
-                  ),
-                ),
-              ],
-            );
+            if (activitiesProvider.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return const DiscoverActivitiesView();
           },
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ElevatedButton(
-          onPressed: () {
-            showModalBottomSheet(
-              context: context,
-              backgroundColor: Colors.transparent,
-              isScrollControlled: true,
-              builder: (context) => const AddActivityRequestModal(),
-            );
-          },
-          style: ActivitiesButtonStyles.elevatedButtonStyle,
-          child: const Text(
-            'Join activity',
-            style: ActivitiesTextStyles.confirmButtonText,
-          ),
-        ),
-      ),
+        );
+      },
+      onAddRequest: () {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          isScrollControlled: true,
+          builder: (context) => const AddActivityRequestModal(),
+        );
+      },
+      showFilterIcon: false,
     );
   }
 

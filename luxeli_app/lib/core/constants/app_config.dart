@@ -15,7 +15,8 @@ class AppConfig {
     return AppConfig(
       appName: 'Luxeli App - Development',
       // Use the actual IP address for device testing
-      apiUrl: 'http://192.168.1.13:3001', // Updated for device connectivity
+      apiUrl:
+          'http://192.168.18.26:3000', // Updated for local network connectivity
       debugMode: true,
       environment: 'development',
     );
