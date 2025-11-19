@@ -75,6 +75,7 @@ export default function RoomPage() {
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [roomToDelete, setRoomToDelete] = useState<Room | null>(null)
+  const [isBulkDelete, setIsBulkDelete] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
   const [showQRModal, setShowQRModal] = useState(false)
@@ -120,6 +121,21 @@ export default function RoomPage() {
   const [isLoadingRooms, setIsLoadingRooms] = useState(true)
   // Pagination state
   const [totalRooms, setTotalRooms] = useState(0)
+  // Period selection state
+  const [selectedPeriod, setSelectedPeriod] = useState<"week" | "month" | "day">("month")
+  // Room stats state with percentages
+  const [roomStats, setRoomStats] = useState({
+    totalRooms: 0,
+    totalRoomsPercentage: "0",
+    totalRoomsIsIncrease: true,
+    emptyRooms: 0,
+    emptyRoomsPercentage: "0",
+    emptyRoomsIsIncrease: true,
+    fullRooms: 0,
+    fullRoomsPercentage: "0",
+    fullRoomsIsIncrease: true
+  })
+  const [isLoadingStats, setIsLoadingStats] = useState(false)
 
   const handleRoomSelection = (roomId: string, isSelected: boolean) => {
     const newSelectedRooms = new Set(selectedRooms)
@@ -132,10 +148,11 @@ export default function RoomPage() {
   }
 
   const handleSelectAll = () => {
-    if (selectedRooms.size === currentRooms.length) {
+    // Use rooms directly since currentRooms is just an alias
+    if (selectedRooms.size === rooms.length && rooms.length > 0) {
       setSelectedRooms(new Set())
     } else {
-      setSelectedRooms(new Set(currentRooms.map(room => room.id)))
+      setSelectedRooms(new Set(rooms.map(room => room.id)))
     }
   }
 
@@ -209,10 +226,61 @@ export default function RoomPage() {
     }
   }
 
+  // Fetch room stats with percentages
+  const fetchRoomStats = async () => {
+    try {
+      setIsLoadingStats(true)
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        setIsLoadingStats(false)
+        return
+      }
+
+      const queryParams = new URLSearchParams({
+        period: selectedPeriod
+      })
+
+      const response = await fetch(`/api/partner/general-stats?${queryParams}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data) {
+          setRoomStats({
+            totalRooms: result.data.totalRooms.current,
+            totalRoomsPercentage: result.data.totalRooms.percentage,
+            totalRoomsIsIncrease: result.data.totalRooms.isIncrease,
+            emptyRooms: result.data.emptyRooms.current,
+            emptyRoomsPercentage: result.data.emptyRooms.percentage,
+            emptyRoomsIsIncrease: result.data.emptyRooms.isIncrease,
+            fullRooms: result.data.fullRooms.current,
+            fullRoomsPercentage: result.data.fullRooms.percentage,
+            fullRoomsIsIncrease: result.data.fullRooms.isIncrease
+          })
+        }
+      } else {
+        console.error('Failed to fetch room stats')
+      }
+    } catch (error) {
+      console.error('Error fetching room stats:', error)
+    } finally {
+      setIsLoadingStats(false)
+    }
+  }
+
   // Fetch rooms on mount and when page/limit changes
   useEffect(() => {
     fetchRooms()
   }, [currentPage, itemsPerPage])
+
+  // Fetch room stats when period changes
+  useEffect(() => {
+    fetchRoomStats()
+  }, [selectedPeriod])
 
   const handleDeleteRoom = (room: Room) => {
     setRoomToDelete(room)
@@ -220,36 +288,84 @@ export default function RoomPage() {
   }
 
   const confirmDelete = async () => {
-    if (!roomToDelete) return
-    try {
-      const token = getAuthToken()
-      if (!token) {
-        alert('Please log in to delete room')
-        return
-      }
-      const response = await fetch(`/api/partner/rooms/${roomToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
+    if (isBulkDelete) {
+      // Bulk delete
+      if (selectedRooms.size === 0) return
+      try {
+        const token = getAuthToken()
+        if (!token) {
+          alert('Please log in to delete rooms')
+          return
         }
-      })
-      const result = await response.json()
-      if (response.ok && result.success) {
-        await fetchRooms()
-        setShowDeleteModal(false)
-        setRoomToDelete(null)
-      } else {
-        alert(result.error || 'Failed to delete room')
+        
+        // Delete all selected rooms
+        const deletePromises = Array.from(selectedRooms).map(roomId =>
+          fetch(`/api/partner/rooms/${roomId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+        )
+        
+        const results = await Promise.all(deletePromises)
+        const failed = results.filter(r => !r.ok)
+        
+        if (failed.length === 0) {
+          await fetchRooms()
+          setShowDeleteModal(false)
+          setSelectedRooms(new Set())
+          setIsBulkDelete(false)
+        } else {
+          alert(`Failed to delete ${failed.length} room(s). Please try again.`)
+        }
+      } catch (error) {
+        console.error('Error deleting rooms:', error)
+        alert('Failed to delete rooms. Please try again.')
       }
-    } catch (error) {
-      console.error('Error deleting room:', error)
-      alert('Failed to delete room. Please try again.')
+    } else {
+      // Single delete
+      if (!roomToDelete) return
+      try {
+        const token = getAuthToken()
+        if (!token) {
+          alert('Please log in to delete room')
+          return
+        }
+        const response = await fetch(`/api/partner/rooms/${roomToDelete.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const result = await response.json()
+        if (response.ok && result.success) {
+          await fetchRooms()
+          setShowDeleteModal(false)
+          setRoomToDelete(null)
+        } else {
+          alert(result.error || 'Failed to delete room')
+        }
+      } catch (error) {
+        console.error('Error deleting room:', error)
+        alert('Failed to delete room. Please try again.')
+      }
     }
   }
 
   const cancelDelete = () => {
     setShowDeleteModal(false)
     setRoomToDelete(null)
+    setIsBulkDelete(false)
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedRooms.size === 0) {
+      alert('Please select at least one room to delete')
+      return
+    }
+    setIsBulkDelete(true)
+    setShowDeleteModal(true)
   }
 
   const handleEditRoom = (room: Room) => {
@@ -917,13 +1033,26 @@ export default function RoomPage() {
             <p className="text-sm text-muted-foreground">Last updated on 09/15/2025, 12AM</p>
           </div>
           <div className="flex items-center" style={{ border: "0.925px solid #CED4DA", borderTopLeftRadius: "6px", borderBottomLeftRadius: "6px",  borderTopRightRadius: "6px", borderBottomRightRadius: "6px"}}>
-            <button className="px-4 py-2 bg-[#1F2A44] text-white rounded-[1px] text-sm font-medium hover:bg-[#1F2A44]/90 transition-colors" style={{ borderRight: "0.925px solid #CED4DA", borderTopLeftRadius: "6px", borderBottomLeftRadius: "6px"}}>
+            <button 
+              onClick={() => setSelectedPeriod("week")}
+              className={`px-4 py-2 rounded-[1px] text-sm font-medium transition-colors ${selectedPeriod === "week" ? "bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90" : "bg-[#FFF] text-[rgba(33,33,33,0.60)] hover:bg-muted/80"}`}
+              style={{ borderRight: "0.925px solid #CED4DA", borderTopLeftRadius: "6px", borderBottomLeftRadius: "6px"}}
+            >
               Semaine
             </button>
-            <button className="px-4 py-2 bg-[#FFF] text-[rgba(33,33,33,0.60)] rounded-[1px] text-sm font-medium hover:bg-muted/80 transition-colors" style={{ borderRight: "0.925px solid #CED4DA",  borderTopRightRadius: "6px", borderBottomRightRadius: "6px" }}>
+            <button 
+              onClick={() => setSelectedPeriod("month")}
+              className={`px-4 py-2 rounded-[1px] text-sm font-medium transition-colors ${selectedPeriod === "month" ? "bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90" : "bg-[#FFF] text-[rgba(33,33,33,0.60)] hover:bg-muted/80"}`}
+              style={{ borderRight: "0.925px solid #CED4DA" }}
+            >
               Mois
             </button>
-            <button className="px-4 py-2 bg-[#FFF] text-[rgba(33,33,33,0.60)] rounded-[1px] text-sm font-medium hover:bg-muted/80 transition-colors" style={{ borderRight: "0.925px solid #CED4DA",  borderTopRightRadius: "6px", borderBottomRightRadius: "6px" }}>
+            <button 
+              onClick={() => setSelectedPeriod("day")}
+              className={`px-4 py-2 rounded-[1px] text-sm font-medium transition-colors flex items-center gap-2 ${selectedPeriod === "day" ? "bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90" : "bg-[#FFF] text-[rgba(33,33,33,0.60)] hover:bg-muted/80"}`}
+              style={{ borderTopRightRadius: "6px", borderBottomRightRadius: "6px" }}
+            >
+              <PublicIcon src="/assets/icons/calendar.svg" alt="Calendar" width={16} height={16} />
               Plage de dates
             </button>
           </div>
@@ -946,10 +1075,10 @@ export default function RoomPage() {
             </div>
           }
           label="Total Rooms"
-          value={totalRooms.toString()}
-          change="+5%"
-          changeType="positive"
-          subtitle="vs last month"
+          value={isLoadingStats ? "..." : roomStats.totalRooms.toString()}
+          change={isLoadingStats ? "..." : `${roomStats.totalRoomsIsIncrease ? '+' : '-'}${roomStats.totalRoomsPercentage}%`}
+          changeType={roomStats.totalRoomsIsIncrease ? "positive" : "negative"}
+          subtitle={`vs last ${selectedPeriod === "week" ? "week" : selectedPeriod === "month" ? "month" : "day"}`}
         />
         <StatCard
           icon={
@@ -965,10 +1094,10 @@ export default function RoomPage() {
             </div>
           }
           label="Full Rooms"
-          value={fullRoomsCount.toString()}
-          change="+12%"
-          changeType="positive"
-          subtitle="vs last month"
+          value={isLoadingStats ? "..." : roomStats.fullRooms.toString()}
+          change={isLoadingStats ? "..." : `${roomStats.fullRoomsIsIncrease ? '+' : '-'}${roomStats.fullRoomsPercentage}%`}
+          changeType={roomStats.fullRoomsIsIncrease ? "positive" : "negative"}
+          subtitle={`vs last ${selectedPeriod === "week" ? "week" : selectedPeriod === "month" ? "month" : "day"}`}
         />
         <StatCard
           icon={
@@ -984,10 +1113,10 @@ export default function RoomPage() {
             </div>
           }
           label="Empty Rooms"
-          value={emptyRoomsCount.toString()}
-          change="-8%"
-          changeType="negative"
-          subtitle="vs last month"
+          value={isLoadingStats ? "..." : roomStats.emptyRooms.toString()}
+          change={isLoadingStats ? "..." : `${roomStats.emptyRoomsIsIncrease ? '+' : '-'}${roomStats.emptyRoomsPercentage}%`}
+          changeType={roomStats.emptyRoomsIsIncrease ? "positive" : "negative"}
+          subtitle={`vs last ${selectedPeriod === "week" ? "week" : selectedPeriod === "month" ? "month" : "day"}`}
         />
       </div>
 
@@ -1042,6 +1171,7 @@ export default function RoomPage() {
                  Export
                </button>
                <button 
+                 onClick={handleBulkDelete}
                  style={{ 
                    color: "#1F2A44", 
                    fontSize: "14px", 
@@ -1220,8 +1350,8 @@ export default function RoomPage() {
                    <input 
                      type="checkbox" 
                      className="rounded" 
-                     checked={selectedRooms.size === currentRooms.length && currentRooms.length > 0}
-                     onChange={() => handleSelectAll()}
+                     checked={selectedRooms.size === rooms.length && rooms.length > 0}
+                     onChange={handleSelectAll}
                      style={{
                        accentColor: "#1F2A44",
                        width: "16px",
@@ -1501,7 +1631,10 @@ export default function RoomPage() {
                    fontWeight: 400
                  }}
                >
-                 Are you sure you want to delete room {roomToDelete?.roomNumber} permanently?
+                 {isBulkDelete 
+                   ? `Are you sure you want to delete ${selectedRooms.size} room${selectedRooms.size > 1 ? 's' : ''} permanently?`
+                   : `Are you sure you want to delete room ${roomToDelete?.roomNumber} permanently?`
+                 }
                </p>
              </div>
 

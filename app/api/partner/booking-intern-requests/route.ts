@@ -124,6 +124,15 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
       );
     }
 
+    // Get partnerId - from token for guest, from getPartnerId for partner
+    const partnerId = isGuestRequest ? user.partnerId : getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     return await BookingInternRequestController.createBookingInternRequest({
       roomName: roomName.trim(),
       residentEmail: residentEmail.trim(),
@@ -135,7 +144,7 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
         time: reservation.time,
       },
       notes: notes?.trim() || undefined,
-    });
+    }, partnerId);
   } catch (error: any) {
     console.error('Create Booking Intern Request API Error:', error);
     return NextResponse.json(

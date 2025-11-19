@@ -100,6 +100,15 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
       );
     }
 
+    // Get partnerId - from token for guest, from getPartnerId for partner
+    const partnerId = isGuestRequest ? user.partnerId : getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     return await ActivityRequestController.createRequest({
       roomName: roomName.trim(),
       residentName: residentName.trim(),
@@ -107,7 +116,7 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
       status: status || 'new',
       notes: notes?.trim(),
       assignee,
-    });
+    }, partnerId);
   } catch (error: any) {
     console.error('Create Activity Request API Error:', error);
     return NextResponse.json(

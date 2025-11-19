@@ -113,7 +113,7 @@ export class ActivityRequestController {
       staffId: string;
       profilePic?: string;
     };
-  }) {
+  }, partnerId: string) {
     try {
       await connectDB();
 
@@ -130,6 +130,7 @@ export class ActivityRequestController {
 
       // Create new request
       const request = new ActivityRequest({
+        partnerId: partnerId,
         roomName: data.roomName.trim(),
         residentName: data.residentName.trim(),
         service: data.service.trim(),

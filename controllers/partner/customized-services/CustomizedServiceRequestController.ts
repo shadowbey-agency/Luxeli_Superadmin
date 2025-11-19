@@ -113,7 +113,7 @@ export class CustomizedServiceRequestController {
       staffId: string;
       profilePic?: string;
     };
-  }) {
+  }, partnerId: string) {
     try {
       await connectDB();
 
@@ -140,6 +140,7 @@ export class CustomizedServiceRequestController {
 
       // Create new customized service request
       const request = new CustomizedServiceRequest({
+        partnerId: partnerId,
         roomName: data.roomName.trim(),
         residentEmail: data.residentEmail.trim(),
         title: data.title.trim(),

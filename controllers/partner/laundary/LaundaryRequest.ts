@@ -102,7 +102,7 @@ export class LaundryRequestController {
       staffId: string;
       profilePic?: string;
     };
-  }) {
+  }, partnerId: string) {
     try {
       await connectDB();
 
@@ -112,6 +112,7 @@ export class LaundryRequestController {
       }
 
       const request = new LaundryRequest({
+        partnerId: partnerId,
         service: 'laundry',
         roomName: data.roomName.trim(),
         residentialName: data.residentialName.trim(),

@@ -60,6 +60,10 @@ export default function RequestsPage() {
   const [showStatusChangeModal, setShowStatusChangeModal] = useState(false)
   const [requestToChangeStatus, setRequestToChangeStatus] = useState<HousekeepingRequest | null>(null)
   const [statusChangeSuccess, setStatusChangeSuccess] = useState(false)
+  // Selection state
+  const [selectedRequests, setSelectedRequests] = useState<Set<string>>(new Set())
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isBulkDelete, setIsBulkDelete] = useState(false)
 
   // Fetch requests from API
   const fetchRequests = async () => {
@@ -267,6 +271,24 @@ export default function RequestsPage() {
     }
   }
 
+  const handleRequestSelection = (requestId: string, isSelected: boolean) => {
+    const newSelectedRequests = new Set(selectedRequests)
+    if (isSelected) {
+      newSelectedRequests.add(requestId)
+    } else {
+      newSelectedRequests.delete(requestId)
+    }
+    setSelectedRequests(newSelectedRequests)
+  }
+
+  const handleSelectAll = () => {
+    if (selectedRequests.size === requests.length && requests.length > 0) {
+      setSelectedRequests(new Set())
+    } else {
+      setSelectedRequests(new Set(requests.map(req => req._id || req.id || '')))
+    }
+  }
+
   const handleDeleteRequest = async (requestId: string) => {
     if (!confirm('Are you sure you want to delete this request?')) {
       return
@@ -297,6 +319,56 @@ export default function RequestsPage() {
       console.error('Error deleting request:', error)
       alert('Failed to delete request. Please try again.')
     }
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedRequests.size === 0) {
+      alert('Please select at least one request to delete')
+      return
+    }
+    setIsBulkDelete(true)
+    setShowDeleteModal(true)
+  }
+
+  const confirmBulkDelete = async () => {
+    if (selectedRequests.size === 0) return
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to delete requests')
+        return
+      }
+      
+      // Delete all selected requests
+      const deletePromises = Array.from(selectedRequests).map(requestId =>
+        fetch(`/api/partner/housekeeping-requests/${requestId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+      )
+      
+      const results = await Promise.all(deletePromises)
+      const failed = results.filter(r => !r.ok)
+      
+      if (failed.length === 0) {
+        await fetchRequests()
+        setShowDeleteModal(false)
+        setSelectedRequests(new Set())
+        setIsBulkDelete(false)
+      } else {
+        alert(`Failed to delete ${failed.length} request(s). Please try again.`)
+      }
+    } catch (error) {
+      console.error('Error deleting requests:', error)
+      alert('Failed to delete requests. Please try again.')
+    }
+  }
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false)
+    setIsBulkDelete(false)
   }
 
   // Export housekeeping requests to Excel
@@ -402,6 +474,70 @@ export default function RequestsPage() {
             <div>
               <h2 className="text-xl font-bold text-foreground mb-1">Requests list</h2>
             </div>
+            {selectedRequests.size > 0 ? (
+              // Selection controls
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setSelectedRequests(new Set())}
+                  className="flex items-center justify-center w-6 h-6 rounded text-white"
+                  style={{ backgroundColor: "#1F2A44" }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </button>
+                <span style={{ color: "#00000099", fontSize: "14px" }}>
+                  {selectedRequests.size} item{selectedRequests.size > 1 ? 's' : ''} selected
+                </span>
+                <button 
+                  onClick={handleSelectAll}
+                  style={{ 
+                    color: "#212121", 
+                    fontSize: "14px", 
+                    textDecoration: "underline",
+                    fontWeight: "400"
+                  }}
+                >
+                  Select all items
+                </button>
+                <button 
+                  onClick={handleExportRequests}
+                  style={{ 
+                    color: "#1F2A44", 
+                    fontSize: "14px", 
+                    textDecoration: "underline",
+                    fontWeight: "400",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  }}
+                >
+                  <svg width="14" height="16" viewBox="0 0 14 16" fill="none">
+                    <path d="M11.3333 10.6666C11.6705 10.9943 13 11.8665 13 12.3333M11.3333 14C11.6705 13.6723 13 12.8001 13 12.3333M13 12.3333L7.66667 12.3333" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M6.33398 14.6666H6.15217C3.97803 14.6666 2.89096 14.6666 2.13603 14.1347C1.91973 13.9823 1.7277 13.8016 1.56578 13.598C1.00065 12.8875 1.00065 11.8644 1.00065 9.81814V8.12117C1.00065 6.14572 1.00065 5.158 1.31328 4.36913C1.81586 3.10091 2.87874 2.10055 4.22622 1.62753C5.0644 1.33329 6.11386 1.33329 8.21277 1.33329C9.41215 1.33329 10.0118 1.33329 10.4908 1.50143C11.2608 1.77172 11.8682 2.34336 12.1553 3.06805C12.334 3.51884 12.334 4.08325 12.334 5.21208V8.66663" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M1.0013 8C1.0013 6.7727 1.99622 5.77778 3.22352 5.77778C3.66738 5.77778 4.19066 5.85555 4.62221 5.73992C5.00565 5.63718 5.30514 5.33768 5.40789 4.95424C5.52352 4.52269 5.44575 3.99941 5.44575 3.55556C5.44575 2.32826 6.44067 1.33333 7.66797 1.33333" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Export
+                </button>
+                <button 
+                  onClick={handleBulkDelete}
+                  style={{ 
+                    color: "#1F2A44", 
+                    fontSize: "14px", 
+                    textDecoration: "underline",
+                    fontWeight: "400",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M6 2V1C6 0.447715 6.44772 0 7 0H9C9.55228 0 10 0.447715 10 1V2M6 2H2M6 2H10M10 2H14M2 2V13C2 14.1046 2.89543 15 4 15H12C13.1046 15 14 14.1046 14 13V2M4 6V11M8 6V11M12 6V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            ) : (
             <div className="flex items-center gap-2">
               {/* Display dropdown */}
               <div className="relative">
@@ -605,6 +741,7 @@ export default function RequestsPage() {
                 <span className="text-sm font-medium text-[#212121]">Export</span>
               </button>
             </div>
+            )}
           </div>
         </div>
 
@@ -618,7 +755,17 @@ export default function RequestsPage() {
             }}>
               <tr>
                 <th className="w-12 px-4 py-3">
-                  <input type="checkbox" className="rounded" />
+                  <input 
+                    type="checkbox" 
+                    className="rounded" 
+                    checked={selectedRequests.size === requests.length && requests.length > 0}
+                    onChange={handleSelectAll}
+                    style={{
+                      accentColor: "#1F2A44",
+                      width: "16px",
+                      height: "16px"
+                    }}
+                  />
                 </th>
                 <th className="px-4 py-1 text-left text-xs font-semibold tracking-wider" style={{ color: "#000000" }}>
                   <div className="flex items-center gap-1">
@@ -680,9 +827,24 @@ export default function RequestsPage() {
                 requests.map((apiRequest, index) => {
                   const row = mapApiRequestToUI(apiRequest)
                   return (
-                <tr key={index} className="hover:bg-muted/50 transition-colors">
+                <tr 
+                  key={index} 
+                  className={`hover:bg-muted/50 transition-colors ${
+                    selectedRequests.has(apiRequest._id || apiRequest.id || '') ? 'bg-muted/30' : ''
+                  }`}
+                >
                   <td className="px-4 py-4">
-                    <input type="checkbox" className="rounded" />
+                    <input 
+                      type="checkbox" 
+                      className="rounded" 
+                      checked={selectedRequests.has(apiRequest._id || apiRequest.id || '')}
+                      onChange={(e) => handleRequestSelection(apiRequest._id || apiRequest.id || '', e.target.checked)}
+                      style={{
+                        accentColor: "#1F2A44",
+                        width: "16px",
+                        height: "16px"
+                      }}
+                    />
                   </td>
                   <td className="px-4 py-4" style={{
                     color: "#525866",
@@ -999,6 +1161,106 @@ export default function RequestsPage() {
                     </button>
                   )
                 })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/40 bg-opacity-80 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+          <div className="bg-white rounded-[10px] w-full max-w-md mx-4">
+            {/* First Section - Header */}
+            <div 
+              className="flex justify-between items-center px-4 py-5 rounded-t-[10px] border-b border-black/4"
+              style={{
+                borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
+                background: "#FFF"
+              }}
+            >
+              <h2 
+                className="text-black font-bold text-xl leading-normal"
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 700
+                }}
+              >
+                Delete Request{isBulkDelete && selectedRequests.size > 1 ? 's' : ''}
+              </h2>
+              <button
+                onClick={cancelDelete}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Second Section - Content */}
+            <div 
+              className="px-4 py-5 border-b border-black/6"
+              style={{
+                borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
+                background: "#FFF"
+              }}
+            >
+              <p 
+                className="text-gray-600 text-lg leading-normal"
+                style={{
+                  color: "#525866",
+                  fontSize: "18px",
+                  fontWeight: 400
+                }}
+              >
+                {isBulkDelete 
+                  ? `Are you sure you want to delete ${selectedRequests.size} request${selectedRequests.size > 1 ? 's' : ''} permanently?`
+                  : 'Are you sure you want to delete this request permanently?'
+                }
+              </p>
+            </div>
+
+            {/* Third Section - Footer */}
+            <div 
+              className="flex justify-end items-center gap-18 px-4 py-5 rounded-b-[10px] border-t border-black/4"
+              style={{
+                borderTop: "1px solid rgba(0, 0, 0, 0.04)",
+                background: "#FFF",
+                gap: "10px"
+              }}
+            >
+              <div className="flex gap-[16px] flex-end">
+                <button
+                  onClick={cancelDelete}
+                  className="flex flex-col justify-center items-center px-2.5 py-2 rounded-md text-center font-medium text-sm leading-5 transition-colors"
+                  style={{
+                    padding: "8.52px 10px",
+                    borderRadius: "6px",
+                    background: "#FBFAFA",
+                    color: "#000",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    lineHeight: "19.5px"
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmBulkDelete}
+                  className="flex flex-col justify-center items-center px-2.5 py-2 rounded-md text-center font-medium text-sm leading-5 transition-colors"
+                  style={{
+                    padding: "8.52px 10px",
+                    borderRadius: "6px",
+                    background: "#EB1D1D",
+                    color: "#FFF",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    lineHeight: "19.5px"
+                  }}
+                >
+                  Delete
+                </button>
               </div>
             </div>
           </div>

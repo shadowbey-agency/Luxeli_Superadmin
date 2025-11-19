@@ -111,6 +111,15 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
       );
     }
 
+    // Get partnerId - from token for guest, from getPartnerId for partner
+    const partnerId = isGuestRequest ? user.partnerId : getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     return await LaundryRequestController.createRequest({
       roomName: roomName.trim(),
       residentialName: residentialName.trim(),
@@ -121,7 +130,7 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
       priority: priority || 'medium',
       notes: notes?.trim(),
       assigne,
-    });
+    }, partnerId);
   } catch (error: any) {
     console.error('Create Laundry Request API Error:', error);
     return NextResponse.json(

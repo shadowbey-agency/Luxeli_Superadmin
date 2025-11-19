@@ -120,7 +120,7 @@ export class BookingInternRequestController {
       time: string;
     };
     notes?: string;
-  }) {
+  }, partnerId: string) {
     try {
       await connectDB();
 
@@ -157,6 +157,7 @@ export class BookingInternRequestController {
 
       // Create new booking intern request
       const request = new BookingInternRequest({
+        partnerId: partnerId,
         roomName: data.roomName.trim(),
         residentEmail: data.residentEmail.trim(),
         category: data.category,
@@ -341,7 +342,14 @@ export class BookingInternRequestController {
         );
       }
 
+      // Update assignee
       request.assignee = assignee || undefined;
+      
+      // Auto-update status to 'accepted' when staff is assigned (if status is 'new')
+      if (assignee && request.status === 'new') {
+        request.status = 'accepted';
+      }
+      
       await request.save();
 
       return NextResponse.json({

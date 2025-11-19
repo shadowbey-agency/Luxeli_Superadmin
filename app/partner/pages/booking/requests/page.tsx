@@ -216,32 +216,56 @@ export default function BookingRequestsPage() {
       }
 
       // Fetch staff details to get name and profilePic
-      // For now, we'll use a placeholder name. In a real app, you'd fetch from /api/partner/staff/[id]
-      const response = await fetch(`/api/partner/booking-intern-requests/${requestToAssign._id}/assignee`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          assignee: {
-            name: `Staff ${staffId}`, // Placeholder - in real app, fetch from staff API
-            staffId: staffId,
-            profilePic: undefined
+      try {
+        const staffResponse = await fetch(`/api/partner/staff?limit=1000`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
           }
         })
-      })
+        const staffData = await staffResponse.json()
+        
+        let staffName = "Staff Member"
+        let profilePic: string | undefined = undefined
+        
+        if (staffData.success && staffData.data?.staff) {
+          const staff = staffData.data.staff.find((s: any) => s._id === staffId)
+          if (staff) {
+            staffName = staff.staffName || staffName
+            profilePic = staff.profilePic || undefined
+          }
+        }
 
-      const data = await response.json()
-      if (data.success) {
-        await fetchRequests()
-        setShowAssignStaffModal(false)
-        setRequestToAssign(null)
-      } else {
-        console.error('Failed to assign staff:', data.error)
+        const response = await fetch(`/api/partner/booking-intern-requests/${requestToAssign._id}/assignee`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            assignee: {
+              name: staffName,
+              staffId: staffId,
+              profilePic: profilePic
+            }
+          })
+        })
+
+        const data = await response.json()
+        if (data.success) {
+          await fetchRequests()
+          setShowAssignStaffModal(false)
+          setRequestToAssign(null)
+        } else {
+          console.error('Failed to assign staff:', data.error)
+          alert(data.error || 'Failed to assign staff')
+        }
+      } catch (staffError) {
+        console.error('Error fetching staff:', staffError)
+        alert('Failed to fetch staff details')
       }
     } catch (error) {
       console.error('Error assigning staff:', error)
+      alert('Failed to assign staff. Please try again.')
     }
   }
 

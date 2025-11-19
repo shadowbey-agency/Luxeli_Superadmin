@@ -103,7 +103,7 @@ export class InRoomDeliveryRequestController {
       profilePic?: string;
     };
     notes?: string;
-  }) {
+  }, partnerId: string) {
     try {
       await connectDB();
 
@@ -123,6 +123,7 @@ export class InRoomDeliveryRequestController {
       }
 
       const request = new InRoomDeliveryRequest({
+        partnerId: partnerId,
         roomName: data.roomName.trim(),
         residentialName: data.residentialName.trim(),
         items: data.items,

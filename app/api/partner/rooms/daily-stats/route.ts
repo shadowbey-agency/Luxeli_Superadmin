@@ -76,52 +76,59 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
         
         totalCount++
         
-        // Get all guests for this room (both active and inactive)
-        const roomGuests = allGuests.filter(g => g.roomId === roomId)
-        
-        // Get all history entries for this room
-        const roomHistory = allHistory.filter(hist => hist.roomId === roomId)
-          .sort((a, b) => new Date(b.unassignedAt).getTime() - new Date(a.unassignedAt).getTime())
-        
-        // Determine if room was full on targetDate
+        // For today (i === 0), use the current roomStatus field directly
+        // For historical days, calculate from guest/history data
         let wasFullOnDate = false
         
-        // First, check all guests to see if any was active on targetDate
-        for (const guest of roomGuests) {
-          if (guest.checkInDate) {
-            const checkInDate = new Date(guest.checkInDate)
-            
-            // If guest checked in on or before targetDateEnd (end of day)
-            if (checkInDate <= targetDateEnd) {
-              // Check if guest was checked out after targetDate (or not checked out yet)
-              if (!guest.checkOutDate) {
-                // Guest hasn't checked out, so room was full on targetDate
-                wasFullOnDate = true
-                break
-              } else {
-                const checkOutDate = new Date(guest.checkOutDate)
-                // If checkout was after targetDate (start of day), room was full on targetDate
-                if (checkOutDate > targetDate) {
+        if (i === 0) {
+          // Use current roomStatus for today
+          wasFullOnDate = room.roomStatus === 'full'
+        } else {
+          // For historical days, calculate from guest and history data
+          // Get all guests for this room (both active and inactive)
+          const roomGuests = allGuests.filter(g => g.roomId === roomId)
+          
+          // Get all history entries for this room
+          const roomHistory = allHistory.filter(hist => hist.roomId === roomId)
+            .sort((a, b) => new Date(b.unassignedAt).getTime() - new Date(a.unassignedAt).getTime())
+          
+          // First, check all guests to see if any was active on targetDate
+          for (const guest of roomGuests) {
+            if (guest.checkInDate) {
+              const checkInDate = new Date(guest.checkInDate)
+              
+              // If guest checked in on or before targetDateEnd (end of day)
+              if (checkInDate <= targetDateEnd) {
+                // Check if guest was checked out after targetDate (or not checked out yet)
+                if (!guest.checkOutDate) {
+                  // Guest hasn't checked out, so room was full on targetDate
                   wasFullOnDate = true
                   break
+                } else {
+                  const checkOutDate = new Date(guest.checkOutDate)
+                  // If checkout was after targetDate (start of day), room was full on targetDate
+                  if (checkOutDate > targetDate) {
+                    wasFullOnDate = true
+                    break
+                  }
                 }
               }
             }
           }
-        }
-        
-        // If not full from guests, check history (for rooms that were unassigned before current guests)
-        if (!wasFullOnDate && roomHistory.length > 0) {
-          // Find the most recent history entry that was active on targetDate
-          for (const hist of roomHistory) {
-            if (hist.checkInDate) {
-              const checkInDate = new Date(hist.checkInDate)
-              const unassignedAt = new Date(hist.unassignedAt)
-              
-              // If check-in was on or before targetDateEnd and unassignment was after targetDate
-              if (checkInDate <= targetDateEnd && unassignedAt > targetDate) {
-                wasFullOnDate = true
-                break
+          
+          // If not full from guests, check history (for rooms that were unassigned before current guests)
+          if (!wasFullOnDate && roomHistory.length > 0) {
+            // Find the most recent history entry that was active on targetDate
+            for (const hist of roomHistory) {
+              if (hist.checkInDate) {
+                const checkInDate = new Date(hist.checkInDate)
+                const unassignedAt = new Date(hist.unassignedAt)
+                
+                // If check-in was on or before targetDateEnd and unassignment was after targetDate
+                if (checkInDate <= targetDateEnd && unassignedAt > targetDate) {
+                  wasFullOnDate = true
+                  break
+                }
               }
             }
           }
@@ -182,52 +189,59 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
           
           totalCount++
           
-          // Get all guests for this room (both active and inactive)
-          const roomGuests = allGuests.filter(g => g.roomId === roomId)
-          
-          // Get all history entries for this room
-          const roomHistory = allHistory.filter(hist => hist.roomId === roomId)
-            .sort((a, b) => new Date(b.unassignedAt).getTime() - new Date(a.unassignedAt).getTime())
-          
-          // Determine if room was full on targetDate
+          // For today (i === 0), use the current roomStatus field directly
+          // For historical days, calculate from guest/history data
           let wasFullOnDate = false
           
-          // First, check all guests to see if any was active on targetDate
-          for (const guest of roomGuests) {
-            if (guest.checkInDate) {
-              const checkInDate = new Date(guest.checkInDate)
-              
-              // If guest checked in on or before targetDateEnd (end of day)
-              if (checkInDate <= targetDateEnd) {
-                // Check if guest was checked out after targetDate (or not checked out yet)
-                if (!guest.checkOutDate) {
-                  // Guest hasn't checked out, so room was full on targetDate
-                  wasFullOnDate = true
-                  break
-                } else {
-                  const checkOutDate = new Date(guest.checkOutDate)
-                  // If checkout was after targetDate (start of day), room was full on targetDate
-                  if (checkOutDate > targetDate) {
+          if (i === 0) {
+            // Use current roomStatus for today
+            wasFullOnDate = room.roomStatus === 'full'
+          } else {
+            // For historical days, calculate from guest and history data
+            // Get all guests for this room (both active and inactive)
+            const roomGuests = allGuests.filter(g => g.roomId === roomId)
+            
+            // Get all history entries for this room
+            const roomHistory = allHistory.filter(hist => hist.roomId === roomId)
+              .sort((a, b) => new Date(b.unassignedAt).getTime() - new Date(a.unassignedAt).getTime())
+            
+            // First, check all guests to see if any was active on targetDate
+            for (const guest of roomGuests) {
+              if (guest.checkInDate) {
+                const checkInDate = new Date(guest.checkInDate)
+                
+                // If guest checked in on or before targetDateEnd (end of day)
+                if (checkInDate <= targetDateEnd) {
+                  // Check if guest was checked out after targetDate (or not checked out yet)
+                  if (!guest.checkOutDate) {
+                    // Guest hasn't checked out, so room was full on targetDate
                     wasFullOnDate = true
                     break
+                  } else {
+                    const checkOutDate = new Date(guest.checkOutDate)
+                    // If checkout was after targetDate (start of day), room was full on targetDate
+                    if (checkOutDate > targetDate) {
+                      wasFullOnDate = true
+                      break
+                    }
                   }
                 }
               }
             }
-          }
-          
-          // If not full from guests, check history (for rooms that were unassigned before current guests)
-          if (!wasFullOnDate && roomHistory.length > 0) {
-            // Find the most recent history entry that was active on targetDate
-            for (const hist of roomHistory) {
-              if (hist.checkInDate) {
-                const checkInDate = new Date(hist.checkInDate)
-                const unassignedAt = new Date(hist.unassignedAt)
-                
-                // If check-in was on or before targetDateEnd and unassignment was after targetDate
-                if (checkInDate <= targetDateEnd && unassignedAt > targetDate) {
-                  wasFullOnDate = true
-                  break
+            
+            // If not full from guests, check history (for rooms that were unassigned before current guests)
+            if (!wasFullOnDate && roomHistory.length > 0) {
+              // Find the most recent history entry that was active on targetDate
+              for (const hist of roomHistory) {
+                if (hist.checkInDate) {
+                  const checkInDate = new Date(hist.checkInDate)
+                  const unassignedAt = new Date(hist.unassignedAt)
+                  
+                  // If check-in was on or before targetDateEnd and unassignment was after targetDate
+                  if (checkInDate <= targetDateEnd && unassignedAt > targetDate) {
+                    wasFullOnDate = true
+                    break
+                  }
                 }
               }
             }
@@ -273,35 +287,43 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
           
           totalCount++
           
-          // Get all guests for this room
-          const roomGuests = allGuests.filter(g => g.roomId === roomId)
-          const roomHistory = allHistory.filter(hist => hist.roomId === roomId)
-            .sort((a, b) => new Date(b.unassignedAt).getTime() - new Date(a.unassignedAt).getTime())
-          
+          // For current month (i === 0), use the current roomStatus field directly
+          // For historical months, calculate from guest/history data
           let wasFullAtMonthEnd = false
           
-          // Check guests
-          for (const guest of roomGuests) {
-            if (guest.checkInDate) {
-              const checkInDate = new Date(guest.checkInDate)
-              if (checkInDate <= monthEnd) {
-                if (!guest.checkOutDate || new Date(guest.checkOutDate) > monthEnd) {
-                  wasFullAtMonthEnd = true
-                  break
+          if (i === 0) {
+            // Use current roomStatus for current month
+            wasFullAtMonthEnd = room.roomStatus === 'full'
+          } else {
+            // For historical months, calculate from guest and history data
+            // Get all guests for this room
+            const roomGuests = allGuests.filter(g => g.roomId === roomId)
+            const roomHistory = allHistory.filter(hist => hist.roomId === roomId)
+              .sort((a, b) => new Date(b.unassignedAt).getTime() - new Date(a.unassignedAt).getTime())
+            
+            // Check guests
+            for (const guest of roomGuests) {
+              if (guest.checkInDate) {
+                const checkInDate = new Date(guest.checkInDate)
+                if (checkInDate <= monthEnd) {
+                  if (!guest.checkOutDate || new Date(guest.checkOutDate) > monthEnd) {
+                    wasFullAtMonthEnd = true
+                    break
+                  }
                 }
               }
             }
-          }
-          
-          // Check history
-          if (!wasFullAtMonthEnd && roomHistory.length > 0) {
-            for (const hist of roomHistory) {
-              if (hist.checkInDate) {
-                const checkInDate = new Date(hist.checkInDate)
-                const unassignedAt = new Date(hist.unassignedAt)
-                if (checkInDate <= monthEnd && unassignedAt > monthEnd) {
-                  wasFullAtMonthEnd = true
-                  break
+            
+            // Check history
+            if (!wasFullAtMonthEnd && roomHistory.length > 0) {
+              for (const hist of roomHistory) {
+                if (hist.checkInDate) {
+                  const checkInDate = new Date(hist.checkInDate)
+                  const unassignedAt = new Date(hist.unassignedAt)
+                  if (checkInDate <= monthEnd && unassignedAt > monthEnd) {
+                    wasFullAtMonthEnd = true
+                    break
+                  }
                 }
               }
             }

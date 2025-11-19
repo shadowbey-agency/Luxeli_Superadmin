@@ -91,17 +91,26 @@ export default function DashboardPage() {
   const [roomStats, setRoomStats] = useState({
     totalRooms: 0,
     emptyRooms: 0,
-    fullRooms: 0
+    fullRooms: 0,
+    totalRoomsPercentage: '0',
+    totalRoomsIsIncrease: true,
+    emptyRoomsPercentage: '0',
+    emptyRoomsIsIncrease: true,
+    fullRoomsPercentage: '0',
+    fullRoomsIsIncrease: true
   })
   const [isLoadingRooms, setIsLoadingRooms] = useState(true)
   const [memberCount, setMemberCount] = useState(0)
+  const [memberPercentage, setMemberPercentage] = useState('0')
+  const [memberIsIncrease, setMemberIsIncrease] = useState(true)
   const [isLoadingMembers, setIsLoadingMembers] = useState(true)
   const [staffCount, setStaffCount] = useState(0)
+  const [staffPercentage, setStaffPercentage] = useState('0')
+  const [staffIsIncrease, setStaffIsIncrease] = useState(true)
   const [isLoadingStaff, setIsLoadingStaff] = useState(true)
-  const [weeklyRoomStats, setWeeklyRoomStats] = useState<Array<{ week: string; empty: number; full: number }>>([])
-  const [isLoadingWeeklyStats, setIsLoadingWeeklyStats] = useState(true)
   const [requestStats, setRequestStats] = useState({
-    total: 0,
+    total: 0, // Total for graph (accepted + canceled only)
+    totalAll: 0, // Total all requests (all statuses) for display
     accepted: 0,
     canceled: 0,
     percentageChange: '0',
@@ -178,7 +187,8 @@ export default function DashboardPage() {
         const result = await response.json()
         if (result.success) {
           setRequestStats({
-            total: result.current.total,
+            total: result.current.total, // accepted + canceled for graph
+            totalAll: result.current.totalAll || result.current.total, // all requests for display
             accepted: result.current.accepted,
             canceled: result.current.canceled,
             percentageChange: result.percentageChange,
@@ -195,126 +205,26 @@ export default function DashboardPage() {
     }
   }
 
-  // Fetch weekly room stats
-  const fetchWeeklyRoomStats = async () => {
-    try {
-      setIsLoadingWeeklyStats(true)
-      const token = getAuthToken()
-      if (!token) {
-        console.error('No auth token found')
-        setIsLoadingWeeklyStats(false)
-        return
-      }
-
-      const response = await fetch(`/api/partner/rooms/weekly-stats`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        if (result.success && result.weekly) {
-          setWeeklyRoomStats(result.weekly)
-        }
-      } else {
-        console.error('Failed to fetch weekly stats')
-      }
-    } catch (error) {
-      console.error('Error fetching weekly room stats:', error)
-    } finally {
-      setIsLoadingWeeklyStats(false)
-    }
-  }
-
-  // Fetch room stats from API
-  const fetchRoomStats = async () => {
+  // Fetch general stats (rooms, members, staff) with percentage changes
+  const fetchGeneralStats = async () => {
     try {
       setIsLoadingRooms(true)
-      const token = getAuthToken()
-      if (!token) {
-        console.error('No auth token found')
-        setIsLoadingRooms(false)
-        return
-      }
-
-      // Fetch all rooms with a high limit to get accurate counts
-      const response = await fetch(`/api/partner/rooms?page=1&limit=10000`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        const totalRooms = result.total || 0
-        const rooms = result.items || []
-        
-        // Calculate empty and full rooms
-        const emptyRooms = rooms.filter((room: any) => room.roomStatus === 'empty').length
-        const fullRooms = rooms.filter((room: any) => room.roomStatus === 'full').length
-
-        setRoomStats({
-          totalRooms,
-          emptyRooms,
-          fullRooms
-        })
-      } else {
-        console.error('Failed to fetch rooms')
-      }
-    } catch (error) {
-      console.error('Error fetching room stats:', error)
-    } finally {
-      setIsLoadingRooms(false)
-    }
-  }
-
-  // Fetch member count from API
-  const fetchMemberCount = async () => {
-    try {
       setIsLoadingMembers(true)
-      const token = getAuthToken()
-      if (!token) {
-        console.error('No auth token found')
-        setIsLoadingMembers(false)
-        return
-      }
-
-      // Fetch members with limit 1 just to get total count
-      const response = await fetch(`/api/partner/members?page=1&limit=1`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        if (result.success && result.data?.pagination) {
-          setMemberCount(result.data.pagination.total || 0)
-        }
-      } else {
-        console.error('Failed to fetch members')
-      }
-    } catch (error) {
-      console.error('Error fetching member count:', error)
-    } finally {
-      setIsLoadingMembers(false)
-    }
-  }
-
-  // Fetch staff count from API
-  const fetchStaffCount = async () => {
-    try {
       setIsLoadingStaff(true)
       const token = getAuthToken()
       if (!token) {
         console.error('No auth token found')
+        setIsLoadingRooms(false)
+        setIsLoadingMembers(false)
         setIsLoadingStaff(false)
         return
       }
 
-      // Fetch staff with limit 1 just to get total count
-      const response = await fetch(`/api/partner/staff?page=1&limit=1`, {
+      const queryParams = new URLSearchParams({
+        period: generalPeriod
+      })
+
+      const response = await fetch(`/api/partner/general-stats?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -322,15 +232,38 @@ export default function DashboardPage() {
 
       if (response.ok) {
         const result = await response.json()
-        if (result.success && result.data?.pagination) {
-          setStaffCount(result.data.pagination.total || 0)
+        if (result.success && result.data) {
+          // Set room stats with percentages
+          setRoomStats({
+            totalRooms: result.data.totalRooms.current,
+            emptyRooms: result.data.emptyRooms.current,
+            fullRooms: result.data.fullRooms.current,
+            totalRoomsPercentage: result.data.totalRooms.percentage,
+            totalRoomsIsIncrease: result.data.totalRooms.isIncrease,
+            emptyRoomsPercentage: result.data.emptyRooms.percentage,
+            emptyRoomsIsIncrease: result.data.emptyRooms.isIncrease,
+            fullRoomsPercentage: result.data.fullRooms.percentage,
+            fullRoomsIsIncrease: result.data.fullRooms.isIncrease
+          })
+          
+          // Set member stats with percentage
+          setMemberCount(result.data.members.current)
+          setMemberPercentage(result.data.members.percentage)
+          setMemberIsIncrease(result.data.members.isIncrease)
+          
+          // Set staff stats with percentage
+          setStaffCount(result.data.staff.current)
+          setStaffPercentage(result.data.staff.percentage)
+          setStaffIsIncrease(result.data.staff.isIncrease)
         }
       } else {
-        console.error('Failed to fetch staff')
+        console.error('Failed to fetch general stats')
       }
     } catch (error) {
-      console.error('Error fetching staff count:', error)
+      console.error('Error fetching general stats:', error)
     } finally {
+      setIsLoadingRooms(false)
+      setIsLoadingMembers(false)
       setIsLoadingStaff(false)
     }
   }
@@ -493,10 +426,7 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    fetchRoomStats()
-    fetchMemberCount()
-    fetchStaffCount()
-    fetchWeeklyRoomStats()
+    fetchGeneralStats()
     fetchRequestStats()
     fetchLastRequests()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -504,6 +434,7 @@ export default function DashboardPage() {
 
   // Refetch data when general period changes
   useEffect(() => {
+    fetchGeneralStats()
     fetchRequestStats()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [generalPeriod])
@@ -602,14 +533,15 @@ export default function DashboardPage() {
             Get a quick overview of your hotel's key performance and activities.
           </p>
         </div>
-        <div className="flex items-center border border-[#CED4DA] rounded-md">
+        <div className="flex items-center border border-[#CED4DA]" style={{ borderRadius: '6px' }}>
           <button 
             onClick={() => setGeneralPeriod("week")}
-            className={`px-4 py-2 text-sm font-medium transition-colors rounded-l-md border-r border-[#CED4DA] ${
+            className={`px-4 py-2 text-sm font-medium transition-colors border-r border-[#CED4DA] ${
               generalPeriod === "week" 
                 ? "bg-primary text-white hover:bg-primary/90" 
                 : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
             }`}
+            style={{ borderTopLeftRadius: '6px', borderBottomLeftRadius: '6px' }}
           >
             Week
           </button>
@@ -633,7 +565,10 @@ export default function DashboardPage() {
           >
             Day
           </button>
-          <button className="px-4 py-2 bg-white text-[rgba(33,33,33,0.60)] text-sm font-medium hover:bg-muted/80 transition-colors flex items-center gap-2 rounded-r-md">
+          <button 
+            className="px-4 py-2 bg-white text-[rgba(33,33,33,0.60)] text-sm font-medium hover:bg-muted/80 transition-colors flex items-center gap-2"
+            style={{ borderTopRightRadius: '6px', borderBottomRightRadius: '6px' }}
+          >
             <PublicIcon src="/assets/icons/calendar.svg" alt="Calendar" width={16} height={16} />
             Dates range
           </button>
@@ -655,8 +590,8 @@ export default function DashboardPage() {
           }
           label="Total Room" 
           value={roomStats.totalRooms.toString()} 
-          change="+2%"
-          changeType="positive"
+          change={`${roomStats.totalRoomsIsIncrease ? '+' : '-'}${roomStats.totalRoomsPercentage}%`}
+          changeType={roomStats.totalRoomsIsIncrease ? "positive" : "negative"}
           changeLabel={`vs last ${generalPeriod}`} 
           isLoading={isLoadingRooms}
         />
@@ -668,8 +603,8 @@ export default function DashboardPage() {
           }
           label="Empty rooms" 
           value={roomStats.emptyRooms.toString()}
-          change="+2%"
-          changeType="positive"
+          change={`${roomStats.emptyRoomsIsIncrease ? '+' : '-'}${roomStats.emptyRoomsPercentage}%`}
+          changeType={roomStats.emptyRoomsIsIncrease ? "positive" : "negative"}
           changeLabel={`vs last ${generalPeriod}`} 
           isLoading={isLoadingRooms}
         />
@@ -681,8 +616,8 @@ export default function DashboardPage() {
           }
           label="Full rooms" 
           value={roomStats.fullRooms.toString()} 
-          change="+2%" 
-          changeType="positive" 
+          change={`${roomStats.fullRoomsIsIncrease ? '+' : '-'}${roomStats.fullRoomsPercentage}%`}
+          changeType={roomStats.fullRoomsIsIncrease ? "positive" : "negative"}
           changeLabel={`vs last ${generalPeriod}`} 
           isLoading={isLoadingRooms}
         />
@@ -694,8 +629,8 @@ export default function DashboardPage() {
           }
           label="Members" 
           value={memberCount.toString()}
-          change="+2%"
-          changeType="positive"
+          change={`${memberIsIncrease ? '+' : '-'}${memberPercentage}%`}
+          changeType={memberIsIncrease ? "positive" : "negative"}
           changeLabel={`vs last ${generalPeriod}`} 
           isLoading={isLoadingMembers}
         />
@@ -707,8 +642,8 @@ export default function DashboardPage() {
           }
           label="Staffs" 
           value={staffCount.toString()} 
-          change="+2%"
-          changeType="positive"
+          change={`${staffIsIncrease ? '+' : '-'}${staffPercentage}%`}
+          changeType={staffIsIncrease ? "positive" : "negative"}
           changeLabel={`vs last ${generalPeriod}`} 
           isLoading={isLoadingStaff}
         />
@@ -727,11 +662,11 @@ export default function DashboardPage() {
         {/* Requests Card */}
         <div className="flex flex-col w-full max-w-[450px] justify-between">
           {/* Header */}
-          <div className="h-16 flex items-center py-3 px-4 bg-[#FCFCFC] border border-[#E9EAEB] rounded-t-xl">
+          <div className="h-16 flex items-center py-3 px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0" }}>
             <h3 className="text-sm font-semibold text-[#212121]">Requests</h3>
           </div>
           {/* Content */}
-          <div className="h-[280px] flex flex-col p-6 pt-12 bg-white border border-[#E9EAEB] rounded-b-xl -mt-4 " style={{borderTopLeftRadius : '14px', borderTopRightRadius: "14px"}}>
+          <div className="h-[280px] flex flex-col p-6 pt-12 bg-white border border-[#E9EAEB] -mt-4" style={{ borderRadius: "14px" }}>
             <div className="text-center items-center mb-8">
               {isLoadingRequestStats ? (
                 <div className="flex items-center justify-center h-full">
@@ -740,7 +675,7 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <p className="text-4xl font-bold text-[#212121] mb-3">
-                    {requestStats.total} <span className="text-[18px]">Requests</span>
+                    {requestStats.totalAll} <span className="text-[18px]">Requests</span>
                   </p>
                   <p className={`text-sm font-medium ${requestStats.isIncrease ? 'text-[#10B981]' : 'text-[#FF0D0D]'}`}>
                     {requestStats.isIncrease ? '+' : '-'}{requestStats.percentageChange}% vs last {generalPeriod}
@@ -751,7 +686,7 @@ export default function DashboardPage() {
 
             {/* Half Circle Progress Chart with Legend Inside */}
             <div className="w-full h-40 flex items-center justify-center mt-auto relative">
-              {isLoadingRequestStats || requestStats.total === 0 ? (
+              {isLoadingRequestStats || (requestStats.accepted === 0 && requestStats.canceled === 0) ? (
                 <div className="flex items-center justify-center h-full">
                   <p className="text-sm text-gray-500">
                     {isLoadingRequestStats ? 'Loading...' : 'No requests data'}
@@ -767,89 +702,88 @@ export default function DashboardPage() {
                   stroke="#E5E7EB"
                   strokeWidth="20"
                 />
-                    {/* Accepted segment - from left to right */}
-                    {requestStats.accepted > 0 && (() => {
+                    {(() => {
                       const totalCircumference = 471.2 // Full semicircle circumference
-                      const acceptedPercentage = requestStats.accepted / requestStats.total
+                      const acceptedPercentage = requestStats.total > 0 ? requestStats.accepted / requestStats.total : 0
+                      const canceledPercentage = requestStats.total > 0 ? requestStats.canceled / requestStats.total : 0
                       const acceptedLength = totalCircumference * acceptedPercentage
-                      return (
-                <path
-                  d="M 50 160 A 150 150 0 0 1 350 160"
-                  fill="none"
-                  stroke="#10B981"
-                  strokeWidth="20"
-                          strokeDasharray={`${acceptedLength} ${totalCircumference}`}
-                          strokeDashoffset="0"
-                  strokeLinecap="round"
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
-                  style={{ pointerEvents: 'stroke' }}
-                  onMouseEnter={(e) => {
-                    const tooltip = document.getElementById('chart-tooltip');
-                    const tooltipText = document.getElementById('tooltip-text');
-                    if (tooltip && tooltipText) {
-                              tooltipText.textContent = requestStats.accepted.toString();
-                      tooltip.style.display = 'block';
-                      const chartContainer = e.currentTarget.closest('.relative');
-                      if (chartContainer) {
-                        const rect = chartContainer.getBoundingClientRect();
-                        const x = e.clientX - rect.left - 17.5;
-                        const y = e.clientY - rect.top - 17.5;
-                        tooltip.style.left = x + 'px';
-                        tooltip.style.top = y + 'px';
-                      }
-                    }
-                  }}
-                  onMouseLeave={() => {
-                    const tooltip = document.getElementById('chart-tooltip');
-                    if (tooltip) {
-                      tooltip.style.display = 'none';
-                    }
-                  }}
-                />
-                      )
-                    })()}
-                    {/* Canceled segment - from right to left */}
-                    {requestStats.canceled > 0 && (() => {
-                      const totalCircumference = 471.2
-                      const canceledPercentage = requestStats.canceled / requestStats.total
                       const canceledLength = totalCircumference * canceledPercentage
-                      // Position at the right end (end of path) and draw backwards
-                      // Offset positions the segment starting from the right end
-                      const canceledOffset = -(totalCircumference - canceledLength)
+                      
                       return (
-                <path
-                  d="M 50 160 A 150 150 0 0 1 350 160"
-                  fill="none"
-                          stroke="rgba(255, 13, 13, 0.5)"
-                  strokeWidth="20"
-                          strokeDasharray={`${canceledLength} ${totalCircumference}`}
-                          strokeDashoffset={canceledOffset}
-                  strokeLinecap="round"
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
-                  style={{ pointerEvents: 'stroke' }}
-                  onMouseEnter={(e) => {
-                    const tooltip = document.getElementById('chart-tooltip');
-                    const tooltipText = document.getElementById('tooltip-text');
-                    if (tooltip && tooltipText) {
-                              tooltipText.textContent = requestStats.canceled.toString();
-                      tooltip.style.display = 'block';
-                      const chartContainer = e.currentTarget.closest('.relative');
-                      if (chartContainer) {
-                        const rect = chartContainer.getBoundingClientRect();
-                        const x = e.clientX - rect.left - 17.5;
-                        const y = e.clientY - rect.top - 17.5;
-                        tooltip.style.left = x + 'px';
-                        tooltip.style.top = y + 'px';
-                      }
-                    }
-                  }}
-                  onMouseLeave={() => {
-                    const tooltip = document.getElementById('chart-tooltip');
-                    if (tooltip) {
-                      tooltip.style.display = 'none';
-                    }
-                  }}
-                />
+                        <>
+                          {/* Accepted segment - from left to right */}
+                          {requestStats.accepted > 0 && (
+                            <path
+                              d="M 50 160 A 150 150 0 0 1 350 160"
+                              fill="none"
+                              stroke="#10B981"
+                              strokeWidth="20"
+                              strokeDasharray={`${acceptedLength} 10000`}
+                              strokeDashoffset="0"
+                              strokeLinecap="round"
+                              className="cursor-pointer hover:opacity-80 transition-opacity"
+                              style={{ pointerEvents: 'stroke' }}
+                              onMouseEnter={(e) => {
+                                const tooltip = document.getElementById('chart-tooltip');
+                                const tooltipText = document.getElementById('tooltip-text');
+                                if (tooltip && tooltipText) {
+                                  tooltipText.textContent = requestStats.accepted.toString();
+                                  tooltip.style.display = 'block';
+                                  const chartContainer = e.currentTarget.closest('.relative');
+                                  if (chartContainer) {
+                                    const rect = chartContainer.getBoundingClientRect();
+                                    const x = e.clientX - rect.left - 17.5;
+                                    const y = e.clientY - rect.top - 17.5;
+                                    tooltip.style.left = x + 'px';
+                                    tooltip.style.top = y + 'px';
+                                  }
+                                }
+                              }}
+                              onMouseLeave={() => {
+                                const tooltip = document.getElementById('chart-tooltip');
+                                if (tooltip) {
+                                  tooltip.style.display = 'none';
+                                }
+                              }}
+                            />
+                          )}
+                          {/* Canceled segment - starts right after accepted segment ends */}
+                          {requestStats.canceled > 0 && (
+                            <path
+                              d="M 50 160 A 150 150 0 0 1 350 160"
+                              fill="none"
+                              stroke="rgba(255, 13, 13, 0.5)"
+                              strokeWidth="20"
+                              strokeDasharray={`${canceledLength} 10000`}
+                              strokeDashoffset={-acceptedLength}
+                              strokeLinecap="round"
+                              className="cursor-pointer hover:opacity-80 transition-opacity"
+                              style={{ pointerEvents: 'stroke' }}
+                              onMouseEnter={(e) => {
+                                const tooltip = document.getElementById('chart-tooltip');
+                                const tooltipText = document.getElementById('tooltip-text');
+                                if (tooltip && tooltipText) {
+                                  tooltipText.textContent = requestStats.canceled.toString();
+                                  tooltip.style.display = 'block';
+                                  const chartContainer = e.currentTarget.closest('.relative');
+                                  if (chartContainer) {
+                                    const rect = chartContainer.getBoundingClientRect();
+                                    const x = e.clientX - rect.left - 17.5;
+                                    const y = e.clientY - rect.top - 17.5;
+                                    tooltip.style.left = x + 'px';
+                                    tooltip.style.top = y + 'px';
+                                  }
+                                }
+                              }}
+                              onMouseLeave={() => {
+                                const tooltip = document.getElementById('chart-tooltip');
+                                if (tooltip) {
+                                  tooltip.style.display = 'none';
+                                }
+                              }}
+                            />
+                          )}
+                        </>
                       )
                     })()}
                 
@@ -888,90 +822,6 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-          </div>
-        </div>
-
-        {/* Empty/Full Rooms Weekly Chart */}
-        <div className="flex flex-col w-full">
-          <div className="h-16 flex items-center py-3 px-4 bg-[#FCFCFC] border border-[#E9EAEB] rounded-t-xl">
-            <h3 className="text-sm font-semibold text-[#212121]">Room Occupancy (Weekly)</h3>
-          </div>
-          <div className="h-[280px] p-6 bg-white border border-[#E9EAEB] rounded-b-xl -mt-4 relative">
-            {isLoadingWeeklyStats ? (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-sm text-gray-500">Loading...</p>
-              </div>
-            ) : weeklyRoomStats.length > 0 ? (
-              <>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={weeklyRoomStats}>
-                    <CartesianGrid strokeDasharray="0" stroke="#E5E7EB" horizontal={true} vertical={false} />
-                    <XAxis 
-                      dataKey="week" 
-                      stroke="transparent" 
-                      fontSize={12}
-                      tick={{ fill: '#535862', fontSize: '12px', fontWeight: '500' }}
-                    />
-                    <YAxis 
-                      stroke="transparent" 
-                      fontSize={12} 
-                      tick={{ fill: '#535862', fontSize: '12px', fontWeight: '500' }}
-                    />
-                    <Tooltip 
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload
-                          return (
-                            <div className="bg-white border border-[#EFEFEF] rounded-lg shadow-lg p-3">
-                              <p className="text-xs font-semibold text-[#080808] mb-2">{data.week}</p>
-                              <div className="space-y-1">
-                                <p className="text-xs text-[#080808]">
-                                  Empty: <span className="font-semibold">{data.empty}</span>
-                                </p>
-                                <p className="text-xs text-[#080808]">
-                                  Full: <span className="font-semibold">{data.full}</span>
-                                </p>
-                              </div>
-                            </div>
-                          )
-                        }
-                        return null
-                      }}
-                    />
-                    <Line 
-                      type="linear" 
-                      dataKey="empty" 
-                      stroke="#10B981" 
-                      strokeWidth={2.5} 
-                      name="Empty"
-                      dot={{ fill: '#10B981', stroke: '#FFFFFF', strokeWidth: 1.2, r: 4.8 }}
-                    />
-                    <Line 
-                      type="linear" 
-                      dataKey="full" 
-                      stroke="#4195BF" 
-                      strokeWidth={2.5} 
-                      name="Full"
-                      dot={{ fill: '#4195BF', stroke: '#FFFFFF', strokeWidth: 1.2, r: 4.8 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-                <div className="absolute bottom-4 left-6 flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#10B981]"></div>
-                    <span className="text-xs text-[#6B7280]">Empty</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#4195BF]"></div>
-                    <span className="text-xs text-[#6B7280]">Full</span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-sm text-gray-500">No data available</p>
-              </div>
-              )}
           </div>
         </div>
       </div>
@@ -1033,14 +883,15 @@ export default function DashboardPage() {
                 <h5 className="text-foreground mb-1">{selectedService}</h5>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex items-center border border-[#CED4DA] rounded-md">
+                <div className="flex items-center border border-[#CED4DA]" style={{ borderRadius: '6px' }}>
                   <button 
                     onClick={() => setServiceTimePeriod("week")}
-                    className={`px-4 py-2 text-sm font-medium transition-colors rounded-l-md border-r border-[#CED4DA] ${
+                    className={`px-4 py-2 text-sm font-medium transition-colors border-r border-[#CED4DA] ${
                       serviceTimePeriod === "week" 
                         ? "bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90" 
                         : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
                     }`}
+                    style={{ borderTopLeftRadius: '6px', borderBottomLeftRadius: '6px' }}
                   >
                     Week
                   </button>
@@ -1066,30 +917,34 @@ export default function DashboardPage() {
                   </button>
                   <button 
                     onClick={() => setServiceTimePeriod("custom")}
-                    className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 rounded-r-md border-r border-[#CED4DA] ${
+                    className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 ${
                       serviceTimePeriod === "custom" 
                         ? "bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90" 
                         : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
                     }`}
+                    style={{ borderTopRightRadius: '6px', borderBottomRightRadius: '6px' }}
                   >
                     <PublicIcon src="/assets/icons/calendar.svg" alt="Calendar" width={16} height={16} />
                     Dates range
                   </button>
                 </div>
-                {/* Priority dropdown for all services */}
-                <div className="relative inline-block">
-                  <select className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30 py-[7.52px] px-3 pr-8 rounded border border-[#CED4DA] bg-white text-[rgba(33,33,33,0.60)] text-[13px] font-normal leading-[19.5px]">
-                    <option>Priority</option>
-                    <option>High</option>
-                    <option>Medium</option>
-                    <option>Low</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
+                
+                {/* Priority dropdown - Show only for Housekeeping and Laundry */}
+                {(selectedService === "Housekeeping" || selectedService === "Laundry") && (
+                  <div className="relative inline-block">
+                    <select className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30 py-[7.52px] px-3 pr-8 rounded border border-[#CED4DA] bg-white text-[rgba(33,33,33,0.60)] text-[13px] font-normal leading-[19.5px]">
+                      <option>Priority</option>
+                      <option>High</option>
+                      <option>Medium</option>
+                      <option>Low</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* Additional filters for In-room delivery */}
+                {/* Additional filters for In-room delivery - Restaurant and Pickup */}
                 {selectedService === "In-room delivery" && (
                   <>
                     {/* Restaurant dropdown */}
@@ -1170,11 +1025,11 @@ export default function DashboardPage() {
           <div className={servicesData[selectedService as keyof typeof servicesData].hasVerticalCard ? "lg:col-span-2" : ""}>
           <div className="flex flex-col w-full">
             {/* Header */}
-            <div className="h-16 flex items-center py-3 px-4 bg-[#FCFCFC] border border-[#E9EAEB] rounded-t-xl">
+            <div className="h-16 flex items-center py-3 px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0" }}>
               <h3 className="text-sm font-semibold text-[#212121]">Requests Activity</h3>
             </div>
             {/* Content */}
-              <div className="h-[280px] p-3 bg-white border border-[#E9EAEB] rounded-b-xl -mt-4 relative" style={{borderTopLeftRadius : '14px', borderTopRightRadius: "14px"}}>
+              <div className="h-[280px] p-3 bg-white border border-[#E9EAEB] -mt-4 relative" style={{ borderRadius: "14px" }}>
               {/* Chart container */}
               <div className="w-full h-full relative">
                 {/* Y-axis label */}
@@ -1350,11 +1205,11 @@ export default function DashboardPage() {
           {servicesData[selectedService as keyof typeof servicesData].hasVerticalCard && (
         <div className="flex flex-col w-full">
           {/* Header */}
-          <div className="h-16 flex items-center py-3 px-4 bg-[#FCFCFC] border border-[#E9EAEB] rounded-t-xl">
+          <div className="h-16 flex items-center py-3 px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0" }}>
                 <h3 className="text-sm font-semibold text-[#212121]">{servicesData[selectedService as keyof typeof servicesData].verticalCardTitle}</h3>
           </div>
           {/* Content */}
-              <div className="h-[280px] p-4 bg-white border border-[#E9EAEB] rounded-b-xl -mt-4 overflow-y-auto" style={{borderTopLeftRadius : '14px', borderTopRightRadius: "14px"}}>
+              <div className="h-[280px] p-4 bg-white border border-[#E9EAEB] -mt-4 overflow-y-auto" style={{ borderRadius: "14px" }}>
             <div className="space-y-0">
                   {servicesData[selectedService as keyof typeof servicesData].verticalCardItems.map((item, index) => (
                 <div key={index}>
@@ -1405,7 +1260,8 @@ export default function DashboardPage() {
           {/* Add new ticket button */}
           <button 
             onClick={() => router.push('/partner/pages/support')}
-            className="flex items-center gap-1.5 rounded-md border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors hover:bg-gray-100"
+            className="flex items-center gap-1.5 border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors hover:bg-gray-100"
+            style={{ borderRadius: '6px' }}
           >
             <PublicIcon src="/assets/icons/status error.svg" alt="Add new ticket" width={16} height={16} />
             <span className="text-sm font-medium text-[#212121]">Add new ticket</span>
@@ -1414,7 +1270,8 @@ export default function DashboardPage() {
           {/* Add Member button */}
           <button 
             onClick={() => router.push('/partner/pages/team')}
-            className="flex items-center gap-1.5 rounded-md border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors hover:bg-gray-100"
+            className="flex items-center gap-1.5 border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors hover:bg-gray-100"
+            style={{ borderRadius: '6px' }}
           >
             <PublicIcon src="/assets/icons/user-group.svg" alt="Add Member" width={16} height={16} />
             <span className="text-sm font-medium text-[#212121]">Add Member</span>
@@ -1423,14 +1280,18 @@ export default function DashboardPage() {
           {/* Add Staff button */}
           <button 
             onClick={() => router.push('/partner/pages/team')}
-            className="flex items-center gap-1.5 rounded-md border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors hover:bg-gray-100"
+            className="flex items-center gap-1.5 border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors hover:bg-gray-100"
+            style={{ borderRadius: '6px' }}
           >
             <PublicIcon src="/assets/icons/briefcase-06.svg" alt="Add Staff" width={16} height={16} className="brightness-0 saturate-100" />
             <span className="text-sm font-medium text-[#212121]">Add Staff</span>
           </button>
 
           {/* More button */}
-          <button className="flex items-center gap-1.5 rounded-md border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors">
+          <button 
+            className="flex items-center gap-1.5 border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors"
+            style={{ borderRadius: '6px' }}
+          >
             <PublicIcon src="/assets/icons/menu-01.svg" alt="More" width={16} height={16} />
             <span className="text-sm font-medium text-[#212121]">More</span>
           </button>
