@@ -1,11 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { getAuthToken } from "@/lib/auth-utils"
+import * as XLSX from "xlsx"
+import { saveAs } from "file-saver"
 import {
   RiMoreLine,
   RiEyeLine,
   RiEditLine,
   RiUserAddLine,
+  RiUserUnfollowLine,
   RiReplyLine,
   RiCheckboxCircleLine,
   RiDeleteBinLine,
@@ -37,13 +41,12 @@ import SortArrows from "@/app/superadmin/components/sort-arrows"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
 import ViewTicketModal from "@/app/superadmin/components/view-ticket-modal"
 import ChangeStatusModal from "@/app/superadmin/components/change-status-modal"
-import AssignTicketModal from "@/app/superadmin/components/assign-ticket-modal"
 import UnmarkTicketModal from "@/app/superadmin/components/unmark-ticket-modal"
 import ContactPartnerModal from "@/app/superadmin/components/contact-partner-modal"
 import DeleteTicketModal from "@/app/superadmin/components/delete-ticket-modal"
+import AssignTicketModal from "@/app/superadmin/components/assign-ticket-modal"
 import { 
   ChangeStatusIcon, 
-  AssignTicketIcon, 
   AddReplyIcon, 
   MarkAsTicketIcon 
 } from "@/app/superadmin/components/icons"
@@ -57,203 +60,230 @@ interface Ticket {
   assignee: {
     name: string
     avatar: string
-  }
+  } | null
   dateCreated: string
   dateUpdate: string
   hotelName: string
   hotelEmail: string
   description: string
+  image?: string
   isMarkedAsTicket: boolean
 }
 
-const mockTickets: Ticket[] = [
-  {
-    id: "1",
-    ticketId: "#22232",
-    title: "Login issues with ...",
-    status: "open",
-    priority: "urgent",
-    assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 2024, 10:30 AM",
-    dateUpdate: "Jan 16, 2024, 02:22 PM",
-    hotelName: "Hotel name",
-    hotelEmail: "hotel@gmail.com",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-    isMarkedAsTicket: true,
-  },
-  {
-    id: "2",
-    ticketId: "#22233",
-    title: "Login issues with ...",
-    status: "sent",
-    priority: "medium",
-    assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 2024, 10:30 AM",
-    dateUpdate: "Jan 16, 2024, 02:22 PM",
-    hotelName: "Hotel name",
-    hotelEmail: "hotel@gmail.com",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-    isMarkedAsTicket: false,
-  },
-  {
-    id: "3",
-    ticketId: "#22232",
-    title: "Login issues with ...",
-    status: "reopened",
-    priority: "medium",
-    assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 2024, 10:30 AM",
-    dateUpdate: "Jan 16, 2024, 02:22 PM",
-    hotelName: "Hotel name",
-    hotelEmail: "hotel@gmail.com",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-    isMarkedAsTicket: false,
-  },
-  {
-    id: "4",
-    ticketId: "#22232",
-    title: "Login issues with ...",
-    status: "pending",
-    priority: "medium",
-    assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 2024, 10:30 AM",
-    dateUpdate: "Jan 16, 2024, 02:22 PM",
-    hotelName: "Hotel name",
-    hotelEmail: "hotel@gmail.com",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-    isMarkedAsTicket: true,
-  },
-  {
-    id: "5",
-    ticketId: "#22232",
-    title: "Login issues with ...",
-    status: "resolved",
-    priority: "urgent",
-    assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 2024, 10:30 AM",
-    dateUpdate: "Jan 16, 2024, 02:22 PM",
-    hotelName: "Hotel name",
-    hotelEmail: "hotel@gmail.com",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-    isMarkedAsTicket: true,
-  },
-  {
-    id: "6",
-    ticketId: "#22232",
-    title: "Login issues with ...",
-    status: "canceled",
-    priority: "urgent",
-    assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 2024, 10:30 AM",
-    dateUpdate: "Jan 16, 2024, 02:22 PM",
-    hotelName: "Hotel name",
-    hotelEmail: "hotel@gmail.com",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-    isMarkedAsTicket: true,
-  },
-  {
-    id: "7",
-    ticketId: "#22238",
-    title: "Login issues with ...",
-    status: "sent",
-    priority: "urgent",
-    assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 2024, 10:30 AM",
-    dateUpdate: "Jan 16, 2024, 02:22 PM",
-    hotelName: "Hotel name",
-    hotelEmail: "hotel@gmail.com",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-    isMarkedAsTicket: true,
-  },
-  {
-    id: "8",
-    ticketId: "#22232",
-    title: "Login issues with ...",
-    status: "resolved",
-    priority: "low",
-    assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 2024, 10:30 AM",
-    dateUpdate: "Jan 16, 2024, 02:22 PM",
-    hotelName: "Hotel name",
-    hotelEmail: "hotel@gmail.com",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-    isMarkedAsTicket: true,
-  },
-  {
-    id: "9",
-    ticketId: "#22232",
-    title: "Login issues with ...",
-    status: "open",
-    priority: "low",
-    assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 2024, 10:30 AM",
-    dateUpdate: "Jan 16, 2024, 02:22 PM",
-    hotelName: "Hotel name",
-    hotelEmail: "hotel@gmail.com",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-    isMarkedAsTicket: true,
-  },
-  {
-    id: "10",
-    ticketId: "#22232",
-    title: "Login issues with ...",
-    status: "open",
-    priority: "low",
-    assignee: { name: "Full Name", avatar: "FN" },
-    dateCreated: "Jan 15, 2024, 10:30 AM",
-    dateUpdate: "Jan 16, 2024, 02:22 PM",
-    hotelName: "Hotel name",
-    hotelEmail: "hotel@gmail.com",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis.",
-    isMarkedAsTicket: true,
-  },
-]
-
 export default function SupportPage() {
-  const [tickets, setTickets] = useState<Ticket[]>(mockTickets)
+  const [tickets, setTickets] = useState<Ticket[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | Ticket["status"]>("all")
   const [priorityFilter, setPriorityFilter] = useState<"all" | Ticket["priority"]>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [totalTickets, setTotalTickets] = useState(0)
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null)
   const [showViewTicketModal, setShowViewTicketModal] = useState(false)
   const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null)
   const [showChangeStatusModal, setShowChangeStatusModal] = useState(false)
   const [ticketToChangeStatus, setTicketToChangeStatus] = useState<Ticket | null>(null)
-  const [showAssignTicketModal, setShowAssignTicketModal] = useState(false)
-  const [ticketToAssign, setTicketToAssign] = useState<Ticket | null>(null)
   const [showUnmarkTicketModal, setShowUnmarkTicketModal] = useState(false)
   const [ticketToUnmark, setTicketToUnmark] = useState<Ticket | null>(null)
   const [showContactPartnerModal, setShowContactPartnerModal] = useState(false)
   const [ticketToContact, setTicketToContact] = useState<Ticket | null>(null)
   const [showDeleteTicketModal, setShowDeleteTicketModal] = useState(false)
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null)
+  const [showAssignTicketModal, setShowAssignTicketModal] = useState(false)
+  const [ticketToAssign, setTicketToAssign] = useState<Ticket | null>(null)
+  const [assigneeOptions, setAssigneeOptions] = useState<Array<{ value: string; label: string; profilePic?: string }>>([])
 
-  const norm = (v: string) => v.toLowerCase()
-  const filteredTickets = tickets.filter((t) => {
-    if (statusFilter !== "all" && t.status !== statusFilter) return false
-    if (priorityFilter !== "all" && t.priority !== priorityFilter) return false
-    if (!searchTerm) return true
-    const q = norm(searchTerm)
-    return (
-      norm(t.title).includes(q) ||
-      norm(t.ticketId).includes(q) ||
-      norm(t.status).includes(q) ||
-      norm(t.priority).includes(q) ||
-      norm(t.assignee.name).includes(q) ||
-      norm(t.hotelName).includes(q) ||
-      norm(t.hotelEmail).includes(q)
-    )
-  })
+  // Map API ticket to UI Ticket interface
+  const mapApiTicketToTicket = (apiTicket: any): Ticket => {
+    const formatDate = (date: Date | string | null) => {
+      if (!date) return ''
+      try {
+        const d = new Date(date)
+        return d.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      } catch {
+        return ''
+      }
+    }
 
-  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage)
+    const partner = apiTicket.partner || {}
+    const assignee = apiTicket.assignee || null
+    const assigneeName = assignee?.name || null
+    const assigneeInitials = assigneeName ? assigneeName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : null
+
+    return {
+      id: apiTicket._id || apiTicket.id,
+      ticketId: apiTicket.superadminTicketId || apiTicket.ticketId || '', // Use superadminTicketId for display in superadmin
+      title: apiTicket.title || '',
+      status: apiTicket.status || 'open',
+      priority: apiTicket.priority || 'low',
+      assignee: assigneeName ? {
+        name: assigneeName,
+        avatar: assigneeInitials || 'UN'
+      } : null,
+      dateCreated: formatDate(apiTicket.createdAt),
+      dateUpdate: formatDate(apiTicket.updatedAt),
+      hotelName: partner.hotelName || 'Unknown Hotel',
+      hotelEmail: partner.hotelEmail || '',
+      description: apiTicket.description || '',
+      image: apiTicket.image || undefined,
+      isMarkedAsTicket: true // Default value, can be adjusted if needed
+    }
+  }
+
+  // Fetch tickets from API
+  const fetchTickets = async () => {
+    try {
+      setIsLoading(true)
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        setIsLoading(false)
+        return
+      }
+
+      const queryParams = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+      })
+
+      if (searchTerm) {
+        queryParams.append('search', searchTerm)
+      }
+      if (statusFilter !== 'all') {
+        queryParams.append('status', statusFilter)
+      }
+      if (priorityFilter !== 'all') {
+        queryParams.append('priority', priorityFilter)
+      }
+
+      const response = await fetch(`/api/superadmin/tickets?${queryParams}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data) {
+          const mappedTickets = (result.data.tickets || []).map(mapApiTicketToTicket)
+          setTickets(mappedTickets)
+          setTotalTickets(result.data.pagination?.total || 0)
+        } else {
+          setTickets([])
+          setTotalTickets(0)
+        }
+      } else {
+        console.error('Failed to fetch tickets')
+        setTickets([])
+        setTotalTickets(0)
+      }
+    } catch (error) {
+      console.error('Error fetching tickets:', error)
+      setTickets([])
+      setTotalTickets(0)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Fetch tickets on component mount and when filters change
+  useEffect(() => {
+    fetchTickets()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, itemsPerPage, statusFilter, priorityFilter])
+
+  // Fetch team members for assignee dropdown
+  useEffect(() => {
+    const fetchAssignees = async () => {
+      try {
+        const token = getAuthToken()
+        if (!token) return
+
+        // Fetch members from Luxeli team
+        const response = await fetch('/api/superadmin/members?limit=1000', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+
+        if (response.ok) {
+          const data = await response.json().catch(() => ({}))
+          // API returns members in data.members
+          const members = data.data?.members || data.members || []
+          const options = members.map((member: any) => ({
+            value: member._id || member.id,
+            label: member.name || 'Unknown',
+            profilePic: member.profileImage || undefined
+          }))
+          setAssigneeOptions(options)
+        }
+      } catch (error) {
+        console.error('Error fetching assignees:', error)
+      }
+    }
+    fetchAssignees()
+  }, [])
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentPage(1)
+      fetchTickets()
+    }, 500)
+
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm])
+
+  // Simple queue order - tickets are already sorted by creation date from API
+  const totalPages = Math.ceil(totalTickets / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentTickets = filteredTickets.slice(startIndex, endIndex)
+  const currentTickets = tickets
 
-  const handleStatusChange = (ticketId: string, newStatus: Ticket["status"]) => {
-    setTickets(tickets.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)))
+  const handleStatusChange = async (ticketId: string, newStatus: Ticket["status"]) => {
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        alert('Authentication token not found. Please log in again.')
+        return
+      }
+
+      console.log('Updating ticket:', ticketId, 'to status:', newStatus)
+
+      const response = await fetch(`/api/superadmin/tickets/${ticketId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+
+      const responseData = await response.json().catch(() => ({}))
+      
+      if (response.ok) {
+        console.log('Ticket updated successfully:', responseData)
+        // Refresh tickets after update
+        await fetchTickets()
+      } else {
+        console.error('Failed to update ticket status:', {
+          status: response.status,
+          error: responseData.error || responseData.message || 'Unknown error',
+          fullResponse: responseData
+        })
+        alert(`Failed to update ticket status: ${responseData.error || responseData.message || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error updating ticket status:', error)
+      alert(`Error updating ticket status: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   const handleViewTicket = (ticket: Ticket) => {
@@ -276,30 +306,16 @@ export default function SupportPage() {
     setTicketToChangeStatus(null)
   }
 
-  const confirmStatusChange = (ticketId: string, newStatus: Ticket["status"]) => {
-    setTickets(tickets.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)))
+  const confirmStatusChange = async (ticketId: string, newStatus: Ticket["status"]) => {
+    try {
+      await handleStatusChange(ticketId, newStatus)
+      // Close modal after successful update
+      closeChangeStatusModal()
+    } catch (error) {
+      console.error('Error confirming status change:', error)
+    }
   }
 
-  const handleAssignTicket = (ticket: Ticket) => {
-    setTicketToAssign(ticket)
-    setShowAssignTicketModal(true)
-  }
-
-  const closeAssignTicketModal = () => {
-    setShowAssignTicketModal(false)
-    setTicketToAssign(null)
-  }
-
-  const confirmAssignTicket = (ticketId: string, newAssignee: string) => {
-    const assigneeName = newAssignee.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
-    setTickets(tickets.map((t) => (t.id === ticketId ? { 
-      ...t, 
-      assignee: { 
-        name: assigneeName, 
-        avatar: assigneeName.split(' ').map(n => n[0]).join('').toUpperCase() 
-      } 
-    } : t)))
-  }
 
   const handleDeleteTicket = (ticket: Ticket) => {
     setTicketToDelete(ticket)
@@ -336,8 +352,229 @@ export default function SupportPage() {
     setTicketToContact(null)
   }
 
-  const confirmDeleteTicket = (ticketId: string) => {
-    setTickets(tickets.filter((t) => t.id !== ticketId))
+  const handleAssignTicket = (ticket: Ticket) => {
+    setTicketToAssign(ticket)
+    setShowAssignTicketModal(true)
+  }
+
+  const closeAssignTicketModal = () => {
+    setShowAssignTicketModal(false)
+    setTicketToAssign(null)
+  }
+
+  const confirmAssignTicket = async (ticketId: string, assigneeId: string) => {
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        alert('Authentication token not found. Please log in again.')
+        return
+      }
+
+      // Find the assignee from the options
+      const assignee = assigneeOptions.find(opt => opt.value === assigneeId)
+      if (!assignee) {
+        alert('Selected assignee not found')
+        return
+      }
+
+      console.log('Assigning ticket:', ticketId, 'to:', assignee.label)
+
+      // Prepare assignee object with name and profilePic if available
+      const assigneeData: { name: string; profilePic?: string } = {
+        name: assignee.label
+      }
+      
+      // Include profilePic if available (from the assigneeOptions)
+      if (assignee.profilePic) {
+        assigneeData.profilePic = assignee.profilePic
+      }
+
+      // When assigning a member, also set status to "open"
+      const response = await fetch(`/api/superadmin/tickets/${ticketId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          assignee: assigneeData,
+          status: 'open' // Set status to "open" when assigning a member
+        })
+      })
+
+      const responseData = await response.json().catch(() => ({}))
+      
+      if (response.ok) {
+        console.log('Ticket assigned successfully:', responseData)
+        // Refresh tickets after assignment
+        await fetchTickets()
+        closeAssignTicketModal()
+        alert('Ticket assigned successfully')
+      } else {
+        console.error('Failed to assign ticket:', {
+          status: response.status,
+          error: responseData.error || responseData.message || 'Unknown error',
+          fullResponse: responseData
+        })
+        alert(`Failed to assign ticket: ${responseData.error || responseData.message || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error assigning ticket:', error)
+      alert(`Error assigning ticket: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleUnassignTicket = async (ticket: Ticket) => {
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        alert('Authentication token not found. Please log in again.')
+        return
+      }
+
+      if (!ticket.assignee) {
+        alert('This ticket has no assignee to unassign')
+        return
+      }
+
+      // Confirm unassignment
+      if (!confirm(`Are you sure you want to unassign ${ticket.assignee.name} from this ticket?`)) {
+        return
+      }
+
+      console.log('Unassigning ticket:', ticket.id)
+
+      const response = await fetch(`/api/superadmin/tickets/${ticket.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          assignee: null // Remove assignee by setting to null
+        })
+      })
+
+      const responseData = await response.json().catch(() => ({}))
+      
+      if (response.ok) {
+        console.log('Ticket unassigned successfully:', responseData)
+        // Refresh tickets after unassignment
+        await fetchTickets()
+        alert('Ticket unassigned successfully')
+      } else {
+        console.error('Failed to unassign ticket:', {
+          status: response.status,
+          error: responseData.error || responseData.message || 'Unknown error',
+          fullResponse: responseData
+        })
+        alert(`Failed to unassign ticket: ${responseData.error || responseData.message || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error unassigning ticket:', error)
+      alert(`Error unassigning ticket: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleExportToExcel = () => {
+    try {
+      // Prepare data for Excel export
+      const exportData = tickets.map((ticket) => ({
+        "Ticket ID": ticket.ticketId,
+        "Title": ticket.title,
+        "Status": ticket.status,
+        "Priority": ticket.priority,
+        "Assignee": ticket.assignee ? ticket.assignee.name : "-",
+        "Date Created": ticket.dateCreated,
+        "Date Update": ticket.dateUpdate,
+        "Hotel Name": ticket.hotelName,
+        "Hotel Email": ticket.hotelEmail,
+      }))
+
+      // Create a new workbook
+      const wb = XLSX.utils.book_new()
+      
+      // Convert data to worksheet
+      const ws = XLSX.utils.json_to_sheet(exportData)
+
+      // Set column widths for better readability
+      const colWidths = [
+        { wch: 15 }, // Ticket ID
+        { wch: 30 }, // Title
+        { wch: 12 }, // Status
+        { wch: 12 }, // Priority
+        { wch: 20 }, // Assignee
+        { wch: 18 }, // Date Created
+        { wch: 18 }, // Date Update
+        { wch: 25 }, // Hotel Name
+        { wch: 30 }, // Hotel Email
+      ]
+      ws["!cols"] = colWidths
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Tickets")
+
+      // Generate Excel file buffer
+      const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" })
+
+      // Create blob and download
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      })
+
+      // Generate filename with current date
+      const date = new Date()
+      const dateStr = date.toISOString().split("T")[0]
+      const filename = `tickets_export_${dateStr}.xlsx`
+
+      // Save file
+      saveAs(blob, filename)
+    } catch (error) {
+      console.error("Error exporting to Excel:", error)
+      alert("Failed to export tickets to Excel. Please try again.")
+    }
+  }
+
+  const confirmDeleteTicket = async (ticketId: string) => {
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        alert('Authentication token not found. Please log in again.')
+        return
+      }
+
+      console.log('Deleting ticket:', ticketId)
+
+      const response = await fetch(`/api/superadmin/tickets/${ticketId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const responseData = await response.json().catch(() => ({}))
+      
+      if (response.ok) {
+        console.log('Ticket deleted successfully:', responseData)
+        // Close modal after successful deletion
+        closeDeleteTicketModal()
+        // Refresh tickets after deletion
+        await fetchTickets()
+      } else {
+        console.error('Failed to delete ticket:', {
+          status: response.status,
+          error: responseData.error || responseData.message || 'Unknown error',
+          fullResponse: responseData
+        })
+        alert(`Failed to delete ticket: ${responseData.error || responseData.message || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error deleting ticket:', error)
+      alert(`Error deleting ticket: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   return (
@@ -475,7 +712,12 @@ export default function SupportPage() {
               </div>
             </div>
 
-            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
+            <button 
+              onClick={handleExportToExcel}
+              disabled={tickets.length === 0}
+              className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+              style={{ borderRadius: "6px" }}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="14"
@@ -518,12 +760,12 @@ export default function SupportPage() {
                 </th>
                 <th className="px-4 py-4 text-left">
                   <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
-                    Title
+                    Ticket ID
                   </span>
                 </th>
                 <th className="px-4 py-4 text-left">
                   <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
-                    Ticket ID
+                    Title
                   </span>
                 </th>
                 <th className="px-4 py-4 text-left">
@@ -555,7 +797,16 @@ export default function SupportPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {currentTickets.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={9} className="px-4 py-16">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+                      <p className="text-muted-foreground">Loading tickets...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : currentTickets.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-4 py-16">
                     <div className="flex flex-col items-center justify-center text-center">
@@ -655,6 +906,7 @@ export default function SupportPage() {
                       </span>
                     </td>
                     <td className="px-4 py-4">
+                      {ticket.assignee ? (
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold">
                           {ticket.assignee.avatar}
@@ -668,6 +920,16 @@ export default function SupportPage() {
                           {ticket.assignee.name}
                         </span>
                       </div>
+                      ) : (
+                        <span style={{
+                          color: "#525866",
+                          fontSize: "12px",
+                          fontWeight: "400",
+                          lineHeight: "19.5px"
+                        }}>
+                          -
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-4" style={{
                       color: "#525866",
@@ -703,9 +965,14 @@ export default function SupportPage() {
                             icon: <ChangeStatusIcon />,
                             onClick: () => handleChangeStatus(ticket),
                           },
-                          {
-                            label: "Change assignee",
-                            icon: <AssignTicketIcon />,
+                          // Show "Unassign" if ticket has assignee, otherwise show "Assign ticket"
+                          ticket.assignee ? {
+                            label: "Unassign",
+                            icon: <RiUserUnfollowLine className="w-4 h-4" />,
+                            onClick: () => handleUnassignTicket(ticket),
+                          } : {
+                            label: "Assign ticket",
+                            icon: <RiUserAddLine className="w-4 h-4" />,
                             onClick: () => handleAssignTicket(ticket),
                           },
                           {
@@ -735,10 +1002,10 @@ export default function SupportPage() {
         </div>
 
         {/* Pagination */}
-        {filteredTickets.length > 0 && (
+        {totalTickets > 0 && (
           <div className="flex items-center justify-between  py-3 border-t border-border">
             <p className="text-sm text-muted-foreground">
-              Displaying {filteredTickets.length === 0 ? 0 : startIndex + 1}-{Math.min(endIndex, filteredTickets.length)} results out of {filteredTickets.length}
+              Displaying {totalTickets === 0 ? 0 : startIndex + 1}-{Math.min(endIndex, totalTickets)} results out of {totalTickets}
             </p>
 
             <div className="flex items-center gap-2">
@@ -750,8 +1017,17 @@ export default function SupportPage() {
                 <LeftArrow />
               </button>
 
-              {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-                const page = i + 1
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let page: number
+                if (totalPages <= 5) {
+                  page = i + 1
+                } else if (currentPage <= 3) {
+                  page = i + 1
+                } else if (currentPage >= totalPages - 2) {
+                  page = totalPages - 4 + i
+                } else {
+                  page = currentPage - 2 + i
+                }
                 return (
                   <button
                     key={page}
@@ -792,13 +1068,6 @@ export default function SupportPage() {
         onConfirm={confirmStatusChange}
       />
 
-      {/* Assign Ticket Modal */}
-      <AssignTicketModal
-        ticket={ticketToAssign}
-        isOpen={showAssignTicketModal}
-        onClose={closeAssignTicketModal}
-        onConfirm={confirmAssignTicket}
-      />
 
       {/* Unmark Ticket Modal */}
       <UnmarkTicketModal
@@ -821,6 +1090,15 @@ export default function SupportPage() {
         isOpen={showDeleteTicketModal}
         onClose={closeDeleteTicketModal}
         onConfirm={confirmDeleteTicket}
+      />
+
+      {/* Assign Ticket Modal */}
+      <AssignTicketModal
+        ticket={ticketToAssign}
+        isOpen={showAssignTicketModal}
+        onClose={closeAssignTicketModal}
+        onConfirm={confirmAssignTicket}
+        assigneeOptions={assigneeOptions}
       />
     </div>
   )

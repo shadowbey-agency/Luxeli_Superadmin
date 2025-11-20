@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DropdownIcon } from "./icons"
 
 interface Ticket {
@@ -25,27 +25,35 @@ interface AssignTicketModalProps {
   isOpen: boolean
   onClose: () => void
   onConfirm: (ticketId: string, newAssignee: string) => void
+  assigneeOptions?: Array<{ value: string; label: string; profilePic?: string }>
 }
 
-const assigneeOptions = [
-  { value: "john_doe", label: "John Doe" },
-  { value: "jane_smith", label: "Jane Smith" },
-  { value: "mike_johnson", label: "Mike Johnson" },
-  { value: "sarah_wilson", label: "Sarah Wilson" },
-  { value: "david_brown", label: "David Brown" },
-  { value: "emma_davis", label: "Emma Davis" },
-  { value: "alex_garcia", label: "Alex Garcia" },
-  { value: "lisa_martinez", label: "Lisa Martinez" },
-]
-
-export default function AssignTicketModal({ ticket, isOpen, onClose, onConfirm }: AssignTicketModalProps) {
+export default function AssignTicketModal({ ticket, isOpen, onClose, onConfirm, assigneeOptions = [] }: AssignTicketModalProps) {
   const [selectedAssignee, setSelectedAssignee] = useState<string>("")
+
+  // Reset selected assignee when modal opens/closes or ticket changes
+  useEffect(() => {
+    if (isOpen && ticket) {
+      // If ticket already has an assignee, try to find and pre-select it
+      if (ticket.assignee) {
+        const currentAssignee = assigneeOptions.find(opt => opt.label === ticket.assignee?.name)
+        if (currentAssignee) {
+          setSelectedAssignee(currentAssignee.value)
+        } else {
+          setSelectedAssignee("")
+        }
+      } else {
+        setSelectedAssignee("")
+      }
+    } else {
+      setSelectedAssignee("")
+    }
+  }, [isOpen, ticket, assigneeOptions])
 
   const handleConfirm = () => {
     if (ticket && selectedAssignee) {
       onConfirm(ticket.id, selectedAssignee)
-      setSelectedAssignee("")
-      onClose()
+      // Don't close here - let the parent handle it after successful API call
     }
   }
 

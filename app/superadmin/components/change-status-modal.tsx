@@ -24,7 +24,7 @@ interface ChangeStatusModalProps {
   ticket: Ticket | null
   isOpen: boolean
   onClose: () => void
-  onConfirm: (ticketId: string, newStatus: Ticket["status"]) => void
+  onConfirm: (ticketId: string, newStatus: Ticket["status"]) => Promise<void>
 }
 
 const statusOptions: { value: Ticket["status"]; label: string }[] = [
@@ -38,11 +38,11 @@ const statusOptions: { value: Ticket["status"]; label: string }[] = [
 export default function ChangeStatusModal({ ticket, isOpen, onClose, onConfirm }: ChangeStatusModalProps) {
   const [selectedStatus, setSelectedStatus] = useState<Ticket["status"] | "">("")
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (ticket && selectedStatus) {
-      onConfirm(ticket.id, selectedStatus as Ticket["status"])
+      await onConfirm(ticket.id, selectedStatus as Ticket["status"])
       setSelectedStatus("")
-      onClose()
+      // Don't close here - let the parent handle it after successful update
     }
   }
 

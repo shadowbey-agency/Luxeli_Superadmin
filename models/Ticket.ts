@@ -2,7 +2,8 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface ITicket extends Document {
   partnerId: string; // Reference to Partner
-  ticketId: string;
+  ticketId: string; // Original ticket ID for partner use (e.g., TCKT-1234567890)
+  superadminTicketId?: string; // Sequential ticket ID for superadmin display (e.g., #00001)
   title: string;
   priority: "low" | "medium" | "urgent";
   description: string;
@@ -25,7 +26,12 @@ const ticketSchema = new Schema<ITicket>(
     },
     ticketId: {
       type: String,
-      default: () => `TCKT-${Date.now()}`, // auto-generate unique ticketId
+      default: () => `TCKT-${Date.now()}`, // Original ticket ID for partner use
+      trim: true,
+    },
+    superadminTicketId: {
+      type: String,
+      trim: true,
     },
     title: {
       type: String,
@@ -47,7 +53,7 @@ const ticketSchema = new Schema<ITicket>(
     status: {
       type: String,
       enum: ["open", "new", "reopened", "pending", "resolved", "canceled"],
-      default: "open", // default when new ticket is created
+      default: "new", // default when new ticket is created
     },
     assignee: {
       name: { type: String },
@@ -60,9 +66,43 @@ const ticketSchema = new Schema<ITicket>(
 // Indexes for better query performance
 ticketSchema.index({ partnerId: 1 });
 ticketSchema.index({ partnerId: 1, ticketId: 1 }, { unique: true }); // Unique ticketId per partner
+ticketSchema.index({ superadminTicketId: 1 }, { unique: true, sparse: true }); // Unique superadminTicketId globally
 
-// 🕒 Update "updatedAt" whenever the document is modified
-ticketSchema.pre("save", function (next) {
+// Auto-generate sequential superadmin ticket ID in format #00001, #00002, etc.
+ticketSchema.pre("save", async function (next) {
+  // Only generate superadminTicketId if it doesn't exist and this is a new document
+  if (!this.superadminTicketId && this.isNew) {
+    try {
+      // Find all tickets with superadminTicketId
+      const ticketsWithSuperadminId = await mongoose.model<ITicket>("Ticket")
+        .find({ superadminTicketId: { $exists: true, $regex: /^#\d+$/ } })
+        .select('superadminTicketId')
+        .lean();
+
+      let nextNumber = 1;
+      if (ticketsWithSuperadminId.length > 0) {
+        // Extract numbers from all superadminTicketIds and find the maximum
+        const numbers = ticketsWithSuperadminId
+          .map(t => {
+            const match = t.superadminTicketId?.match(/#(\d+)/);
+            return match ? parseInt(match[1], 10) : 0;
+          })
+          .filter(n => !isNaN(n));
+        
+        if (numbers.length > 0) {
+          const maxNumber = Math.max(...numbers);
+          nextNumber = maxNumber + 1;
+        }
+      }
+
+      // Generate superadminTicketId in format #00001, #00002, etc. (5 digits)
+      this.superadminTicketId = `#${String(nextNumber).padStart(5, "0")}`;
+    } catch (err) {
+      return next(err as any);
+    }
+  }
+
+  // Update "updatedAt" whenever the document is modified
   if (this.isModified()) {
     this.updatedAt = new Date();
   }

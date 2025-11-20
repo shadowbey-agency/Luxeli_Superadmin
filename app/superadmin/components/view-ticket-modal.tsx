@@ -19,12 +19,13 @@ interface Ticket {
   assignee: {
     name: string
     avatar: string
-  }
+  } | null
   dateCreated: string
   dateUpdate: string
   hotelName: string
   hotelEmail: string
   description: string
+  image?: string
 }
 
 interface ViewTicketModalProps {
@@ -113,9 +114,10 @@ export default function ViewTicketModal({ ticket, isOpen, onClose }: ViewTicketM
                       lineHeight: "32px"
                     }}
                   >
-                    Luxeli support
+                    {ticket.hotelName}
                   </h3>
-                  <p className="text-sm text-gray-600">Support</p>
+                  <p className="text-sm text-gray-600">{ticket.hotelEmail}</p>
+                  <p className="text-xs text-gray-500 mt-1">Ticket ID: {ticket.ticketId}</p>
                 </div>
 
                 {/* Status Buttons */}
@@ -301,46 +303,48 @@ export default function ViewTicketModal({ ticket, isOpen, onClose }: ViewTicketM
             </div>
 
             {/* Image Uploaded Section */}
-            <div className="space-y-2">
-              <h4 
-                className="text-gray-500 font-medium"
-                style={{
-                  color: "rgba(0, 0, 0, 0.50)",
-                  fontSize: "15px",
-                  fontWeight: 500,
-                  lineHeight: "21px",
-                }}
-              >
-                Image uploaded
-              </h4>
-              <div 
-                className="flex flex-col gap-6 p-4 border rounded-lg"
-                style={{
-                  display: "flex",
-                  padding: "16px",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  alignItems: "flex-start",
-                  gap: "24px",
-                  alignSelf: "stretch",
-                  borderRadius: "8px",
-                  border: "1px solid rgba(33, 33, 33, 0.08)",
-                  background: "#FBFAFA"
-                }}
-              >
-                <img 
-                  src="/assets/images/hotel-pool.jpg" 
-                  alt="Uploaded image"
-                  className="w-full h-48 object-cover rounded"
+            {ticket.image && (
+              <div className="space-y-2">
+                <h4 
+                  className="text-gray-500 font-medium"
                   style={{
-                    width: "100%",
-                    height: "192px",
-                    objectFit: "cover",
-                    borderRadius: "4px"
+                    color: "rgba(0, 0, 0, 0.50)",
+                    fontSize: "15px",
+                    fontWeight: 500,
+                    lineHeight: "21px",
                   }}
-                />
+                >
+                  Image uploaded
+                </h4>
+                <div 
+                  className="flex flex-col gap-6 p-4 border rounded-lg"
+                  style={{
+                    display: "flex",
+                    padding: "16px",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "flex-start",
+                    gap: "24px",
+                    alignSelf: "stretch",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(33, 33, 33, 0.08)",
+                    background: "#FBFAFA"
+                  }}
+                >
+                  <img 
+                    src={ticket.image} 
+                    alt="Uploaded image"
+                    className="w-full h-48 object-cover rounded"
+                    style={{
+                      width: "100%",
+                      height: "192px",
+                      objectFit: "cover",
+                      borderRadius: "4px"
+                    }}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 

@@ -1,30 +1,8 @@
 import { NextRequest } from 'next/server';
-import { MemberController } from '@/controllers/MemberController';
+import { PartnerController } from '@/controllers/PartnerController';
 import { withSuperAdminAuth } from '@/lib/middleware';
 
 export const GET = withSuperAdminAuth(async (request: NextRequest) => {
-  return await MemberController.getMemberStats();
+  return await PartnerController.getPartnerServicesStats();
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

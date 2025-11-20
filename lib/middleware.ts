@@ -193,8 +193,12 @@ export function handleApiError(error: any, message: string = 'Internal server er
   console.error('API Error:', error);
   
   if (error.name === 'ValidationError') {
+    // Extract validation error messages
+    const errorMessages = error.errors 
+      ? Object.values(error.errors).map((e: any) => e.message).join(', ')
+      : error.message || 'Validation error';
     return NextResponse.json(
-      { error: 'Validation error', details: error.message },
+      { success: false, error: errorMessages, details: error.errors },
       { status: 400 }
     );
   }

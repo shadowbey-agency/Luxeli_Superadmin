@@ -29,11 +29,29 @@ export default function StatCard({
     neutral: "text-muted-foreground",
   }[changeType]
 
-  const changeBgColor = {
-    positive: "bg-[#E5F5ED]", // Using specified background color for positive changes
-    negative: "bg-red-50",
-    neutral: "bg-gray-50",
-  }[changeType]
+  const getChangeBadgeStyle = () => {
+    const baseStyle: Record<string, string> = {
+      height: "20px",
+      gap: "10px",
+      paddingRight: "4px",
+      paddingLeft: "4px",
+      borderRadius: "2px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+
+    // Set background color based on change type
+    if (changeType === "positive") {
+      baseStyle.backgroundColor = "#1EAB750D"
+    } else if (changeType === "negative") {
+      baseStyle.backgroundColor = "#FEF2F2" // bg-red-50 equivalent
+    } else {
+      baseStyle.backgroundColor = "#F9FAFB" // bg-gray-50 equivalent
+    }
+
+    return baseStyle
+  }
 
   return (
     <div className="flex h:[144px] p-[19px_16px] flex-col justify-center items-start gap-2.5 flex-1 rounded-lg bg-white shadow-[0_12px_24px_0_rgba(18,38,63,0.03)]">
@@ -59,18 +77,8 @@ export default function StatCard({
       {change && (
         <div className="flex items-center gap-2">
           <span 
-            className={`text-sm font-medium px-1 py-0.5 rounded ${changeColor} ${changeBgColor}`}
-            style={{
-              
-              height: "20px",
-              gap: "10px",
-              paddingRight: "4px",
-              paddingLeft: "4px",
-              borderRadius: "2px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
+            className={`text-sm font-medium px-1 py-0.5 rounded ${changeColor}`}
+            style={getChangeBadgeStyle()}
           >
             {change}
           </span>

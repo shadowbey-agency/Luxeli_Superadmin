@@ -21,14 +21,14 @@ interface DeleteTicketModalProps {
   ticket: Ticket | null
   isOpen: boolean
   onClose: () => void
-  onConfirm: (ticketId: string) => void
+  onConfirm: (ticketId: string) => Promise<void>
 }
 
 export default function DeleteTicketModal({ ticket, isOpen, onClose, onConfirm }: DeleteTicketModalProps) {
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (ticket) {
-      onConfirm(ticket.id)
-      onClose()
+      await onConfirm(ticket.id)
+      // Don't close here - let the parent handle it after successful deletion
     }
   }
 

@@ -11,6 +11,8 @@ import InvoiceIcon from "@/app/superadmin/components/invoice-icon"
 import SubscriptionIcon from "@/app/superadmin/components/subscription-icon"
 import { useState, useEffect } from "react"
 import { getAuthToken } from "@/lib/auth-utils"
+import * as XLSX from "xlsx"
+import { saveAs } from "file-saver"
 
 export default function DashboardPage() {
   const [activeSection, setActiveSection] = useState("subscriptions")
@@ -20,6 +22,57 @@ export default function DashboardPage() {
   const [newSubscriptionsLoading, setNewSubscriptionsLoading] = useState(true)
   const [totalUsersChange, setTotalUsersChange] = useState<{ change: string; changeType: "positive" | "negative" | "neutral" } | null>(null)
   const [newSubscriptionsChange, setNewSubscriptionsChange] = useState<{ change: string; changeType: "positive" | "negative" | "neutral" } | null>(null)
+  const [servicesStats, setServicesStats] = useState<{ 
+    totalStaff: number; 
+    totalRooms: number; 
+    totalClients: number;
+    changes?: {
+      totalStaff: { change: string; changeType: "positive" | "negative" | "neutral" };
+      totalRooms: { change: string; changeType: "positive" | "negative" | "neutral" };
+      totalClients: { change: string; changeType: "positive" | "negative" | "neutral" };
+    }
+  } | null>(null)
+  const [servicesStatsLoading, setServicesStatsLoading] = useState(true)
+  const [partnerStatsChange, setPartnerStatsChange] = useState<{ change: string; changeType: "positive" | "negative" | "neutral" } | null>(null)
+  const [ticketStats, setTicketStats] = useState<{ 
+    totalTickets: number; 
+    newTickets: number; 
+    openTickets: number; 
+    reopenedTickets: number; 
+    pendingTickets: number; 
+    resolvedTickets: number; 
+    canceledTickets: number;
+    lowPriorityTickets?: number;
+    mediumPriorityTickets?: number;
+    urgentPriorityTickets?: number;
+    changes?: {
+      totalTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
+      newTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
+      openTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
+      reopenedTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
+      pendingTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
+      resolvedTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
+      canceledTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
+    }
+  } | null>(null)
+  const [ticketStatsLoading, setTicketStatsLoading] = useState(true)
+  const [clientStats, setClientStats] = useState<{
+    totalClients: number;
+    activeClients: number;
+    inactiveClients: number;
+    percentageChange: string;
+    isIncrease: boolean;
+  } | null>(null)
+  const [clientStatsLoading, setClientStatsLoading] = useState(true)
+  const [ticketStatsChanges, setTicketStatsChanges] = useState<{
+    totalTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
+    newTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
+    openTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
+    reopenedTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
+    pendingTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
+    resolvedTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
+    canceledTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
+  } | null>(null)
 
   // Order Time Data Array
   const orderTimeData = [
@@ -120,42 +173,34 @@ export default function DashboardPage() {
             }
           })
 
-          // Calculate Total Users change (vs last month)
-          // Compare: Total users at end of last month vs Total users today
+          // Calculate Total Partners change (vs yesterday)
+          // Compare: Total partners at end of yesterday vs Total partners today
           if (Array.isArray(partners)) {
             const now = new Date()
             
-            // Current date/time (end of today) - current total
-            const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-            currentDate.setHours(23, 59, 59, 999)
+            // Today start - current total
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+            todayStart.setHours(0, 0, 0, 0)
             
-            // End of last month - previous total
-            const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
-            lastMonthEnd.setHours(23, 59, 59, 999)
+            // End of yesterday - previous total
+            const yesterdayEnd = new Date(todayStart)
+            yesterdayEnd.setMilliseconds(yesterdayEnd.getMilliseconds() - 1)
 
-            // Count partners created up to current date (current total)
-            const currentTotal = partners.filter((p: any) => {
+            // Count partners created up to now (current total)
+            const currentTotal = partners.length
+
+            // Count partners created up to end of yesterday (yesterday total)
+            const yesterdayTotal = partners.filter((p: any) => {
               if (!p.createdAt) return false
               try {
                 const createdAt = new Date(p.createdAt)
-                return createdAt <= currentDate
+                return createdAt <= yesterdayEnd
               } catch {
                 return false
               }
             }).length
 
-            // Count partners created up to end of last month (previous month total)
-            const previousMonthTotal = partners.filter((p: any) => {
-              if (!p.createdAt) return false
-              try {
-                const createdAt = new Date(p.createdAt)
-                return createdAt <= lastMonthEnd
-              } catch {
-                return false
-              }
-            }).length
-
-            totalUsersChangeCalc = calculatePercentageChange(currentTotal, previousMonthTotal)
+            totalUsersChangeCalc = calculatePercentageChange(currentTotal, yesterdayTotal)
           }
         }
 
@@ -194,6 +239,7 @@ export default function DashboardPage() {
         setPartnerStats(totals)
         if (totalUsersChangeCalc) {
           setTotalUsersChange(totalUsersChangeCalc)
+          setPartnerStatsChange(totalUsersChangeCalc)
         }
       } catch (e) {
         console.error('Error loading stats:', e)
@@ -284,6 +330,227 @@ export default function DashboardPage() {
     loadNewSubscriptions()
   }, [])
 
+  // Load partner services stats (staff, rooms, clients)
+  useEffect(() => {
+    const loadServicesStats = async () => {
+      try {
+        setServicesStatsLoading(true)
+        const token = getAuthToken()
+        if (!token) {
+          setServicesStatsLoading(false)
+          return
+        }
+
+        const res = await fetch('/api/superadmin/partners/services-stats', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}))
+          if (data.success && data.stats) {
+            setServicesStats({
+              totalStaff: data.stats.totalStaff || 0,
+              totalRooms: data.stats.totalRooms || 0,
+              totalClients: data.stats.totalClients || 0,
+              changes: data.stats.changes || undefined
+            })
+          }
+        }
+      } catch (e) {
+        console.error('Error loading services stats:', e)
+      } finally {
+        setServicesStatsLoading(false)
+      }
+    }
+    loadServicesStats()
+  }, [])
+
+  // Load ticket stats for dashboard cards
+  useEffect(() => {
+    const loadTicketStats = async () => {
+      try {
+        setTicketStatsLoading(true)
+        const token = getAuthToken()
+        if (!token) {
+          setTicketStatsLoading(false)
+          return
+        }
+
+        const res = await fetch('/api/superadmin/tickets/stats', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}))
+          if (data.success && data.stats) {
+            setTicketStats({
+              totalTickets: data.stats.totalTickets || 0,
+              newTickets: data.stats.newTickets || 0,
+              openTickets: data.stats.openTickets || 0,
+              reopenedTickets: data.stats.reopenedTickets || 0,
+              pendingTickets: data.stats.pendingTickets || 0,
+              resolvedTickets: data.stats.resolvedTickets || 0,
+              canceledTickets: data.stats.canceledTickets || 0,
+              lowPriorityTickets: data.stats.lowPriorityTickets || 0,
+              mediumPriorityTickets: data.stats.mediumPriorityTickets || 0,
+              urgentPriorityTickets: data.stats.urgentPriorityTickets || 0,
+              changes: data.stats.changes || undefined
+            })
+          }
+        }
+      } catch (e) {
+        console.error('Error loading ticket stats:', e)
+      } finally {
+        setTicketStatsLoading(false)
+      }
+    }
+    loadTicketStats()
+  }, [])
+
+  // Load client stats for Total Requests graph
+  useEffect(() => {
+    const loadClientStats = async () => {
+      try {
+        setClientStatsLoading(true)
+        const token = getAuthToken()
+        if (!token) {
+          setClientStatsLoading(false)
+          return
+        }
+
+        const res = await fetch('/api/superadmin/clients/stats', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}))
+          if (data.success && data.stats) {
+            setClientStats({
+              totalClients: data.stats.totalClients || 0,
+              activeClients: data.stats.activeClients || 0,
+              inactiveClients: data.stats.inactiveClients || 0,
+              percentageChange: data.stats.percentageChange || "0%",
+              isIncrease: data.stats.isIncrease !== false
+            })
+          }
+        }
+      } catch (e) {
+        console.error('Error loading client stats:', e)
+      } finally {
+        setClientStatsLoading(false)
+      }
+    }
+    loadClientStats()
+  }, [])
+
+  // Export functions
+  const handleExportSupportTickets = () => {
+    try {
+      if (!ticketStats) {
+        alert('No ticket data available to export')
+        return
+      }
+
+      // Prepare data with card headings and values in 2 columns
+      const exportData = [
+        { "Card Heading": "Total Tickets", "Value": ticketStats.totalTickets || 0 },
+        { "Card Heading": "New Tickets", "Value": ticketStats.newTickets || 0 },
+        { "Card Heading": "Opened Tickets", "Value": ticketStats.openTickets || 0 },
+        { "Card Heading": "Reopened Tickets", "Value": ticketStats.reopenedTickets || 0 },
+        { "Card Heading": "Pending Tickets", "Value": ticketStats.pendingTickets || 0 },
+        { "Card Heading": "Resolved Tickets", "Value": ticketStats.resolvedTickets || 0 },
+        { "Card Heading": "Canceled Tickets", "Value": ticketStats.canceledTickets || 0 },
+        { "Card Heading": "Low Priority Tickets", "Value": ticketStats.lowPriorityTickets || 0 },
+        { "Card Heading": "Medium Priority Tickets", "Value": ticketStats.mediumPriorityTickets || 0 },
+        { "Card Heading": "Urgent Priority Tickets", "Value": ticketStats.urgentPriorityTickets || 0 },
+      ]
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new()
+      const ws = XLSX.utils.json_to_sheet(exportData)
+
+      // Set column widths
+      ws["!cols"] = [
+        { wch: 30 }, // Card Heading
+        { wch: 15 }, // Value
+      ]
+
+      XLSX.utils.book_append_sheet(wb, ws, "Support & Tickets Stats")
+
+      // Generate and download
+      const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" })
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      })
+      const dateStr = new Date().toISOString().split("T")[0]
+      saveAs(blob, `support_tickets_stats_${dateStr}.xlsx`)
+    } catch (error) {
+      console.error("Error exporting support tickets stats:", error)
+      alert("Failed to export support tickets statistics. Please try again.")
+    }
+  }
+
+  const handleExportRevenue = () => {
+    try {
+      // Prepare revenue data
+      const exportData = [
+        { "Metric": "Total Plans Revenue", "Value": "1,900.000 MAD" },
+        { "Metric": "Total Users", "Value": partnerStats ? partnerStats.totalPartners : 0 },
+        { "Metric": "New Subscriptions", "Value": newSubscriptionsCount },
+        { "Metric": "Next Invoices", "Value": "45.000 MAD" },
+      ]
+
+      const wb = XLSX.utils.book_new()
+      const ws = XLSX.utils.json_to_sheet(exportData)
+      ws["!cols"] = [{ wch: 25 }, { wch: 20 }]
+      XLSX.utils.book_append_sheet(wb, ws, "Revenue Stats")
+
+      const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" })
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      })
+      const dateStr = new Date().toISOString().split("T")[0]
+      saveAs(blob, `revenue_stats_${dateStr}.xlsx`)
+    } catch (error) {
+      console.error("Error exporting revenue stats:", error)
+      alert("Failed to export revenue statistics. Please try again.")
+    }
+  }
+
+  const handleExportServices = () => {
+    try {
+      if (!servicesStats) {
+        alert('No services data available to export')
+        return
+      }
+
+      // Prepare services data
+      const exportData = [
+        { "Metric": "Total Partners", "Value": partnerStats ? partnerStats.totalPartners : 0 },
+        { "Metric": "Total Staff", "Value": servicesStats.totalStaff || 0 },
+        { "Metric": "Total Rooms", "Value": servicesStats.totalRooms || 0 },
+        { "Metric": "Total Clients", "Value": servicesStats.totalClients || 0 },
+        { "Metric": "Total Clients (Active)", "Value": clientStats ? clientStats.activeClients : 0 },
+        { "Metric": "Total Clients (Inactive)", "Value": clientStats ? clientStats.inactiveClients : 0 },
+      ]
+
+      const wb = XLSX.utils.book_new()
+      const ws = XLSX.utils.json_to_sheet(exportData)
+      ws["!cols"] = [{ wch: 25 }, { wch: 20 }]
+      XLSX.utils.book_append_sheet(wb, ws, "Services Stats")
+
+      const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" })
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      })
+      const dateStr = new Date().toISOString().split("T")[0]
+      saveAs(blob, `services_stats_${dateStr}.xlsx`)
+    } catch (error) {
+      console.error("Error exporting services stats:", error)
+      alert("Failed to export services statistics. Please try again.")
+    }
+  }
+
   const subscriptionsContent = (
     <div className="space-y-6">
       {/* Header */}
@@ -314,7 +581,11 @@ export default function DashboardPage() {
             <span className="text-sm font-medium text-[#212121]">Filter</span>
           </button>
           {/* Export Button */}
-          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]" style={{ borderRadius: "6px" }}>
+          <button 
+            onClick={handleExportRevenue}
+            className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" 
+            style={{ borderRadius: "6px" }}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="14"
@@ -435,7 +706,11 @@ export default function DashboardPage() {
             <span className="text-sm font-medium text-[#212121]">Filter</span>
           </button>
           {/* Export Button */}
-          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]" style={{ borderRadius: "6px" }}>
+          <button 
+            onClick={handleExportServices}
+            className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" 
+            style={{ borderRadius: "6px" }}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="14"
@@ -474,10 +749,42 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Partners" value={partnerStats ? partnerStats.totalPartners : 0} isLoading={statsLoading} change="+2%" changeType="positive" changeLabel="vs yesterday" />
-        <StatCard label="Total Staff" value="42" change="+2%" changeType="positive" changeLabel="vs yesterday" />
-        <StatCard label="Total Rooms" value="654" change="+2%" changeType="positive" changeLabel="vs yesterday" />
-        <StatCard label="Total Clients" value="125" change="+2%" changeType="positive" changeLabel="vs yesterday" />
+        <StatCard 
+          label="Total Partners" 
+          value={partnerStats ? partnerStats.totalPartners : 0} 
+          isLoading={statsLoading} 
+          change={partnerStatsChange?.change}
+          changeType={partnerStatsChange?.changeType || "neutral"}
+          changeLabel="vs yesterday"
+          showHeadingBorder={true}
+        />
+        <StatCard 
+          label="Total Staff" 
+          value={servicesStats ? servicesStats.totalStaff : 0} 
+          isLoading={servicesStatsLoading} 
+          change={servicesStats?.changes?.totalStaff?.change}
+          changeType={servicesStats?.changes?.totalStaff?.changeType || "neutral"}
+          changeLabel="vs yesterday"
+          showHeadingBorder={true}
+        />
+        <StatCard 
+          label="Total Rooms" 
+          value={servicesStats ? servicesStats.totalRooms : 0} 
+          isLoading={servicesStatsLoading} 
+          change={servicesStats?.changes?.totalRooms?.change}
+          changeType={servicesStats?.changes?.totalRooms?.changeType || "neutral"}
+          changeLabel="vs yesterday"
+          showHeadingBorder={true}
+        />
+        <StatCard 
+          label="Total Clients" 
+          value={servicesStats ? servicesStats.totalClients : 0} 
+          isLoading={servicesStatsLoading} 
+          change={servicesStats?.changes?.totalClients?.change}
+          changeType={servicesStats?.changes?.totalClients?.changeType || "neutral"}
+          changeLabel="vs yesterday"
+          showHeadingBorder={true}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -502,42 +809,84 @@ export default function DashboardPage() {
           {/* Content */}
           <div className="h-[370px] flex flex-col  pt-[120px] bg-white border border-[#E9EAEB] rounded-[14px] mt-[-15px]">
             <div className="text-center items-center">
-              <p className="text-4xl font-semibold text-[#212121] mb-3">1503 Clients</p>
-              <p className="text-medium font-medium text-[#10B981]"><span>+31%</span> vs yesterday</p>
+              {clientStatsLoading ? (
+                <div className="flex items-center justify-center mb-3">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-label="loading" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-4xl font-semibold text-[#212121] mb-3">
+                    {clientStats ? clientStats.totalClients.toLocaleString() : 0} Clients
+                  </p>
+                  <p className={`text-medium font-medium ${clientStats?.isIncrease ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
+                    <span>{clientStats?.percentageChange || "0%"}</span> vs yesterday
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Half Circle Progress Chart with Legend Inside */}
             <div className="w-full flex flex-col justify-center items-center relative" style={{ marginTop: '24px' }}>
-              <svg className="w-4/5 h-40" viewBox="0 0 400 180">
-                {/* Background semicircle */}
-                <path
-                  d="M 50 160 A 150 150 0 0 1 350 160"
-                  fill="none"
-                  stroke="#E5E7EB"
-                  strokeWidth="20"
-                />
-                {/* Left segment (85% = 12,000/15,903) */}
-                <path
-                  d="M 50 160 A 150 150 0 0 1 350 160"
-                  fill="none"
-                  stroke="#56C6FF"
-                  strokeWidth="20"
-                  strokeDasharray="471.2"
-                  strokeDashoffset="70.7"
-                  strokeLinecap="round"
-                />
-                {/* Right segment (15% = 3,903/15,903) */}
-                <path
-                  d="M 50 160 A 150 150 0 0 1 350 160"
-                  fill="none"
-                  stroke="#EFEFEF"
-                  strokeWidth="20"
-                  strokeDasharray="70.7 471.2"
-                  strokeDashoffset="-400.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <p className="text-center text-[#000000] mt-[-80px]">1503 Requests</p>
+              {clientStatsLoading ? (
+                <div className="flex items-center justify-center h-40">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-label="loading" />
+                </div>
+              ) : (() => {
+                const totalClients = clientStats?.totalClients || 0
+                const activeClients = clientStats?.activeClients || 0
+                const inactiveClients = clientStats?.inactiveClients || 0
+                
+                // Calculate semi-circle segments
+                const totalCircumference = 471.2 // Full semicircle circumference
+                const activePercentage = totalClients > 0 ? activeClients / totalClients : 0
+                const inactivePercentage = totalClients > 0 ? inactiveClients / totalClients : 0
+                
+                const activeLength = totalCircumference * activePercentage
+                const inactiveLength = totalCircumference * inactivePercentage
+                const activeOffset = 0
+                const inactiveOffset = -activeLength
+
+                return (
+                  <>
+                    <svg className="w-4/5 h-40" viewBox="0 0 400 180">
+                      {/* Background semicircle */}
+                      <path
+                        d="M 50 160 A 150 150 0 0 1 350 160"
+                        fill="none"
+                        stroke="#E5E7EB"
+                        strokeWidth="20"
+                      />
+                      {/* Active clients segment (left/blue) */}
+                      {activeClients > 0 && (
+                        <path
+                          d="M 50 160 A 150 150 0 0 1 350 160"
+                          fill="none"
+                          stroke="#56C6FF"
+                          strokeWidth="20"
+                          strokeDasharray={`${activeLength} 10000`}
+                          strokeDashoffset={activeOffset}
+                          strokeLinecap="round"
+                        />
+                      )}
+                      {/* Inactive clients segment (right/gray) */}
+                      {inactiveClients > 0 && (
+                        <path
+                          d="M 50 160 A 150 150 0 0 1 350 160"
+                          fill="none"
+                          stroke="#EFEFEF"
+                          strokeWidth="20"
+                          strokeDasharray={`${inactiveLength} 10000`}
+                          strokeDashoffset={inactiveOffset}
+                          strokeLinecap="round"
+                        />
+                      )}
+                    </svg>
+                    <p className="text-center text-[#000000] mt-[-80px]">
+                      {totalClients.toLocaleString()} Requests
+                    </p>
+                  </>
+                )
+              })()}
             </div>
           </div>
         </div>
@@ -772,7 +1121,12 @@ export default function DashboardPage() {
             <span className="text-sm font-medium text-[#212121]">Filter</span>
           </button>
           {/* Export Button */}
-          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]" style={{ borderRadius: "6px" }}>
+          <button 
+            onClick={handleExportSupportTickets}
+            disabled={!ticketStats}
+            className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+            style={{ borderRadius: "6px" }}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="14"
@@ -811,64 +1165,132 @@ export default function DashboardPage() {
 
       {/* Tickets Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Tickets" value="1256" change="+2%" changeType="positive" changeLabel="vs yesterday" />
-        <StatCard label="New Tickets" value="42" change="+2%" changeType="positive" changeLabel="vs yesterday" />
-        <StatCard label="Opened Tickets" value="458" change="+2%" changeType="positive" changeLabel="vs yesterday" />
-        <StatCard label="Reopened Tickets" value="36" change="+2%" changeType="positive" changeLabel="vs yesterday" />
+        <StatCard 
+          label="Total Tickets" 
+          value={ticketStats ? ticketStats.totalTickets.toString() : "0"} 
+          change={ticketStats?.changes?.totalTickets?.change}
+          changeType={ticketStats?.changes?.totalTickets?.changeType || "neutral"}
+          changeLabel="vs yesterday"
+          showHeadingBorder={true}
+          isLoading={ticketStatsLoading}
+        />
+        <StatCard 
+          label="New Tickets" 
+          value={ticketStats ? ticketStats.newTickets.toString() : "0"} 
+          change={ticketStats?.changes?.newTickets?.change}
+          changeType={ticketStats?.changes?.newTickets?.changeType || "neutral"}
+          changeLabel="vs yesterday"
+          showHeadingBorder={true}
+          isLoading={ticketStatsLoading}
+        />
+        <StatCard 
+          label="Opened Tickets" 
+          value={ticketStats ? ticketStats.openTickets.toString() : "0"} 
+          change={ticketStats?.changes?.openTickets?.change}
+          changeType={ticketStats?.changes?.openTickets?.changeType || "neutral"}
+          changeLabel="vs yesterday"
+          showHeadingBorder={true}
+          isLoading={ticketStatsLoading}
+        />
+        <StatCard 
+          label="Reopened Tickets" 
+          value={ticketStats ? ticketStats.reopenedTickets.toString() : "0"} 
+          change={ticketStats?.changes?.reopenedTickets?.change}
+          changeType={ticketStats?.changes?.reopenedTickets?.changeType || "neutral"}
+          changeLabel="vs yesterday"
+          showHeadingBorder={true}
+          isLoading={ticketStatsLoading}
+        />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Pending Tickets" value="75" change="+2%" changeType="positive" changeLabel="vs yesterday" />
-        <StatCard label="Resolved Tickets" value="1124" change="+2%" changeType="positive" changeLabel="vs yesterday" />
-        <StatCard label="Canceled Tickets" value="10" change="+2%" changeType="positive" changeLabel="vs yesterday" />
+        <StatCard 
+          label="Pending Tickets" 
+          value={ticketStats ? ticketStats.pendingTickets.toString() : "0"} 
+          change={ticketStats?.changes?.pendingTickets?.change}
+          changeType={ticketStats?.changes?.pendingTickets?.changeType || "neutral"}
+          changeLabel="vs yesterday"
+          showHeadingBorder={true}
+          isLoading={ticketStatsLoading}
+        />
+        <StatCard 
+          label="Resolved Tickets" 
+          value={ticketStats ? ticketStats.resolvedTickets.toString() : "0"} 
+          change={ticketStats?.changes?.resolvedTickets?.change}
+          changeType={ticketStats?.changes?.resolvedTickets?.changeType || "neutral"}
+          changeLabel="vs yesterday"
+          showHeadingBorder={true}
+          isLoading={ticketStatsLoading}
+        />
+        <StatCard 
+          label="Canceled Tickets" 
+          value={ticketStats ? ticketStats.canceledTickets.toString() : "0"} 
+          change={ticketStats?.changes?.canceledTickets?.change}
+          changeType={ticketStats?.changes?.canceledTickets?.changeType || "neutral"}
+          changeLabel="vs yesterday"
+          showHeadingBorder={true}
+          isLoading={ticketStatsLoading}
+        />
         <div className="flex p-[19px_16px] flex-col justify-center items-start gap-2.5 flex-1 rounded-lg bg-white shadow-[0_12px_24px_0_rgba(18,38,63,0.03)]">
           <h3 className="text-sm font-medium text-[#000000] pb-3 border-b border-[rgba(0,0,0,0.06)] self-stretch">
             Tickets Priority
           </h3>
-          <div className="space-y-2 w-full">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div 
-                  className="rounded-full"
-                  style={{
-                    width: "6px",
-                    height: "6px",
-                    backgroundColor: "#56C6FF"
-                  }}
-                ></div>
-                <span className="text-sm" style={{ color: "#535862" }}>Low</span>
-              </div>
-              <span className="text-sm font-semibold text-[#212121]">385</span>
+          {ticketStatsLoading ? (
+            <div className="flex items-center justify-center w-full py-4">
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-label="loading" />
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div 
-                  className="rounded-full"
-                  style={{
-                    width: "6px",
-                    height: "6px",
-                    backgroundColor: "#D1924F"
-                  }}
-                ></div>
-                <span className="text-sm" style={{ color: "#535862" }}>Medium</span>
+          ) : (
+            <div className="space-y-2 w-full">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="rounded-full"
+                    style={{
+                      width: "6px",
+                      height: "6px",
+                      backgroundColor: "#56C6FF"
+                    }}
+                  ></div>
+                  <span className="text-sm" style={{ color: "#535862" }}>Low</span>
+                </div>
+                <span className="text-sm font-semibold text-[#212121]">
+                  {ticketStats?.lowPriorityTickets?.toLocaleString() || 0}
+                </span>
               </div>
-              <span className="text-sm font-semibold text-[#212121]">124</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div 
-                  className="rounded-full"
-                  style={{
-                    width: "6px",
-                    height: "6px",
-                    backgroundColor: "#FE0D19"
-                  }}
-                ></div>
-                <span className="text-sm" style={{ color: "#535862" }}>Urgent</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="rounded-full"
+                    style={{
+                      width: "6px",
+                      height: "6px",
+                      backgroundColor: "#D1924F"
+                    }}
+                  ></div>
+                  <span className="text-sm" style={{ color: "#535862" }}>Medium</span>
+                </div>
+                <span className="text-sm font-semibold text-[#212121]">
+                  {ticketStats?.mediumPriorityTickets?.toLocaleString() || 0}
+                </span>
               </div>
-              <span className="text-sm font-semibold text-[#212121]">658</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="rounded-full"
+                    style={{
+                      width: "6px",
+                      height: "6px",
+                      backgroundColor: "#FE0D19"
+                    }}
+                  ></div>
+                  <span className="text-sm" style={{ color: "#535862" }}>Urgent</span>
+                </div>
+                <span className="text-sm font-semibold text-[#212121]">
+                  {ticketStats?.urgentPriorityTickets?.toLocaleString() || 0}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

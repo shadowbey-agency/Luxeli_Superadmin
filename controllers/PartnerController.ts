@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Partner from '@/models/Partner';
+import Staff from '@/models/Staff';
+import Room from '@/models/Room';
+import Guest from '@/models/Guest';
 import { handleApiError } from '@/lib/middleware';
 
 export class PartnerController {
@@ -392,6 +395,190 @@ export class PartnerController {
       });
     } catch (error) {
       return handleApiError(error, 'Failed to get partner statistics');
+    }
+  }
+
+  /**
+   * Get partner services statistics (total staff, rooms, and clients across all partners)
+   */
+  static async getPartnerServicesStats() {
+    try {
+      await connectDB();
+
+      // Calculate date ranges
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      todayStart.setHours(0, 0, 0, 0);
+      const yesterdayStart = new Date(todayStart);
+      yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+      const yesterdayEnd = new Date(todayStart);
+      yesterdayEnd.setMilliseconds(yesterdayEnd.getMilliseconds() - 1);
+
+      // Get all partner IDs (convert ObjectId to string for matching)
+      const partners = await Partner.find({}).select('_id').lean();
+      const partnerIds = partners.map(p => String(p._id));
+
+      // Count all staff across all partners (current)
+      const totalStaff = partnerIds.length > 0 
+        ? await Staff.countDocuments({
+            partnerId: { $in: partnerIds }
+          })
+        : 0;
+
+      // Count all rooms across all partners (current)
+      const totalRooms = partnerIds.length > 0
+        ? await Room.countDocuments({
+            partnerId: { $in: partnerIds }
+          })
+        : 0;
+
+      // Count all guests/clients assigned to rooms across all partners (current)
+      const totalClients = partnerIds.length > 0
+        ? await Guest.countDocuments({
+            partnerId: { $in: partnerIds }
+          })
+        : 0;
+
+      // Count as of end of yesterday
+      const totalStaffYesterday = partnerIds.length > 0
+        ? await Staff.countDocuments({
+            partnerId: { $in: partnerIds },
+            createdAt: { $lte: yesterdayEnd }
+          })
+        : 0;
+
+      const totalRoomsYesterday = partnerIds.length > 0
+        ? await Room.countDocuments({
+            partnerId: { $in: partnerIds },
+            createdAt: { $lte: yesterdayEnd }
+          })
+        : 0;
+
+      const totalClientsYesterday = partnerIds.length > 0
+        ? await Guest.countDocuments({
+            partnerId: { $in: partnerIds },
+            createdAt: { $lte: yesterdayEnd }
+          })
+        : 0;
+
+      // Helper function to calculate percentage change
+      const calculateChange = (current: number, previous: number): { change: string; changeType: "positive" | "negative" | "neutral" } => {
+        if (previous === 0) {
+          return current > 0 
+            ? { change: "+100%", changeType: "positive" }
+            : { change: "0%", changeType: "neutral" };
+        }
+        const percentChange = ((current - previous) / previous) * 100;
+        const rounded = Math.round(percentChange * 10) / 10;
+        const sign = rounded >= 0 ? "+" : "";
+        return {
+          change: `${sign}${rounded}%`,
+          changeType: rounded > 0 ? "positive" : rounded < 0 ? "negative" : "neutral"
+        };
+      };
+
+      return NextResponse.json({
+        success: true,
+        stats: {
+          totalStaff,
+          totalRooms,
+          totalClients,
+          // Yesterday's counts for comparison
+          yesterday: {
+            totalStaff: totalStaffYesterday,
+            totalRooms: totalRoomsYesterday,
+            totalClients: totalClientsYesterday
+          },
+          // Percentage changes
+          changes: {
+            totalStaff: calculateChange(totalStaff, totalStaffYesterday),
+            totalRooms: calculateChange(totalRooms, totalRoomsYesterday),
+            totalClients: calculateChange(totalClients, totalClientsYesterday)
+          }
+        }
+      });
+    } catch (error) {
+      return handleApiError(error, 'Failed to get partner services statistics');
+    }
+  }
+
+  /**
+   * Get client/guest statistics for superadmin dashboard (Total Requests graph)
+   */
+  static async getClientStats() {
+    try {
+      await connectDB();
+
+      // Calculate date ranges
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      todayStart.setHours(0, 0, 0, 0);
+      const yesterdayStart = new Date(todayStart);
+      yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+      const yesterdayEnd = new Date(todayStart);
+      yesterdayEnd.setMilliseconds(yesterdayEnd.getMilliseconds() - 1);
+
+      // Get all partner IDs
+      const partners = await Partner.find({}).select('_id').lean();
+      const partnerIds = partners.map(p => String(p._id));
+
+      // Count all clients (current)
+      const totalClients = partnerIds.length > 0
+        ? await Guest.countDocuments({
+            partnerId: { $in: partnerIds }
+          })
+        : 0;
+
+      // Count active clients (current)
+      const activeClients = partnerIds.length > 0
+        ? await Guest.countDocuments({
+            partnerId: { $in: partnerIds },
+            isActive: true
+          })
+        : 0;
+
+      // Count inactive clients (current)
+      const inactiveClients = totalClients - activeClients;
+
+      // Count clients as of end of yesterday
+      const totalClientsYesterday = partnerIds.length > 0
+        ? await Guest.countDocuments({
+            partnerId: { $in: partnerIds },
+            createdAt: { $lte: yesterdayEnd }
+          })
+        : 0;
+
+      // Calculate percentage change
+      const calculateChange = (current: number, previous: number): { change: string; changeType: "positive" | "negative" | "neutral" } => {
+        if (previous === 0) {
+          return current > 0 
+            ? { change: "+100%", changeType: "positive" }
+            : { change: "0%", changeType: "neutral" };
+        }
+        const percentChange = ((current - previous) / previous) * 100;
+        const rounded = Math.round(percentChange * 10) / 10;
+        const sign = rounded >= 0 ? "+" : "";
+        return {
+          change: `${sign}${rounded}%`,
+          changeType: rounded > 0 ? "positive" : rounded < 0 ? "negative" : "neutral"
+        };
+      };
+
+      const percentageChange = calculateChange(totalClients, totalClientsYesterday);
+
+      return NextResponse.json({
+        success: true,
+        stats: {
+          totalClients,
+          activeClients,
+          inactiveClients,
+          totalClientsYesterday,
+          percentageChange: percentageChange.change,
+          isIncrease: percentageChange.changeType === "positive"
+        }
+      });
+    } catch (error) {
+      return handleApiError(error, 'Failed to get client statistics');
     }
   }
 }
