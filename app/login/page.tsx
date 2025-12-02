@@ -62,7 +62,6 @@ export default function LoginPage() {
       password: ""
     }
 
-    // Accept both email and username (for partner login)
       if (!email.trim()) {
       errors.email = "This field is required"
     }
@@ -75,7 +74,6 @@ export default function LoginPage() {
     return !Object.values(errors).some(error => error !== "")
   }
 
-  // Parse API error to determine which field has the error
   const parseApiError = (errorMessage: string) => {
     const lowerError = errorMessage.toLowerCase()
     const errors = {
@@ -83,7 +81,6 @@ export default function LoginPage() {
       password: ""
     }
 
-    // Check for password-related errors first
     if (
       lowerError.includes("password") || 
       lowerError.includes("wrong password") ||
@@ -236,7 +233,7 @@ export default function LoginPage() {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6 items-center">
+              <form noValidate onSubmit={handleSubmit} className="w-full flex flex-col gap-6 items-center">
                 {/* Email/Username Field */}
                 <div className="flex flex-col gap-2 w-full max-w-[470px]">
                   <label htmlFor="email" className="text-[#212121] text-sm font-medium">
@@ -261,21 +258,16 @@ export default function LoginPage() {
                         boxShadow: fieldErrors.email ? "0 0 0 2px rgba(244, 106, 106, 0.2)" : "none",
                       }}
                       onFocus={(e) => {
-                        // If there's an error, keep it red (useEffect will handle it)
-                        // If no error, show blue focus ring
                         if (!fieldErrors.email) {
                           e.target.style.borderColor = "#56C6FF";
                           e.target.style.boxShadow = "0 0 0 2px rgba(86, 198, 255, 0.2)";
                         }
-                        // If there's an error, useEffect will maintain the red border
                       }}
                       onBlur={(e) => {
-                        // On blur, maintain error state if error exists
                         if (fieldErrors.email) {
                           e.target.style.borderColor = "#F46A6A";
                           e.target.style.boxShadow = "0 0 0 2px rgba(244, 106, 106, 0.2)";
                         } else {
-                          // Reset to default if no error
                           e.target.style.borderColor = "#CED4DA";
                           e.target.style.boxShadow = "none";
                         }
@@ -284,7 +276,9 @@ export default function LoginPage() {
                     />
                     {fieldErrors.email && (
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <PublicIcon src="/assets/icons/status error.svg" alt="Error" width={16} height={16} />
+                        <PublicIcon src="/assets/icons/status error.svg" alt="Error" width={16} height={16} 
+                        className={`${fieldErrors.email ? "text-[#F46A6A]" : "text-[#6B7280]"}`}
+                        />
                       </div>
                     )}
                   </div>
@@ -317,21 +311,16 @@ export default function LoginPage() {
                         boxShadow: fieldErrors.password ? "0 0 0 2px rgba(244, 106, 106, 0.2)" : "none",
                       }}
                       onFocus={(e) => {
-                        // If there's an error, keep it red (useEffect will handle it)
-                        // If no error, show blue focus ring
                         if (!fieldErrors.password) {
                           e.target.style.borderColor = "#56C6FF";
                           e.target.style.boxShadow = "0 0 0 2px rgba(86, 198, 255, 0.2)";
                         }
-                        // If there's an error, useEffect will maintain the red border
                       }}
                       onBlur={(e) => {
-                        // On blur, maintain error state if error exists
                         if (fieldErrors.password) {
                           e.target.style.borderColor = "#F46A6A";
                           e.target.style.boxShadow = "0 0 0 2px rgba(244, 106, 106, 0.2)";
                         } else {
-                          // Reset to default if no error
                           e.target.style.borderColor = "#CED4DA";
                         e.target.style.boxShadow = "none";
                         }
@@ -371,11 +360,14 @@ export default function LoginPage() {
                     type="button"
                     className="text-sm transition-colors"
                     style={{ 
-                      color: "#4195BF",
-                      hover: "color: #3a7ba8"
+                      color: "#4195BF"
                     }}
-                    onMouseEnter={(e) => e.target.style.color = "#3a7ba8"}
-                    onMouseLeave={(e) => e.target.style.color = "#4195BF"}
+                    onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
+                      e.currentTarget.style.color = "#3a7ba8"
+                    }}
+                    onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
+                      e.currentTarget.style.color = "#4195BF"
+                    }}
                     onClick={() => router.push("/login/forgot-password")}
                   >
                     Forgot password?
