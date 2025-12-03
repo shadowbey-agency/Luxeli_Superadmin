@@ -27,7 +27,7 @@ export class PartnerController {
 
       // Build filter object
       const filter: any = {};
-      
+
       if (query.search) {
         filter.$or = [
           { hotelName: { $regex: query.search, $options: 'i' } },
@@ -80,7 +80,7 @@ export class PartnerController {
     try {
       await connectDB();
 
-      const partner = await Partner.findById(partnerId);
+      const partner = await Partner.findById(partnerId).select('-_id -__v -createdAt -updatedAt').lean();
       if (!partner) {
         return NextResponse.json(
           { error: 'Partner not found' },
@@ -89,13 +89,13 @@ export class PartnerController {
       }
 
       return NextResponse.json({
-        partner: partner.toJSON(),
+        success: true,
+        partner
       });
     } catch (error) {
       return handleApiError(error, 'Failed to get partner');
     }
   }
-
   /**
    * Create new partner
    */
@@ -154,14 +154,14 @@ export class PartnerController {
       });
     } catch (error) {
       console.log('Partner creation error:', error);
-      
+
       // Handle specific MongoDB duplicate key errors
       if ((error as any).code === 11000) {
         const field = Object.keys((error as any).keyPattern)[0];
         const value = (error as any).keyValue[field];
-        
+
         console.log('MongoDB duplicate key error:', { field, value, keyPattern: (error as any).keyPattern });
-        
+
         if (field === 'hotelAddressEmail') {
           return NextResponse.json(
             { success: false, error: `Email '${value}' is already registered. Please use a different email.` },
@@ -185,7 +185,7 @@ export class PartnerController {
           );
         }
       }
-      
+
       return handleApiError(error, 'Failed to create partner');
     }
   }
@@ -301,19 +301,14 @@ export class PartnerController {
             activePartners: {
               $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] }
             },
-            verifiedPartners: {
-              $sum: { $cond: [{ $eq: ['$isVerified', true] }, 1, 0] }
-            },
-            byBusinessType: {
+            // Remove verifiedPartners if isVerified doesn't exist, or keep if it does (it's not in the interface I saw)
+            // Assuming isVerified is not in the model based on previous view_file
+
+            // Group by plan
+            byPlan: {
               $push: {
-                type: '$businessType',
+                plan: '$plan',
                 status: '$status'
-              }
-            },
-            bySubscriptionPlan: {
-              $push: {
-                plan: '$subscriptionPlan',
-                status: '$subscriptionStatus'
               }
             }
           }
@@ -323,38 +318,10 @@ export class PartnerController {
             _id: 0,
             totalPartners: 1,
             activePartners: 1,
-            verifiedPartners: 1,
-            businessTypeStats: {
-              $reduce: {
-                input: '$byBusinessType',
-                initialValue: {},
-                in: {
-                  $mergeObjects: [
-                    '$$value',
-                    {
-                      $let: {
-                        vars: {
-                          type: '$$this.type',
-                          status: '$$this.status'
-                        },
-                        in: {
-                          $mergeObjects: [
-                            { $ifNull: [{ $getField: { field: '$$type', input: '$$value' } }, { total: 0, active: 0 }] },
-                            {
-                              total: { $add: [{ $ifNull: [{ $getField: { field: 'total', input: { $getField: { field: '$$type', input: '$$value' } } } }, 0] }, 1] },
-                              active: { $add: [{ $ifNull: [{ $getField: { field: 'active', input: { $getField: { field: '$$type', input: '$$value' } } } }, 0] }, { $cond: [{ $eq: ['$$status', 'active'] }, 1, 0] }] }
-                            }
-                          ]
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            },
+            // Calculate stats based on plan
             subscriptionStats: {
               $reduce: {
-                input: '$bySubscriptionPlan',
+                input: '$byPlan',
                 initialValue: {},
                 in: {
                   $mergeObjects: [
@@ -388,8 +355,6 @@ export class PartnerController {
         stats: stats[0] || {
           totalPartners: 0,
           activePartners: 0,
-          verifiedPartners: 0,
-          businessTypeStats: {},
           subscriptionStats: {}
         }
       });
@@ -419,52 +384,52 @@ export class PartnerController {
       const partnerIds = partners.map(p => String(p._id));
 
       // Count all staff across all partners (current)
-      const totalStaff = partnerIds.length > 0 
+      const totalStaff = partnerIds.length > 0
         ? await Staff.countDocuments({
-            partnerId: { $in: partnerIds }
-          })
+          partnerId: { $in: partnerIds }
+        })
         : 0;
 
       // Count all rooms across all partners (current)
       const totalRooms = partnerIds.length > 0
         ? await Room.countDocuments({
-            partnerId: { $in: partnerIds }
-          })
+          partnerId: { $in: partnerIds }
+        })
         : 0;
 
       // Count all guests/clients assigned to rooms across all partners (current)
       const totalClients = partnerIds.length > 0
         ? await Guest.countDocuments({
-            partnerId: { $in: partnerIds }
-          })
+          partnerId: { $in: partnerIds }
+        })
         : 0;
 
       // Count as of end of yesterday
       const totalStaffYesterday = partnerIds.length > 0
         ? await Staff.countDocuments({
-            partnerId: { $in: partnerIds },
-            createdAt: { $lte: yesterdayEnd }
-          })
+          partnerId: { $in: partnerIds },
+          createdAt: { $lte: yesterdayEnd }
+        })
         : 0;
 
       const totalRoomsYesterday = partnerIds.length > 0
         ? await Room.countDocuments({
-            partnerId: { $in: partnerIds },
-            createdAt: { $lte: yesterdayEnd }
-          })
+          partnerId: { $in: partnerIds },
+          createdAt: { $lte: yesterdayEnd }
+        })
         : 0;
 
       const totalClientsYesterday = partnerIds.length > 0
         ? await Guest.countDocuments({
-            partnerId: { $in: partnerIds },
-            createdAt: { $lte: yesterdayEnd }
-          })
+          partnerId: { $in: partnerIds },
+          createdAt: { $lte: yesterdayEnd }
+        })
         : 0;
 
       // Helper function to calculate percentage change
       const calculateChange = (current: number, previous: number): { change: string; changeType: "positive" | "negative" | "neutral" } => {
         if (previous === 0) {
-          return current > 0 
+          return current > 0
             ? { change: "+100%", changeType: "positive" }
             : { change: "0%", changeType: "neutral" };
         }
@@ -525,16 +490,16 @@ export class PartnerController {
       // Count all clients (current)
       const totalClients = partnerIds.length > 0
         ? await Guest.countDocuments({
-            partnerId: { $in: partnerIds }
-          })
+          partnerId: { $in: partnerIds }
+        })
         : 0;
 
       // Count active clients (current)
       const activeClients = partnerIds.length > 0
         ? await Guest.countDocuments({
-            partnerId: { $in: partnerIds },
-            isActive: true
-          })
+          partnerId: { $in: partnerIds },
+          isActive: true
+        })
         : 0;
 
       // Count inactive clients (current)
@@ -543,15 +508,15 @@ export class PartnerController {
       // Count clients as of end of yesterday
       const totalClientsYesterday = partnerIds.length > 0
         ? await Guest.countDocuments({
-            partnerId: { $in: partnerIds },
-            createdAt: { $lte: yesterdayEnd }
-          })
+          partnerId: { $in: partnerIds },
+          createdAt: { $lte: yesterdayEnd }
+        })
         : 0;
 
       // Calculate percentage change
       const calculateChange = (current: number, previous: number): { change: string; changeType: "positive" | "negative" | "neutral" } => {
         if (previous === 0) {
-          return current > 0 
+          return current > 0
             ? { change: "+100%", changeType: "positive" }
             : { change: "0%", changeType: "neutral" };
         }

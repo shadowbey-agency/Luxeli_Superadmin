@@ -9,7 +9,7 @@ export const GET = withSuperAdminAuth(async (request: any) => {
   return await PartnerController.getPartnerById(id);
 });
 
-export const PUT = withSuperAdminAuth(async (request: any) => {
+export const PATCH = withSuperAdminAuth(async (request: any) => {
   try {
     const url = new URL(request.url);
     const segments = url.pathname.split('/');
