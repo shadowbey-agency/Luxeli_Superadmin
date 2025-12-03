@@ -39,6 +39,10 @@ interface Partner {
   createdAt: string
   createdAtDate?: Date // Store original date for filtering
   status: string
+  RC?: string
+  ICE?: string
+  identifiantFiscal?: string
+  taxeProfessionnelle?: string
 }
 
 interface SubscriptionHistory {
@@ -84,6 +88,10 @@ const createMockPartners = (): Partner[] => {
       createdAt: formatDate(new Date(thisWeekStart.getTime() + 2 * 24 * 60 * 60 * 1000)), // 2 days into this week
       createdAtDate: new Date(thisWeekStart.getTime() + 2 * 24 * 60 * 60 * 1000),
       status: "active",
+      RC: "12345",
+      ICE: "67890",
+      identifiantFiscal: "112233",
+      taxeProfessionnelle: "445566",
     },
     {
       id: "2",
@@ -365,7 +373,11 @@ export default function PartnersPage() {
                 year: 'numeric'
               }),
               createdAtDate: createdAtDate, // Store original date for filtering
-              status: partner.status || 'active'
+              status: partner.status || 'active',
+              RC: partner.RC || '',
+              ICE: partner.ICE || '',
+              identifiantFiscal: partner.identifiantFiscal || '',
+              taxeProfessionnelle: partner.taxeProfessionnelle || ''
             }
           })
 
@@ -644,25 +656,25 @@ export default function PartnersPage() {
     })
   }
 
-  // Open Edit Partner using the same modal with prefilled data
-  const handleEditPartner = (partner: Partner) => {
+
+  const handleEditPartner = (partner: any) => {
     setIsEditingPartner(true)
     setEditingPartnerId(partner.id)
     setFormData({
       hotelName: partner.hotelName || '',
-      hotelCity: partner.city || '',
+      hotelCity: partner.hotelCity || partner.city || '',
       hotelAddressEmail: partner.hotelAddressEmail || '',
-      phoneNumber: partner.phone || '',
-      RC: '',
-      ICE: '',
-      identifiantFiscal: '',
-      taxeProfessionnelle: '',
-      hotelImage: null,
+      phoneNumber: partner.phoneNumber || partner.phone || '',
+      RC: partner.RC || '',
+      ICE: partner.ICE || '',
+      identifiantFiscal: partner.identifiantFiscal || '',
+      taxeProfessionnelle: partner.taxeProfessionnelle || '',
+      hotelImage: partner.hotelImage || null,
       username: partner.username || '',
       password: '',
-      startDate: '',
-      endDate: '',
-      plan: (partner.plan as any) || 'starter pack',
+      startDate: partner.startDate || '',
+      endDate: partner.endDate || '',
+      plan: partner.plan || 'starter pack',
       services: partner.services || [],
     })
     setCurrentStep(1)
@@ -995,8 +1007,8 @@ export default function PartnersPage() {
           <button
             onClick={() => setSelectedPeriod('semaine')}
             className={`px-4 py-2 rounded-[1px] text-sm font-medium transition-colors ${selectedPeriod === 'semaine'
-                ? 'bg-primary text-white hover:bg-primary/90'
-                : 'bg-[#FFF] text-[rgba(33,33,33,0.60)] hover:bg-muted/80'
+              ? 'bg-primary text-white hover:bg-primary/90'
+              : 'bg-[#FFF] text-[rgba(33,33,33,0.60)] hover:bg-muted/80'
               }`}
             style={{ borderRight: "0.925px solid #CED4DA" }}
           >
@@ -1005,8 +1017,8 @@ export default function PartnersPage() {
           <button
             onClick={() => setSelectedPeriod('mois')}
             className={`px-4 py-2 rounded-[1px] text-sm font-medium transition-colors ${selectedPeriod === 'mois'
-                ? 'bg-primary text-white hover:bg-primary/90'
-                : 'bg-[#FFF] text-[rgba(33,33,33,0.60)] hover:bg-muted/80'
+              ? 'bg-primary text-white hover:bg-primary/90'
+              : 'bg-[#FFF] text-[rgba(33,33,33,0.60)] hover:bg-muted/80'
               }`}
             style={{ borderRight: "0.925px solid #CED4DA" }}
           >
@@ -1015,8 +1027,8 @@ export default function PartnersPage() {
           <button
             onClick={() => setSelectedPeriod('date-range')}
             className={`px-4 py-2 rounded-[1px] text-sm font-medium transition-colors flex items-center gap-2 ${selectedPeriod === 'date-range'
-                ? 'bg-primary text-white hover:bg-primary/90'
-                : 'bg-[#FFF] text-[rgba(33,33,33,0.60)] hover:bg-muted/80'
+              ? 'bg-primary text-white hover:bg-primary/90'
+              : 'bg-[#FFF] text-[rgba(33,33,33,0.60)] hover:bg-muted/80'
               }`}
           >
             Plage de dates
@@ -1622,8 +1634,8 @@ export default function PartnersPage() {
               <button
                 onClick={() => setActiveTab('partner-info')}
                 className={`px-12 py-5 flex-1 text-center border-b-2 transition-colors ${activeTab === 'partner-info'
-                    ? 'border-[#56C6FF] text-[#56C6FF]'
-                    : 'border-transparent text-gray-600 hover:text-gray-800'
+                  ? 'border-[#56C6FF] text-[#56C6FF]'
+                  : 'border-transparent text-gray-600 hover:text-gray-800'
                   }`}
                 style={{
                   padding: "20px 50px",
@@ -1635,8 +1647,8 @@ export default function PartnersPage() {
               <button
                 onClick={() => setActiveTab('subscription')}
                 className={`px-12 py-5 flex-1 text-center border-b-2 transition-colors ${activeTab === 'subscription'
-                    ? 'border-[#56C6FF] text-[#56C6FF]'
-                    : 'border-transparent text-gray-600 hover:text-gray-800'
+                  ? 'border-[#56C6FF] text-[#56C6FF]'
+                  : 'border-transparent text-gray-600 hover:text-gray-800'
                   }`}
                 style={{
                   padding: "20px 50px",
@@ -1648,8 +1660,8 @@ export default function PartnersPage() {
               <button
                 onClick={() => setActiveTab('room-api')}
                 className={`px-12 py-5 flex-1 text-center border-b-2 transition-colors ${activeTab === 'room-api'
-                    ? 'border-[#56C6FF] text-[#56C6FF]'
-                    : 'border-transparent text-gray-600 hover:text-gray-800'
+                  ? 'border-[#56C6FF] text-[#56C6FF]'
+                  : 'border-transparent text-gray-600 hover:text-gray-800'
                   }`}
                 style={{
                   padding: "20px 50px",
