@@ -20,6 +20,7 @@ import React from "react"
 import DashboardSidebarIcon from "./dashboard-sidebar-icon"
 import TeamSidebarIcon from "./team-sidebar-icon"
 import { usePermissions } from "@/hooks/usePermissions"
+import { useSidebar } from "./sidebar-context"
 
 const menuItems = [
   { icon: DashboardSidebarIcon, label: "Dashboard", href: "/partner/pages/dashboard" },
@@ -101,7 +102,7 @@ const servicesItems = [
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const { isCollapsed, setIsCollapsed } = useSidebar()
   const [expandedServices, setExpandedServices] = useState<string[]>([])
   const { hasPermission, loading } = usePermissions()
   
@@ -139,9 +140,8 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="flex flex-col items-start self-stretch bg-white transition-all duration-300"
+      className="flex flex-col items-start self-stretch bg-white transition-all duration-300 fixed left-0 top-0 h-screen overflow-y-auto z-40"
       style={{
-        height: "1024px",
         paddingTop: "12px",
         width: isCollapsed ? "80px" : "240px",
       }}

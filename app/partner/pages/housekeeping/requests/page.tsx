@@ -11,6 +11,8 @@ import AssignStaffModal from "@/app/partner/components/assign-staff-modal"
 import { getAuthToken } from "@/lib/auth-utils"
 import * as XLSX from "xlsx"
 import { saveAs } from "file-saver"
+import AlertDialog from "@/app/partner/components/alert-dialog"
+import ConfirmationDialog from "@/app/partner/components/confirmation-dialog"
 
 interface HousekeepingRequest {
   _id: string
@@ -64,6 +66,22 @@ export default function RequestsPage() {
   const [selectedRequests, setSelectedRequests] = useState<Set<string>>(new Set())
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isBulkDelete, setIsBulkDelete] = useState(false)
+  // Alert and confirmation dialog state
+  const [alertDialog, setAlertDialog] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    variant: "success" | "error" | "warning" | "info"
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    variant: "info"
+  })
+
+  const showAlert = (title: string, message: string, variant: "success" | "error" | "warning" | "info" = "info") => {
+    setAlertDialog({ isOpen: true, title, message, variant })
+  }
 
   // Fetch requests from API
   const fetchRequests = async () => {
@@ -195,7 +213,7 @@ export default function RequestsPage() {
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to assign staff')
+        showAlert('Authentication Required', 'Please log in to assign staff', 'warning')
         return
       }
 
@@ -222,12 +240,13 @@ export default function RequestsPage() {
         await fetchRequests()
         setShowAssignStaffModal(false)
         setRequestToAssign(null)
+        showAlert('Success', 'Staff assigned successfully', 'success')
       } else {
-        alert(result.error || 'Failed to assign staff')
+        showAlert('Error', result.error || 'Failed to assign staff', 'error')
       }
     } catch (error) {
       console.error('Error assigning staff:', error)
-      alert('Failed to assign staff. Please try again.')
+      showAlert('Error', 'Failed to assign staff. Please try again.', 'error')
     }
   }
 
@@ -263,11 +282,11 @@ export default function RequestsPage() {
           setStatusChangeSuccess(false)
         }, 1500)
       } else {
-        alert(result.error || 'Failed to update status')
+        showAlert('Error', result.error || 'Failed to update status', 'error')
       }
     } catch (error) {
       console.error('Error updating status:', error)
-      alert('Failed to update status. Please try again.')
+      showAlert('Error', 'Failed to update status. Please try again.', 'error')
     }
   }
 

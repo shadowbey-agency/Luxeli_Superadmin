@@ -1,12 +1,15 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { RiSearchLine, RiNotification3Line } from "react-icons/ri"
 import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
+import { useSidebar } from "./sidebar-context"
 
 export default function Header() {
+  const router = useRouter()
+  const { isCollapsed } = useSidebar()
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [imageError, setImageError] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -75,11 +78,14 @@ export default function Header() {
     }
   }, [])
   
+  const sidebarWidth = isCollapsed ? 80 : 240
+
   return (
     <header
-      className="flex items-center bg-white border-b border-border border-l"
+      className="flex items-center bg-white border-b border-border border-l fixed top-0 z-30 transition-all duration-300"
       style={{
-        width: "100%",
+        left: `${sidebarWidth}px`,
+        right: "0",
         padding: "12px 24px",
         justifyContent: "space-between",
       }}
@@ -205,7 +211,11 @@ export default function Header() {
 
                {/* Settings Item */}
                <button 
-                 className="w-full hover:bg-gray-50 transition-colors"
+                 onClick={() => {
+                   router.push('/superadmin/pages/settings')
+                   setShowProfileDropdown(false)
+                 }}
+                 className="w-full hover:bg-gray-50 transition-colors cursor-pointer"
                  style={{
                    display: "flex",
                    padding: "10px 16px",

@@ -3,8 +3,8 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
+import { useSidebar } from "./sidebar-context"
 // Using public folder icons instead of inline SVG components
 
 const menuItems = [
@@ -18,7 +18,7 @@ const menuItems = [
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const { isCollapsed, setIsCollapsed } = useSidebar()
   const { user, userType } = useAuth()
 
   // Filter menu items based on user permissions
@@ -72,9 +72,8 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="flex flex-col items-start self-stretch bg-white transition-all duration-300"
+      className="flex flex-col items-start self-stretch bg-white transition-all duration-300 fixed left-0 top-0 h-screen overflow-y-auto z-40"
       style={{
-        height: "1024px",
         paddingTop: "12px",
         width: isCollapsed ? "80px" : "240px",
       }}
