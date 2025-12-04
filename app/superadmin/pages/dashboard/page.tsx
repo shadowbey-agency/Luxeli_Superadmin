@@ -9,6 +9,7 @@ import StaffIcon from "@/app/superadmin/components/staff-icon"
 import PlanIcon from "@/app/superadmin/components/plan-icon"
 import InvoiceIcon from "@/app/superadmin/components/invoice-icon"
 import SubscriptionIcon from "@/app/superadmin/components/subscription-icon"
+import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 import { useState, useEffect } from "react"
 import { getAuthToken } from "@/lib/auth-utils"
 import * as XLSX from "xlsx"
@@ -73,6 +74,10 @@ export default function DashboardPage() {
     resolvedTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
     canceledTickets: { change: string; changeType: "positive" | "negative" | "neutral" };
   } | null>(null)
+  
+  const [revenueFilter, setRevenueFilter] = useState<string>("All Time")
+  const [servicesFilter, setServicesFilter] = useState<string>("All Time")
+  const [supportFilter, setSupportFilter] = useState<string>("All Time")
 
   // Order Time Data Array
   const orderTimeData = [
@@ -443,7 +448,6 @@ export default function DashboardPage() {
     loadClientStats()
   }, [])
 
-  // Export functions
   const handleExportSupportTickets = () => {
     try {
       if (!ticketStats) {
@@ -561,25 +565,36 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           {/* Filter Button */}
-          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]" style={{ borderRadius: "6px" }}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              className="w-4 h-4"
-            >
-              <path
-                d="M4 8H12M2 4H14M6 12H10"
-                stroke="black"
-                strokeWidth="1.11333"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="text-sm font-medium text-[#212121]">Filter</span>
-          </button>
+          <DropdownMenu
+            trigger={
+              <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  className="w-4 h-4"
+                >
+                  <path
+                    d="M4 8H12M2 4H14M6 12H10"
+                    stroke="black"
+                    strokeWidth="1.11333"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="text-sm font-medium text-[#212121]">Filter</span>
+              </button>
+            }
+            items={[
+              { label: "Today", onClick: () => setRevenueFilter("Today") },
+              { label: "This Week", onClick: () => setRevenueFilter("This Week") },
+              { label: "This Month", onClick: () => setRevenueFilter("This Month") },
+              { label: "This Year", onClick: () => setRevenueFilter("This Year") },
+              { label: "All Time", onClick: () => setRevenueFilter("All Time") },
+            ]}
+          />
           {/* Export Button */}
           <button 
             onClick={handleExportRevenue}
@@ -686,25 +701,36 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           {/* Filter Button */}
-          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]" style={{ borderRadius: "6px" }}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              className="w-4 h-4"
-            >
-              <path
-                d="M4 8H12M2 4H14M6 12H10"
-                stroke="black"
-                strokeWidth="1.11333"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="text-sm font-medium text-[#212121]">Filter</span>
-          </button>
+          <DropdownMenu
+            trigger={
+              <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  className="w-4 h-4"
+                >
+                  <path
+                    d="M4 8H12M2 4H14M6 12H10"
+                    stroke="black"
+                    strokeWidth="1.11333"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="text-sm font-medium text-[#212121]">Filter</span>
+              </button>
+            }
+            items={[
+              { label: "Today", onClick: () => setServicesFilter("Today") },
+              { label: "This Week", onClick: () => setServicesFilter("This Week") },
+              { label: "This Month", onClick: () => setServicesFilter("This Month") },
+              { label: "This Year", onClick: () => setServicesFilter("This Year") },
+              { label: "All Time", onClick: () => setServicesFilter("All Time") },
+            ]}
+          />
           {/* Export Button */}
           <button 
             onClick={handleExportServices}
@@ -1101,25 +1127,36 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           {/* Filter Button */}
-          <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA]" style={{ borderRadius: "6px" }}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              className="w-4 h-4"
-            >
-              <path
-                d="M4 8H12M2 4H14M6 12H10"
-                stroke="black"
-                strokeWidth="1.11333"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="text-sm font-medium text-[#212121]">Filter</span>
-          </button>
+          <DropdownMenu
+            trigger={
+              <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  className="w-4 h-4"
+                >
+                  <path
+                    d="M4 8H12M2 4H14M6 12H10"
+                    stroke="black"
+                    strokeWidth="1.11333"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="text-sm font-medium text-[#212121]">Filter</span>
+              </button>
+            }
+            items={[
+              { label: "Today", onClick: () => setSupportFilter("Today") },
+              { label: "This Week", onClick: () => setSupportFilter("This Week") },
+              { label: "This Month", onClick: () => setSupportFilter("This Month") },
+              { label: "This Year", onClick: () => setSupportFilter("This Year") },
+              { label: "All Time", onClick: () => setSupportFilter("All Time") },
+            ]}
+          />
           {/* Export Button */}
           <button 
             onClick={handleExportSupportTickets}

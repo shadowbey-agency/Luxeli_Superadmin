@@ -174,8 +174,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="h-[100vh] p-12 bg-[#F9FAFB] ">
-      <div className="w-full max-w-[1400px] h-full  flex gap-8 items-center">
+    <div className="h-[100vh] p-12 bg-[#F9FAFB] flex items-center justify-center">
+      <div className="w-full max-w-[1400px] h-full flex gap-8 items-center">
         {/* Left Side - Image */}
         <div className="hidden lg:block relative flex-shrink-0 w-[50%] h-[100%]" >
           <div className="relative w-[90%] h-full rounded-[24px] overflow-hidden">

@@ -9,7 +9,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "Luxelia - Dashboard",
+  title: "Luxeli - Dashboard",
   description: "Hotel management dashboard",
     generator: 'v0.app'
 }

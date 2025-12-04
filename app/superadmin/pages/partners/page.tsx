@@ -26,6 +26,7 @@ import { getAuthToken } from "@/lib/auth-utils"
 import ExportToExcel from "@/app/exportin-excel/export-to-excel"
 import PublicIcon from "@/app/partner/components/public-icon"
 import { FiEye, FiEyeOff } from "react-icons/fi"
+import AlertDialog from "@/app/partner/components/alert-dialog"
 
 interface Partner {
   id: string
@@ -325,6 +326,21 @@ export default function PartnersPage() {
   const [dateRangeStart, setDateRangeStart] = useState("")
   const [dateRangeEnd, setDateRangeEnd] = useState("")
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [alertDialog, setAlertDialog] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    variant: "success" | "error" | "warning" | "info"
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    variant: "info"
+  })
+
+  const showAlert = (title: string, message: string, variant: "success" | "error" | "warning" | "info" = "info") => {
+    setAlertDialog({ isOpen: true, title, message, variant })
+  }
   const calendarIconRef = useRef<HTMLDivElement | null>(null)
   const datePickerRef = useRef<HTMLDivElement | null>(null)
   const [datePickerPosition, setDatePickerPosition] = useState<{ top: number; left: number } | null>(null)
@@ -814,7 +830,7 @@ export default function PartnersPage() {
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to update partner status')
+        showAlert('Authentication Required', 'Please log in to update partner status', 'warning')
         return
       }
 
@@ -824,7 +840,7 @@ export default function PartnersPage() {
       const newStatus = partner.status === 'active' ? 'disable' : 'active'
 
       const response = await fetch(`/api/superadmin/partners/${id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -835,24 +851,20 @@ export default function PartnersPage() {
       if (response.ok) {
         const result = await response.json()
         if (result.success) {
-          // Update local state
           setPartners(partners.map((p) =>
             p.id === id ? { ...p, status: newStatus } : p
           ))
           console.log(`Partner status updated to: ${newStatus}`)
-          alert(`✅ Partner status updated to: ${newStatus}`)
+          showAlert('Success', `Partner status updated to ${newStatus}`, 'success')
         } else {
           console.error('API Error:', result.error)
-          alert(`Error: ${result.error}`)
         }
       } else {
-        const errorResult = await response.json()
-        console.error('API Error:', errorResult.error)
-        alert(`Error: ${errorResult.error}`)
+        const errorResult = await response.json().catch(() => ({}))
+        console.error('API Error:', errorResult.error || 'Failed to update partner status')
       }
     } catch (error) {
       console.error('Error updating partner status:', error)
-      alert('Failed to update partner status. Please try again.')
     }
   }
 
@@ -3412,6 +3424,15 @@ export default function PartnersPage() {
           </div>
         </div>
       )}
+
+      {/* Alert Dialog */}
+      <AlertDialog
+        isOpen={alertDialog.isOpen}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        variant={alertDialog.variant}
+        onClose={() => setAlertDialog({ ...alertDialog, isOpen: false })}
+      />
     </div>
   )
 }

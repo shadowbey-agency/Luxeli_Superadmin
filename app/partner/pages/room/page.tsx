@@ -19,6 +19,8 @@ import { getAuthToken } from "@/lib/auth-utils"
 import { QRCodeCanvas } from "qrcode.react"
 import * as XLSX from "xlsx"
 import { saveAs } from "file-saver"
+import AlertDialog from "@/app/partner/components/alert-dialog"
+import ConfirmationDialog from "@/app/partner/components/confirmation-dialog"
 
 interface Room {
   id: string
@@ -136,6 +138,44 @@ export default function RoomPage() {
     fullRoomsIsIncrease: true
   })
   const [isLoadingStats, setIsLoadingStats] = useState(false)
+  // Alert and confirmation dialog state
+  const [alertDialog, setAlertDialog] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    variant: "success" | "error" | "warning" | "info"
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    variant: "info"
+  })
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+    variant: "danger" | "warning" | "info"
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    variant: "info"
+  })
+
+  const showAlert = (title: string, message: string, variant: "success" | "error" | "warning" | "info" = "info") => {
+    setAlertDialog({ isOpen: true, title, message, variant })
+  }
+
+  const showConfirmation = (
+    title: string,
+    message: string,
+    onConfirm: () => void,
+    variant: "danger" | "warning" | "info" = "info"
+  ) => {
+    setConfirmationDialog({ isOpen: true, title, message, onConfirm, variant })
+  }
 
   const handleRoomSelection = (roomId: string, isSelected: boolean) => {
     const newSelectedRooms = new Set(selectedRooms)
@@ -294,7 +334,7 @@ export default function RoomPage() {
       try {
         const token = getAuthToken()
         if (!token) {
-          alert('Please log in to delete rooms')
+          showAlert('Authentication Required', 'Please log in to delete rooms', 'warning')
           return
         }
         
@@ -316,12 +356,13 @@ export default function RoomPage() {
           setShowDeleteModal(false)
           setSelectedRooms(new Set())
           setIsBulkDelete(false)
+          showAlert('Success', 'Rooms deleted successfully', 'success')
         } else {
-          alert(`Failed to delete ${failed.length} room(s). Please try again.`)
+          showAlert('Error', `Failed to delete ${failed.length} room(s). Please try again.`, 'error')
         }
       } catch (error) {
         console.error('Error deleting rooms:', error)
-        alert('Failed to delete rooms. Please try again.')
+        showAlert('Error', 'Failed to delete rooms. Please try again.', 'error')
       }
     } else {
       // Single delete
@@ -329,7 +370,7 @@ export default function RoomPage() {
       try {
         const token = getAuthToken()
         if (!token) {
-          alert('Please log in to delete room')
+          showAlert('Authentication Required', 'Please log in to delete room', 'warning')
           return
         }
         const response = await fetch(`/api/partner/rooms/${roomToDelete.id}`, {
@@ -343,12 +384,13 @@ export default function RoomPage() {
           await fetchRooms()
           setShowDeleteModal(false)
           setRoomToDelete(null)
+          showAlert('Success', 'Room deleted successfully', 'success')
         } else {
-          alert(result.error || 'Failed to delete room')
+          showAlert('Error', result.error || 'Failed to delete room', 'error')
         }
       } catch (error) {
         console.error('Error deleting room:', error)
-        alert('Failed to delete room. Please try again.')
+        showAlert('Error', 'Failed to delete room. Please try again.', 'error')
       }
     }
   }
@@ -361,7 +403,7 @@ export default function RoomPage() {
 
   const handleBulkDelete = () => {
     if (selectedRooms.size === 0) {
-      alert('Please select at least one room to delete')
+      showAlert('Selection Required', 'Please select at least one room to delete', 'warning')
       return
     }
     setIsBulkDelete(true)
@@ -378,14 +420,14 @@ export default function RoomPage() {
   const handleSaveEdit = async () => {
     if (!selectedRoom) return
     if (!newRoomName.trim()) {
-      alert("Please enter a room name")
+      showAlert('Validation Error', 'Please enter a room name', 'warning')
       return
     }
     try {
       setIsUpdatingRoom(true)
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to edit room')
+        showAlert('Authentication Required', 'Please log in to edit room', 'warning')
         setIsUpdatingRoom(false)
         return
       }
@@ -406,12 +448,13 @@ export default function RoomPage() {
         setShowEditModal(false)
         setSelectedRoom(null)
         setNewRoomName("")
+        showAlert('Success', 'Room updated successfully', 'success')
       } else {
-        alert(result.error || 'Failed to update room')
+        showAlert('Error', result.error || 'Failed to update room', 'error')
       }
     } catch (error) {
       console.error('Error updating room:', error)
-      alert('Failed to update room. Please try again.')
+      showAlert('Error', 'Failed to update room. Please try again.', 'error')
     } finally {
       setIsUpdatingRoom(false)
     }
@@ -420,7 +463,7 @@ export default function RoomPage() {
   const handleRoomQRCode = async (room: Room) => {
     // Check if room has a resident (guest assigned)
     if (!room.resident) {
-      alert('No guest assigned to this room. Please assign a guest first to generate a QR code.')
+      showAlert('No Guest Assigned', 'No guest assigned to this room. Please assign a guest first to generate a QR code.', 'warning')
       return
     }
 
@@ -435,7 +478,7 @@ export default function RoomPage() {
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to view QR code')
+        showAlert('Authentication Required', 'Please log in to view QR code', 'warning')
         return
       }
 
@@ -457,11 +500,11 @@ export default function RoomPage() {
         })
         setShowQRModal(true)
       } else {
-        alert(result.error || 'Failed to generate QR code.')
+        showAlert('Error', result.error || 'Failed to generate QR code.', 'error')
       }
     } catch (error) {
       console.error('Error fetching QR code:', error)
-      alert('Failed to fetch QR code. Please try again.')
+      showAlert('Error', 'Failed to fetch QR code. Please try again.', 'error')
     }
   }
 
@@ -482,15 +525,15 @@ export default function RoomPage() {
       downloadLink.click();
       document.body.removeChild(downloadLink);
     } else {
-      alert('No QR code available to download. Please assign a guest first.');
+      showAlert('No QR Code', 'No QR code available to download. Please assign a guest first.', 'warning')
     }
   };
 
   // Export rooms to Excel
   const handleExportRooms = () => {
     if (!rooms || rooms.length === 0) {
-      alert("No room data available to export");
-      return;
+      showAlert('No Data', 'No room data available to export', 'warning')
+      return
     }
 
     // Prepare data for export - map room data to Excel format
@@ -552,7 +595,7 @@ export default function RoomPage() {
 
   const handleUnassignRoom = (room: Room) => {
     if (!room.resident) {
-      alert('Room is not currently assigned')
+      showAlert('Room Not Assigned', 'Room is not currently assigned', 'warning')
       return
     }
     setRoomToUnassign(room)
@@ -572,7 +615,7 @@ export default function RoomPage() {
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to unassign room')
+        showAlert('Authentication Required', 'Please log in to unassign room', 'warning')
         setIsUnassigning(false)
         return
       }
@@ -593,14 +636,14 @@ export default function RoomPage() {
       if (response.ok && result.success) {
         await fetchRooms()
         closeUnassignModal()
-        alert('Guest checked out successfully.')
+        showAlert('Success', 'Guest checked out successfully.', 'success')
       } else {
-        alert(result.error || 'Failed to checkout guest')
+        showAlert('Error', result.error || 'Failed to checkout guest', 'error')
         setIsUnassigning(false)
       }
     } catch (error) {
       console.error('Error unassigning room:', error)
-      alert('Failed to unassign room. Please try again.')
+      showAlert('Error', 'Failed to unassign room. Please try again.', 'error')
       setIsUnassigning(false)
     }
   }
@@ -670,8 +713,9 @@ export default function RoomPage() {
           qrCodeImage: qrCodeImage
         })
         setShowQRModal(true)
+        showAlert('Success', 'Guest assigned successfully!', 'success')
       } else {
-        alert('Guest assigned successfully!')
+        showAlert('Error', 'Failed to assign guest', 'error')
       }
     } catch (err: any) {
       console.error('Error assigning room:', err)
@@ -792,7 +836,7 @@ export default function RoomPage() {
 
   const handleSaveStepOne = async () => {
     if (!newRoomName.trim()) {
-      alert("Please enter a room name")
+      showAlert('Validation Error', 'Please enter a room name', 'warning')
       return
     }
 
@@ -801,7 +845,7 @@ export default function RoomPage() {
       try {
         const token = getAuthToken()
         if (!token) {
-          alert('Please log in to add a room')
+          showAlert('Authentication Required', 'Please log in to add a room', 'warning')
           return
         }
         const response = await fetch('/api/partner/rooms', {
@@ -819,12 +863,13 @@ export default function RoomPage() {
         if (response.ok && result.success) {
           await fetchRooms()
           closeAddStepOne()
+          showAlert('Success', 'Room added successfully', 'success')
         } else {
-          alert(result.error || 'Failed to add room')
+          showAlert('Error', result.error || 'Failed to add room', 'error')
         }
       } catch (error) {
         console.error('Error adding room:', error)
-        alert('Failed to add room. Please try again.')
+        showAlert('Error', 'Failed to add room. Please try again.', 'error')
       }
     } else {
       // Status is Full, proceed to full modal
@@ -851,14 +896,14 @@ export default function RoomPage() {
 
   const handleSaveAddRoom = async () => {
     if (!newRoomName.trim()) {
-      alert("Please enter a room name")
+      showAlert('Validation Error', 'Please enter a room name', 'warning')
       return
     }
     try {
       setIsSavingRoom(true)
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to add a room')
+        showAlert('Authentication Required', 'Please log in to add a room', 'warning')
         setIsSavingRoom(false)
         return
       }
@@ -886,12 +931,13 @@ export default function RoomPage() {
         setNewCheckInTime("")
         setNewCheckOutDate("")
         setNewCheckOutTime("")
+        showAlert('Success', 'Room added successfully', 'success')
       } else {
-        alert(result.error || 'Failed to add room')
+        showAlert('Error', result.error || 'Failed to add room', 'error')
       }
     } catch (error) {
       console.error('Error adding room:', error)
-      alert('Failed to add room. Please try again.')
+      showAlert('Error', 'Failed to add room. Please try again.', 'error')
     } finally {
       setIsSavingRoom(false)
     }
@@ -2842,6 +2888,28 @@ export default function RoomPage() {
            />
          </div>
        </RoomModal>
+
+      {/* Alert Dialog */}
+      <AlertDialog
+        isOpen={alertDialog.isOpen}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        variant={alertDialog.variant}
+        onClose={() => setAlertDialog({ ...alertDialog, isOpen: false })}
+      />
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={confirmationDialog.isOpen}
+        title={confirmationDialog.title}
+        message={confirmationDialog.message}
+        variant={confirmationDialog.variant}
+        onConfirm={() => {
+          confirmationDialog.onConfirm()
+          setConfirmationDialog({ ...confirmationDialog, isOpen: false })
+        }}
+        onCancel={() => setConfirmationDialog({ ...confirmationDialog, isOpen: false })}
+      />
      </div>
    )
  }

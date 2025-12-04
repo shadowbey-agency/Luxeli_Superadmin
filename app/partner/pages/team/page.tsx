@@ -17,6 +17,8 @@ import AddStaffModal from "@/app/partner/components/add-staff-modal"
 import AddMemberModal from "@/app/partner/components/add-member-modal"
 import ResetPasswordModal from "@/app/partner/components/reset-password-modal"
 import PublicIcon from "@/app/partner/components/public-icon"
+import AlertDialog from "@/app/partner/components/alert-dialog"
+import ConfirmationDialog from "@/app/partner/components/confirmation-dialog"
 
 interface TeamMember {
   id: string
@@ -151,6 +153,44 @@ export default function TeamPage() {
   const [isLoadingMembers, setIsLoadingMembers] = useState(true)
   const [isLoadingStaff, setIsLoadingStaff] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  // Alert and confirmation dialog state
+  const [alertDialog, setAlertDialog] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    variant: "success" | "error" | "warning" | "info"
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    variant: "info"
+  })
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+    variant: "danger" | "warning" | "info"
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    variant: "info"
+  })
+
+  const showAlert = (title: string, message: string, variant: "success" | "error" | "warning" | "info" = "info") => {
+    setAlertDialog({ isOpen: true, title, message, variant })
+  }
+
+  const showConfirmation = (
+    title: string,
+    message: string,
+    onConfirm: () => void,
+    variant: "danger" | "warning" | "info" = "info"
+  ) => {
+    setConfirmationDialog({ isOpen: true, title, message, onConfirm, variant })
+  }
 
   // Fetch partner members from API
   const fetchMembers = async () => {
@@ -271,7 +311,7 @@ export default function TeamPage() {
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to update member status')
+        showAlert('Authentication Required', 'Please log in to update member status', 'warning')
         return
       }
 
@@ -293,9 +333,9 @@ export default function TeamPage() {
           const result = await response.json()
           if (result.success) {
             setTeamMembers(teamMembers.map((m) => (m.id === id ? { ...m, isActive: !m.isActive } : m)))
-            alert(`✅ Member status updated`)
+            showAlert('Success', 'Member status updated successfully', 'success')
           } else {
-            alert(`❌ Error: ${result.error}`)
+            showAlert('Error', result.error || 'Failed to update member status', 'error')
           }
         }
       } else {
@@ -325,21 +365,21 @@ export default function TeamPage() {
             setStaffMembers(prev => prev.map((m) => 
               m.id === id ? { ...m, isActive: newStatus === 'active' } : m
             ))
-            alert(`✅ Staff status updated to ${newStatus}`)
+            showAlert('Success', `Staff status updated to ${newStatus}`, 'success')
             // Refresh the list to ensure consistency with server
             fetchStaff()
           } else {
-            alert(`❌ Error: ${result.error || 'Failed to update staff status'}`)
+            showAlert('Error', result.error || 'Failed to update staff status', 'error')
           }
         } else {
           const errorResult = await response.json().catch(() => ({}))
           console.error('Staff status update failed:', { status: response.status, error: errorResult })
-          alert(`❌ Error: ${errorResult.error || `Failed to update staff status (${response.status})`}`)
+          showAlert('Error', errorResult.error || `Failed to update staff status (${response.status})`, 'error')
         }
       }
     } catch (error) {
       console.error('Error updating status:', error)
-      alert('Failed to update status. Please try again.')
+      showAlert('Error', 'Failed to update status. Please try again.', 'error')
     }
   }
 
@@ -354,7 +394,7 @@ export default function TeamPage() {
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to delete member')
+        showAlert('Authentication Required', 'Please log in to delete member', 'warning')
         return
       }
 
@@ -371,9 +411,9 @@ export default function TeamPage() {
           setTeamMembers(teamMembers.filter((m) => m.id !== memberToDelete.id))
           setShowDeleteModal(false)
           setMemberToDelete(null)
-          alert('✅ Member deleted successfully')
+          showAlert('Success', 'Member deleted successfully', 'success')
         } else {
-          alert(result.error || 'Failed to delete member')
+          showAlert('Error', result.error || 'Failed to delete member', 'error')
         }
       } else {
         const response = await fetch(`/api/partner/staff/${memberToDelete.id}`, {
@@ -388,14 +428,14 @@ export default function TeamPage() {
           setStaffMembers(staffMembers.filter((m) => m.id !== memberToDelete.id))
           setShowDeleteModal(false)
           setMemberToDelete(null)
-          alert('✅ Staff deleted successfully')
+          showAlert('Success', 'Staff deleted successfully', 'success')
         } else {
-          alert(result.error || 'Failed to delete staff')
+          showAlert('Error', result.error || 'Failed to delete staff', 'error')
         }
       }
     } catch (error) {
       console.error('Error deleting member:', error)
-      alert('Failed to delete. Please try again.')
+      showAlert('Error', 'Failed to delete. Please try again.', 'error')
     }
   }
 
@@ -519,26 +559,26 @@ export default function TeamPage() {
     const password = editFormData.password?.trim()
 
     if (!name || !email || !phone) {
-      alert('Please fill in all required fields (Name, Email, Phone)')
+      showAlert('Validation Error', 'Please fill in all required fields (Name, Email, Phone)', 'warning')
       return
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      alert('Please enter a valid email address')
+      showAlert('Validation Error', 'Please enter a valid email address', 'warning')
       return
     }
 
     // Validate role for staff
     if (activeTab === 'staff' && !role) {
-      alert('Please select a role for staff')
+      showAlert('Validation Error', 'Please select a role for staff', 'warning')
       return
     }
 
     // Validate password if provided
     if (password && password.length < 6) {
-      alert('Password must be at least 6 characters long')
+      showAlert('Validation Error', 'Password must be at least 6 characters long', 'warning')
       return
     }
 
@@ -546,7 +586,7 @@ export default function TeamPage() {
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to update')
+        showAlert('Authentication Required', 'Please log in to update', 'warning')
         setIsSavingEdit(false)
         return
       }
@@ -605,14 +645,14 @@ export default function TeamPage() {
               ? { ...m, name, email: email.toLowerCase(), phone }
               : m
           ))
-          alert('✅ Member updated successfully')
+          showAlert('Success', 'Member updated successfully', 'success')
           setEditFormData({ name: '', email: '', phone: '', role: '', username: '', password: '', status: 'active' })
     setShowEditModal(false)
     setSelectedMember(null)
           fetchMembers() // Refresh the list
         } else {
           const errorMsg = result?.error || result?.message || 'Failed to update member'
-          alert(`❌ Error: ${errorMsg}`)
+          showAlert('Error', errorMsg, 'error')
         }
       } else {
         // Update staff - build data object carefully
@@ -712,7 +752,7 @@ export default function TeamPage() {
                 }
               : m
           ))
-          alert('✅ Staff updated successfully')
+          showAlert('Success', 'Staff updated successfully', 'success')
           setEditFormData({ name: '', email: '', phone: '', role: '', username: '', password: '', status: 'active' })
           setShowEditModal(false)
           setSelectedMember(null)
@@ -722,14 +762,14 @@ export default function TeamPage() {
         } else {
           // Handle different error scenarios
           const errorMsg = result?.error || result?.message || `Failed to update staff (Status: ${response.status})`
-          alert(`❌ Error: ${errorMsg}`)
+          showAlert('Error', errorMsg, 'error')
           console.error('Update failed:', { status: response.status, result })
         }
       }
     } catch (error: any) {
       console.error('Error updating:', error)
       const errorMsg = error?.message || 'Network error or server unavailable. Please try again.'
-      alert(`❌ Error: ${errorMsg}`)
+      showAlert('Error', errorMsg, 'error')
     } finally {
       setIsSavingEdit(false)
     }
@@ -1531,6 +1571,28 @@ export default function TeamPage() {
         isOpen={showPermissionsModal}
         onClose={closePermissionsModal}
         onEdit={handleEditFromPermissions}
+      />
+
+      {/* Alert Dialog */}
+      <AlertDialog
+        isOpen={alertDialog.isOpen}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        variant={alertDialog.variant}
+        onClose={() => setAlertDialog({ ...alertDialog, isOpen: false })}
+      />
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={confirmationDialog.isOpen}
+        title={confirmationDialog.title}
+        message={confirmationDialog.message}
+        variant={confirmationDialog.variant}
+        onConfirm={() => {
+          confirmationDialog.onConfirm()
+          setConfirmationDialog({ ...confirmationDialog, isOpen: false })
+        }}
+        onCancel={() => setConfirmationDialog({ ...confirmationDialog, isOpen: false })}
       />
 
       {/* Add Staff Modal */}

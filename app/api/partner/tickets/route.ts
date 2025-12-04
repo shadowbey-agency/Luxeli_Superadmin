@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { TicketController } from '@/controllers/partner/TicketController';
-import { withAuth } from '@/lib/middleware';
+import { withAuth, getPartnerId } from '@/lib/middleware';
+import { request } from 'http';
 
 export const GET = withAuth(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);
@@ -51,6 +52,14 @@ export const POST = withAuth(async (request: NextRequest) => {
       );
     }
 
+    const partnerId = getPartnerId(request as any);
+    if (!partnerId) {
+      return Response.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     return await TicketController.createTicket({
       title: title.trim(),
       description: description.trim(),
@@ -58,7 +67,7 @@ export const POST = withAuth(async (request: NextRequest) => {
       image: image || undefined,
       status: status || 'open',
       assignee: assignee || undefined,
-    });
+    }, partnerId);
   } catch (error) {
     console.error('Create Ticket API Error:', error);
     return Response.json(

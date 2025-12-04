@@ -24,7 +24,7 @@ export class TicketController {
 
       // Build filter object
       const filter: any = {};
-      
+
       if (query.search) {
         filter.$or = [
           { title: { $regex: query.search, $options: 'i' } },
@@ -107,7 +107,7 @@ export class TicketController {
       name: string;
       profilePic?: string;
     };
-  }) {
+  }, partnerId: string) {
     try {
       await connectDB();
 
@@ -120,6 +120,7 @@ export class TicketController {
 
       // Create new ticket
       const ticket = new Ticket({
+        partnerId,
         title: data.title.trim(),
         description: data.description.trim(),
         priority: data.priority || 'low',
@@ -240,7 +241,7 @@ export class TicketController {
       console.error('Update ticket error:', error);
       // Check if it's a validation error
       if (error?.name === 'ValidationError') {
-        const errorMessage = error?.errors 
+        const errorMessage = error?.errors
           ? Object.values(error.errors).map((e: any) => e.message).join(', ')
           : error?.message || 'Validation error';
         return NextResponse.json(
@@ -347,7 +348,7 @@ export class TicketController {
 
       // Build filter object
       const filter: any = {};
-      
+
       if (query.search) {
         filter.$or = [
           { title: { $regex: query.search, $options: 'i' } },
@@ -374,11 +375,11 @@ export class TicketController {
       const ticketsNeedingId = allTickets.filter(t => !t.superadminTicketId);
       if (ticketsNeedingId.length > 0) {
         // Find the highest existing superadminTicketId
-        const ticketsWithId = await Ticket.find({ 
-          superadminTicketId: { $exists: true, $regex: /^#\d+$/ } 
+        const ticketsWithId = await Ticket.find({
+          superadminTicketId: { $exists: true, $regex: /^#\d+$/ }
         })
-        .select('superadminTicketId')
-        .lean();
+          .select('superadminTicketId')
+          .lean();
 
         let nextNumber = 1;
         if (ticketsWithId.length > 0) {
@@ -388,7 +389,7 @@ export class TicketController {
               return match ? parseInt(match[1], 10) : 0;
             })
             .filter(n => !isNaN(n));
-          
+
           if (numbers.length > 0) {
             nextNumber = Math.max(...numbers) + 1;
           }
@@ -506,7 +507,7 @@ export class TicketController {
       // Helper function to calculate percentage change
       const calculateChange = (current: number, previous: number): { change: string; changeType: "positive" | "negative" | "neutral" } => {
         if (previous === 0) {
-          return current > 0 
+          return current > 0
             ? { change: "+100%", changeType: "positive" }
             : { change: "0%", changeType: "neutral" };
         }
