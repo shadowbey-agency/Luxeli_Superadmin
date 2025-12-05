@@ -1,3 +1,5 @@
+"use client"
+
 import type React from "react"
 import Sidebar from "@/app/partner/components/sidebar"
 import Header from "@/app/partner/components/header"
