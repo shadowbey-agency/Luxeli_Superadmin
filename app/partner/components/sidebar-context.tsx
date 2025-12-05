@@ -7,7 +7,12 @@ interface SidebarContextType {
   setIsCollapsed: (collapsed: boolean) => void
 }
 
-const SidebarContext = createContext<SidebarContextType | undefined>(undefined)
+const defaultSidebarContext: SidebarContextType = {
+  isCollapsed: false,
+  setIsCollapsed: () => {}
+}
+
+const SidebarContext = createContext<SidebarContextType>(defaultSidebarContext)
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -20,10 +25,6 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 }
 
 export function useSidebar() {
-  const context = useContext(SidebarContext)
-  if (context === undefined) {
-    throw new Error("useSidebar must be used within a SidebarProvider")
-  }
-  return context
+  return useContext(SidebarContext)
 }
 
