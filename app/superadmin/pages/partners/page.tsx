@@ -900,7 +900,7 @@ export default function PartnersPage() {
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('❌ Authentication required. Please login again.')
+        showAlert('Authentication Required', 'Please login again.', 'warning')
         return
       }
 
@@ -915,19 +915,26 @@ export default function PartnersPage() {
       if (response.ok) {
         const result = await response.json().catch(() => ({} as any))
         if ((result as any).error) {
-          alert(`❌ Error: ${(result as any).error}`)
+          showAlert('Error', `${(result as any).error}`, 'error')
         } else {
-          // Remove from local state
-          setPartners(partners.filter((p) => p.id !== partnerToDelete.id))
-          alert('✅ Partner deleted successfully')
+          setSelectedPartners(prev => prev.filter(id => id !== partnerToDelete.id))
+
+          if (selectedPartner?.id === partnerToDelete.id) {
+            setShowViewDetail(false)
+            setSelectedPartner(null)
+          }
+          
+          await fetchPartners()
+          
+          showAlert('Success', 'Partner deleted successfully', 'success')
         }
       } else {
         const errorData = await response.json().catch(() => ({} as any))
-        alert(`❌ Error: ${errorData.error || 'Failed to delete partner'}`)
+        showAlert('Error', `${errorData.error || 'Failed to delete partner'}`, 'error')
       }
     } catch (error) {
       console.error('Error deleting partner:', error)
-      alert('❌ Failed to delete partner. Please try again.')
+      showAlert('Error', 'Failed to delete partner. Please try again.', 'error')
     } finally {
       setShowDeleteModal(false)
       setPartnerToDelete(null)
