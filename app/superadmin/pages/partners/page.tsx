@@ -272,6 +272,7 @@ const SubscriptionCard = ({ subscription }: { subscription: SubscriptionHistory 
 export default function PartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([])
   const [selectedPartners, setSelectedPartners] = useState<string[]>([])
+  const [isAllSelected, setIsAllSelected] = useState(false)
   const [showAddPartnerModal, setShowAddPartnerModal] = useState(false)
   const [isEditingPartner, setIsEditingPartner] = useState(false)
   const [editingPartnerId, setEditingPartnerId] = useState<string | null>(null)
@@ -303,6 +304,8 @@ export default function PartnersPage() {
   })
   const [serviceOptions, setServiceOptions] = useState<string[]>([])
   const [servicesLoading, setServicesLoading] = useState(false)
+  const [showServicesDropdown, setShowServicesDropdown] = useState(false)
+  const servicesDropdownRef = useRef<HTMLDivElement | null>(null)
   const startDateRef = useRef<HTMLInputElement | null>(null)
   const endDateRef = useRef<HTMLInputElement | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -651,8 +654,26 @@ export default function PartnersPage() {
     } else {
       setServicesLoading(false)
       setServiceOptions([])
+      setShowServicesDropdown(false)
     }
   }, [showAddPartnerModal])
+
+  // Handle click outside to close services dropdown
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (servicesDropdownRef.current && !servicesDropdownRef.current.contains(event.target as Node)) {
+        setShowServicesDropdown(false)
+      }
+    }
+
+    if (showServicesDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showServicesDropdown])
 
   // Services dropdown handled via portal in DropdownMenu
 
@@ -948,6 +969,56 @@ export default function PartnersPage() {
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const currentPartners = filteredPartners.slice(startIndex, endIndex)
+
+  // Handle individual checkbox selection
+  const handlePartnerSelect = (partnerId: string) => {
+    setSelectedPartners(prev => {
+      if (prev.includes(partnerId)) {
+        const newSelected = prev.filter(id => id !== partnerId)
+        setIsAllSelected(false)
+        return newSelected
+      } else {
+        const newSelected = [...prev, partnerId]
+        // Check if all filtered partners are now selected
+        if (newSelected.length === filteredPartners.length && filteredPartners.length > 0) {
+          setIsAllSelected(true)
+        }
+        return newSelected
+      }
+    })
+  }
+
+  // Handle select all checkbox
+  const handleSelectAll = () => {
+    const allCurrentSelected = currentPartners.length > 0 && currentPartners.every(p => selectedPartners.includes(p.id))
+    
+    if (isAllSelected || allCurrentSelected) {
+      // Deselect all current page partners
+      const currentPartnerIds = currentPartners.map(p => p.id)
+      setSelectedPartners(prev => prev.filter(id => !currentPartnerIds.includes(id)))
+      setIsAllSelected(false)
+    } else {
+      // Select all current page partners
+      const currentPartnerIds = currentPartners.map(p => p.id)
+      setSelectedPartners(prev => {
+        const newSelected = [...new Set([...prev, ...currentPartnerIds])]
+        // If all filtered partners are now selected, set isAllSelected to true
+        if (newSelected.length === filteredPartners.length && filteredPartners.length > 0) {
+          setIsAllSelected(true)
+        }
+        return newSelected
+      })
+    }
+  }
+
+  // Clear all selections
+  const handleClearSelection = () => {
+    setSelectedPartners([])
+    setIsAllSelected(false)
+  }
+
+  // Check if all items are selected (all filtered partners)
+  const allFilteredSelected = selectedPartners.length > 0 && selectedPartners.length === filteredPartners.length
 
   // Format partners data for Excel export
   const exportData = currentPartners.map((partner) => ({
@@ -1259,13 +1330,42 @@ export default function PartnersPage() {
           </div>
         </div>
 
+        {/* Selection Indicator Bar */}
+        {selectedPartners.length > 0 && (
+          <div className="flex items-center justify-between py-3 px-4 mb-4 rounded-md border" style={{
+            background: "#F3F4F6",
+            border: "1px solid #E5E7EB",
+            borderRadius: "6px"
+          }}>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium" style={{ color: "#212121" }}>
+                {allFilteredSelected || isAllSelected ? 'All items selected' : `${selectedPartners.length} item${selectedPartners.length > 1 ? 's' : ''} selected`}
+              </span>
+            </div>
+            <button
+              onClick={handleClearSelection}
+              className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              <span className="underline">Clear selection</span>
+            </button>
+          </div>
+        )}
+
         {/* Table */}
         <div className="overflow-x-auto  rounded-[4px]  ">
           <table className="w-full">
             <thead className="bg-muted/50">
               <tr>
                 <th className="w-12 px-4 py-4">
-                  <input type="checkbox" className="rounded" />
+                  <input 
+                    type="checkbox" 
+                    className="rounded" 
+                    checked={isAllSelected || (currentPartners.length > 0 && currentPartners.every(p => selectedPartners.includes(p.id)) && currentPartners.length > 0)}
+                    onChange={handleSelectAll}
+                  />
                 </th>
                 <th className="px-4 py-4 text-left">
                   <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
@@ -1354,7 +1454,12 @@ export default function PartnersPage() {
                 currentPartners.map((partner) => (
                   <tr key={partner.id} className="hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-4">
-                      <input type="checkbox" className="rounded" />
+                      <input 
+                        type="checkbox" 
+                        className="rounded" 
+                        checked={selectedPartners.includes(partner.id)}
+                        onChange={() => handlePartnerSelect(partner.id)}
+                      />
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
@@ -2064,7 +2169,7 @@ export default function PartnersPage() {
                   >
                     {/* Upload Room Heading */}
                     <div
-                      className="flex items-center "
+                      className="flex items-center text-center"
                       style={{
                         width: "550px",
 
@@ -2214,16 +2319,32 @@ export default function PartnersPage() {
                 background: "#FFF"
               }}
             >
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" viewBox="0 0 16 15" fill="none">
-                  <path d="M7.3335 2.36343H4.5335C3.41339 2.36343 2.85334 2.36343 2.42552 2.58142C2.04919 2.77317 1.74323 3.07913 1.55148 3.45545C1.3335 3.88328 1.3335 4.44333 1.3335 5.56343V11.1634C1.3335 12.2835 1.3335 12.8436 1.55148 13.2714C1.74323 13.6477 2.04919 13.9537 2.42552 14.1454C2.85334 14.3634 3.41339 14.3634 4.5335 14.3634H10.1335C11.2536 14.3634 11.8137 14.3634 12.2415 14.1454C12.6178 13.9537 12.9238 13.6477 13.1155 13.2714C13.3335 12.8436 13.3335 12.2835 13.3335 11.1634V8.36343M5.33348 10.3634H6.44984C6.77596 10.3634 6.93902 10.3634 7.09247 10.3266C7.22852 10.2939 7.35858 10.2401 7.47788 10.167C7.61243 10.0845 7.72773 9.9692 7.95834 9.7386L14.3335 3.36343C14.8858 2.81115 14.8858 1.91572 14.3335 1.36343C13.7812 0.811148 12.8858 0.811147 12.3335 1.36343L5.95832 7.73859C5.72772 7.9692 5.61242 8.0845 5.52996 8.21905C5.45685 8.33835 5.40298 8.46841 5.37032 8.60446C5.33348 8.75791 5.33348 8.92097 5.33348 9.24709V10.3634Z" stroke="#525866" strokeWidth="1.11333" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="17" viewBox="0 0 16 17" fill="none">
-                  <path d="M6 2.69629H10M2 4.69629H14M12.6667 4.69629L12.1991 11.7092C12.129 12.7613 12.0939 13.2874 11.8667 13.6863C11.6666 14.0375 11.3648 14.3198 11.0011 14.4961C10.588 14.6963 10.0607 14.6963 9.00623 14.6963H6.99377C5.93927 14.6963 5.41202 14.6963 4.99889 14.4961C4.63517 14.3198 4.33339 14.0375 4.13332 13.6863C3.90607 13.2874 3.871 12.7613 3.80086 11.7092L3.33333 4.69629" stroke="#FF0D0D" strokeWidth="1.11333" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    if (selectedPartner) {
+                      handleEditPartner(selectedPartner)
+                      closeViewDetail()
+                    }
+                  }}
+                  className="text-gray-500 hover:text-gray-700 transition-colors p-1"
+                  title="Edit Partner"
+                >
+                  <RiEditLine className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => {
+                    if (selectedPartner) {
+                      handleDeletePartner(selectedPartner)
+                      closeViewDetail()
+                    }
+                  }}
+                  className="text-red-500 hover:text-red-700 transition-colors p-1"
+                  title="Delete Partner"
+                >
+                  <RiDeleteBinLine className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -3041,7 +3162,7 @@ export default function PartnersPage() {
                         <p className="text-xs text-red-500 mt-1">{formErrors.plan}</p>
                       )}
                     </div>
-                    <div className="flex flex-col gap-2 flex-1">
+                    <div className="flex flex-col gap-2 flex-1 relative" ref={servicesDropdownRef}>
                       <label
                         className="text-sm font-medium"
                         style={{
@@ -3054,35 +3175,89 @@ export default function PartnersPage() {
                         Services
                       </label>
                       <div className="relative">
-                        <select
-                          value={formData.services[0] || ''}
-                          onChange={(e) => {
-                            const value = e.target.value
-                            handleInputChange('services', value ? [value] : [])
-                          }}
-                          disabled={servicesLoading}
-                          className="w-full px-3 py-2 border rounded pr-10 appearance-none"
+                        <div
+                          onClick={() => !servicesLoading && setShowServicesDropdown(!showServicesDropdown)}
+                          className="w-full px-3 py-2 border rounded pr-10 cursor-pointer flex items-center"
                           style={{
                             padding: "7.52px 12px",
                             borderRadius: "4px",
                             border: formErrors.services ? "1px solid #EF4444" : "1px solid #CED4DA",
-                            background: "#FFF"
+                            background: "#FFF",
+                            minHeight: "36px"
                           }}
                         >
-                          <option value="" disabled>{servicesLoading ? 'Loading services...' : 'Select'}</option>
-                          {!servicesLoading && serviceOptions.map((opt) => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
+                          {formData.services.length === 0 ? (
+                            <span className="text-gray-400 text-sm">
+                              {servicesLoading ? 'Loading services...' : 'Select services'}
+                            </span>
+                          ) : (
+                            <span className="text-sm" style={{ color: "#212121" }}>
+                              {formData.services.length} service{formData.services.length > 1 ? 's' : ''} selected
+                            </span>
+                          )}
+                        </div>
                         <svg
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none"
-                          style={{ color: "#D9D9D9" }}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none transition-transform"
+                          style={{ 
+                            color: "#D9D9D9",
+                            transform: showServicesDropdown ? 'translateY(-50%) rotate(180deg)' : 'translateY(-50%)'
+                          }}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
+                        {showServicesDropdown && !servicesLoading && serviceOptions.length > 0 && (
+                          <div
+                            className="absolute z-50 w-full mt-1 bg-white border rounded shadow-lg"
+                            style={{
+                              borderRadius: "4px",
+                              border: "1px solid #CED4DA",
+                              background: "#FFF",
+                              maxHeight: "200px",
+                              overflowY: "auto",
+                              top: "100%",
+                              marginTop: "4px"
+                            }}
+                          >
+                            <div className="flex flex-col gap-1 p-2">
+                              {serviceOptions.map((service) => (
+                                <label
+                                  key={service}
+                                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
+                                  style={{
+                                    padding: "4px 8px",
+                                    borderRadius: "4px"
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.services.includes(service)}
+                                    onChange={(e) => {
+                                      e.stopPropagation()
+                                      if (e.target.checked) {
+                                        // Add service if checked
+                                        handleInputChange('services', [...formData.services, service])
+                                      } else {
+                                        // Remove service if unchecked
+                                        handleInputChange('services', formData.services.filter(s => s !== service))
+                                      }
+                                    }}
+                                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                    style={{
+                                      accentColor: "#1F2A44"
+                                    }}
+                                  />
+                                  <span className="text-sm" style={{ color: "#212121" }}>
+                                    {service}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                       {formErrors.services && (
                         <p className="text-xs text-red-500 mt-1">{formErrors.services}</p>
@@ -3096,7 +3271,7 @@ export default function PartnersPage() {
                 <div className="flex flex-col items-end gap-5 self-stretch">
                   {/* Upload Room Section */}
                   <div
-                    className="flex flex-col items-center gap-5 p-6 self-stretch rounded-xl border w-full"
+                    className="flex flex-col items-center gap-5 p-6 self-stretch rounded-xl border w-full text-center"
                     style={{
                       padding: "25px",
                       borderRadius: "12px",
@@ -3106,13 +3281,9 @@ export default function PartnersPage() {
                   >
                     {/* Upload Room Heading */}
                     <div
-                      className="flex items-center gap-2 w-full"
-                      style={{
-                        width: "550px",
-                        gap: "7px"
-                      }}
+                      className="flex items-center gap-2 w-full text-center justify-center"
                     >
-                      <h3 className="text-lg font-semibold text-black">Upload rooms</h3>
+                      <h3 className="text-lg font-semibold text-black text-center">Upload rooms</h3>
                     </div>
 
                     {/* Room API Loading Bar Section */}
@@ -3156,7 +3327,7 @@ export default function PartnersPage() {
                         }}
                       >
                         {/* Progress Bar */}
-                        <div
+                        {/* <div
                           className="h-2 rounded-lg"
                           style={{
                             width: "230px",
@@ -3164,7 +3335,7 @@ export default function PartnersPage() {
                             borderRadius: "10px",
                             background: "#56C6FF"
                           }}
-                        />
+                        /> */}
                       </div>
 
                       {/* X Button */}
@@ -3343,7 +3514,7 @@ export default function PartnersPage() {
               }}
             >
               {/* Tick Icon */}
-              <div
+              {/* <div
                 style={{
                   width: "15px",
                   height: "15px",
@@ -3366,7 +3537,7 @@ export default function PartnersPage() {
                     </linearGradient>
                   </defs>
                 </svg>
-              </div>
+              </div> */}
               <span className="text-sm font-medium text-gray-800">Partner added successfully.</span>
             </div>
 

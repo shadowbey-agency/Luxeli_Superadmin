@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import {
   RiMoreLine,
   RiEditLine,
@@ -16,6 +16,7 @@ import DropdownArrow from "@/app/superadmin/components/dropdown-arrow"
 import SortArrows from "@/app/superadmin/components/sort-arrows"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
 import { getAuthToken } from "@/lib/auth-utils"
+import AlertDialog from "@/app/partner/components/alert-dialog"
 
 interface TeamMember {
   id: string
@@ -82,12 +83,25 @@ export default function TeamPage() {
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
   const [resetForm, setResetForm] = useState({ password: '', confirm: '', showPassword: false, showConfirm: false })
-  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '' })
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', permissions: [] as string[] })
   const [showAddModal, setShowAddModal] = useState(false)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
   const [memberForPermissions, setMemberForPermissions] = useState<TeamMember | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingMembers, setIsLoadingMembers] = useState(true)
+  const [showPermissionsDropdown, setShowPermissionsDropdown] = useState(false)
+  const permissionsDropdownRef = React.useRef<HTMLDivElement | null>(null)
+  const [alertDialog, setAlertDialog] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    variant: "success" | "error" | "warning" | "info"
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    variant: "info"
+  })
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -96,6 +110,20 @@ export default function TeamPage() {
     password: '',
     permissions: [] as string[]
   })
+
+  // Show alert dialog helper
+  const showAlert = (title: string, message: string, variant: "success" | "error" | "warning" | "info" = "info") => {
+    setAlertDialog({ isOpen: true, title, message, variant })
+  }
+
+  const availablePermissions = [
+    { id: "dashboard", name: "Dashboard" },
+    { id: "partner", name: "Partner" },
+    { id: "subscription", name: "Subscription" },
+    { id: "support", name: "Support" },
+    { id: "billingFinance", name: "Billing Finance" },
+    { id: "team", name: "Team" },
+  ]
 
   // Fetch members from API
   const fetchMembers = async () => {
@@ -167,7 +195,7 @@ export default function TeamPage() {
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to update member status')
+        showAlert('Authentication Required', 'Please log in to update member status', 'warning')
         return
       }
 
@@ -195,19 +223,19 @@ export default function TeamPage() {
           ))
           await fetchMembers() // Refresh the list
           console.log(`Member status updated to: ${newStatus}`)
-          alert(`✅ Member status updated to: ${newStatus}`)
+          showAlert('Success', `Member status updated to ${newStatus}`, 'success')
         } else {
           console.error('API Error:', result.error)
-          alert(`❌ Error updating status: ${result.error}`)
+          showAlert('Error', `Error updating status: ${result.error}`, 'error')
         }
       } else {
         const errorResult = await response.json()
         console.error('API Error:', errorResult.error)
-        alert(`❌ Error updating status: ${errorResult.error}`)
+        showAlert('Error', `Error updating status: ${errorResult.error}`, 'error')
       }
     } catch (error) {
       console.error('Error updating member status:', error)
-      alert('Failed to update member status. Please try again.')
+      showAlert('Error', 'Failed to update member status. Please try again.', 'error')
     }
   }
 
@@ -221,7 +249,7 @@ export default function TeamPage() {
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to delete a member')
+        showAlert('Authentication Required', 'Please log in to delete a member', 'warning')
         return
       }
 
@@ -236,17 +264,17 @@ export default function TeamPage() {
         const result = await response.json().catch(() => ({} as any))
         if ((result as any).success !== false) {
           setTeamMembers(teamMembers.filter((m) => m.id !== memberToDelete.id))
-          alert('✅ Member deleted successfully')
+          showAlert('Success', 'Member deleted successfully', 'success')
         } else {
-          alert(`❌ Error: ${(result as any).error || 'Failed to delete member'}`)
+          showAlert('Error', `${(result as any).error || 'Failed to delete member'}`, 'error')
         }
       } else {
         const err = await response.json().catch(() => ({}))
-        alert(`❌ Error: ${err.error || 'Failed to delete member'}`)
+        showAlert('Error', `${err.error || 'Failed to delete member'}`, 'error')
       }
     } catch (error) {
       console.error('Error deleting member:', error)
-      alert('Failed to delete member. Please try again.')
+      showAlert('Error', 'Failed to delete member. Please try again.', 'error')
     } finally {
       setShowDeleteModal(false)
       setMemberToDelete(null)
@@ -261,7 +289,8 @@ export default function TeamPage() {
   const handleEditMember = (member: TeamMember) => {
     setSelectedMember(member)
     setShowEditModal(true)
-    setEditForm({ name: member.name, email: member.email, phone: member.phone })
+    setEditForm({ name: member.name, email: member.email, phone: member.phone, permissions: [] })
+    setShowPermissionsDropdown(false)
   }
 
   const handleResetPassword = (member: TeamMember) => {
@@ -273,6 +302,7 @@ export default function TeamPage() {
   const handleAddMember = () => {
     setSelectedMember(null)
     setShowAddModal(true)
+    setShowPermissionsDropdown(false)
   }
 
   const handleUserPermissions = (member: TeamMember) => {
@@ -298,7 +328,7 @@ export default function TeamPage() {
     const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData])
     
     if (missingFields.length > 0) {
-      alert(`Please fill in all required fields: ${missingFields.join(', ')}`)
+      showAlert('Validation Error', `Please fill in all required fields: ${missingFields.join(', ')}`, 'warning')
       return
     }
     
@@ -313,7 +343,7 @@ export default function TeamPage() {
       const finalToken = token || fallbackToken
       
       if (!finalToken) {
-        alert('Please log in to create a member')
+        showAlert('Authentication Required', 'Please log in to create a member', 'warning')
         setIsLoading(false)
         return
       }
@@ -357,6 +387,7 @@ export default function TeamPage() {
         
         setTeamMembers(prev => [newMember, ...prev])
         setShowAddModal(false)
+        setShowPermissionsDropdown(false)
         
         // Reset form data
         setFormData({
@@ -368,7 +399,7 @@ export default function TeamPage() {
           permissions: []
         })
         
-        alert('Member created successfully!')
+        showAlert('Success', 'Member created successfully!', 'success')
         // Refresh the members list
         await fetchMembers()
       } else {
@@ -376,16 +407,16 @@ export default function TeamPage() {
         
         // Handle specific error types
         if (result.error && result.error.includes('already exists')) {
-          alert(`❌ Error: ${result.error}`)
+          showAlert('Error', `${result.error}`, 'error')
         } else if (result.error && result.error.includes('required')) {
-          alert(`❌ Validation Error: ${result.error}`)
+          showAlert('Validation Error', `${result.error}`, 'error')
         } else {
-          alert(`❌ Error: ${result.error}`)
+          showAlert('Error', `${result.error}`, 'error')
         }
       }
     } catch (error) {
       console.error('Error saving member:', error)
-      alert('Failed to save member. Please try again.')
+      showAlert('Error', 'Failed to save member. Please try again.', 'error')
     } finally {
       setIsLoading(false)
     }
@@ -406,7 +437,7 @@ export default function TeamPage() {
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to update member')
+        showAlert('Authentication Required', 'Please log in to update member', 'warning')
         return
       }
       const response = await fetch(`/api/superadmin/members/${selectedMember.id}`, {
@@ -424,38 +455,39 @@ export default function TeamPage() {
       if (response.ok) {
         const result = await response.json().catch(() => ({}))
         if ((result as any).success === false) {
-          alert(`❌ Error: ${(result as any).error || 'Failed to update member'}`)
+          showAlert('Error', `${(result as any).error || 'Failed to update member'}`, 'error')
         } else {
           setTeamMembers(prev => prev.map(m => m.id === selectedMember.id ? { ...m, name: editForm.name, email: editForm.email, phone: editForm.phone } : m))
-          alert('✅ Member updated successfully')
+          showAlert('Success', 'Member updated successfully', 'success')
           setShowEditModal(false)
+          setShowPermissionsDropdown(false)
           setSelectedMember(null)
           await fetchMembers() // Refresh the list
         }
       } else {
         const err = await response.json().catch(() => ({}))
-        alert(`❌ Error: ${err.error || 'Failed to update member'}`)
+        showAlert('Error', `${err.error || 'Failed to update member'}`, 'error')
       }
     } catch (e) {
       console.error('Error updating member:', e)
-      alert('Failed to update member. Please try again.')
+      showAlert('Error', 'Failed to update member. Please try again.', 'error')
     }
   }
 
   const handleSaveResetPassword = async () => {
     if (!selectedMember) return
     if (!resetForm.password || resetForm.password.length < 6) {
-      alert('Password must be at least 6 characters long')
+      showAlert('Validation Error', 'Password must be at least 6 characters long', 'warning')
       return
     }
     if (resetForm.password !== resetForm.confirm) {
-      alert('Passwords do not match')
+      showAlert('Validation Error', 'Passwords do not match', 'warning')
       return
     }
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to update password')
+        showAlert('Authentication Required', 'Please log in to update password', 'warning')
         return
       }
       const response = await fetch(`/api/superadmin/members/${selectedMember.id}`, {
@@ -468,15 +500,15 @@ export default function TeamPage() {
       })
       const result = await response.json().catch(() => ({}))
       if (!response.ok || (result as any).success === false) {
-        alert(`❌ Error: ${(result as any).error || 'Failed to update password'}`)
+        showAlert('Error', `${(result as any).error || 'Failed to update password'}`, 'error')
         return
       }
-      alert('✅ Password updated successfully')
+      showAlert('Success', 'Password updated successfully', 'success')
       setShowResetPasswordModal(false)
       setSelectedMember(null)
     } catch (e) {
       console.error('Error updating password:', e)
-      alert('Failed to update password. Please try again.')
+      showAlert('Error', 'Failed to update password. Please try again.', 'error')
     }
   }
 
@@ -764,7 +796,10 @@ export default function TeamPage() {
             >
               <h2 className="text-lg font-semibold text-black">Edit Member</h2>
               <button 
-                onClick={() => setShowEditModal(false)}
+                onClick={() => {
+                  setShowEditModal(false)
+                  setShowPermissionsDropdown(false)
+                }}
                 className="flex items-center justify-center"
                 style={{ width: "24px", height: "24px", aspectRatio: "1/1" }}
               >
@@ -844,29 +879,89 @@ export default function TeamPage() {
                         }}
                       />
                     </div>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2 relative" ref={permissionsDropdownRef}>
                       <label className="text-sm font-medium text-[#212121]">Permissions</label>
                       <div className="relative">
-                        <select
-                          className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
+                        <div
+                          onClick={() => setShowPermissionsDropdown(!showPermissionsDropdown)}
+                          className="w-full px-3 py-2 border rounded pr-10 cursor-pointer flex items-center"
                           style={{
                             padding: "7.52px 12px",
-                            border: "1px solid #CED4DA",
                             borderRadius: "4px",
-                            background: "#FFF"
+                            border: "1px solid #CED4DA",
+                            background: "#FFF",
+                            minHeight: "36px"
                           }}
                         >
-                          <option value="">Select</option>
-                          <option value="dashboard">Dashboard</option>
-                          <option value="partner">Partner</option>
-                          <option value="subscription">Subscription</option>
-                          <option value="support">Support</option>
-                        </select>
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                          <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
-                            <path d="M1 1.5L6 6.5L11 1.5" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
+                          {editForm.permissions && Array.isArray(editForm.permissions) && editForm.permissions.length > 0 ? (
+                            <span className="text-sm" style={{ color: "#212121" }}>
+                              {editForm.permissions.length} permission{editForm.permissions.length > 1 ? 's' : ''} selected
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-sm">Select permissions</span>
+                          )}
                         </div>
+                        <svg
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none transition-transform"
+                          style={{ 
+                            color: "#D9D9D9",
+                            transform: showPermissionsDropdown ? 'translateY(-50%) rotate(180deg)' : 'translateY(-50%)'
+                          }}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        {showPermissionsDropdown && (
+                          <div
+                            className="absolute z-50 w-full mt-1 bg-white border rounded shadow-lg"
+                            style={{
+                              borderRadius: "4px",
+                              border: "1px solid #CED4DA",
+                              background: "#FFF",
+                              maxHeight: "200px",
+                              overflowY: "auto",
+                              top: "100%",
+                              marginTop: "4px"
+                            }}
+                          >
+                            <div className="flex flex-col gap-1 p-2">
+                              {availablePermissions.map((permission) => (
+                                <label
+                                  key={permission.id}
+                                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
+                                  style={{
+                                    padding: "4px 8px",
+                                    borderRadius: "4px"
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={editForm.permissions && Array.isArray(editForm.permissions) && editForm.permissions.includes(permission.id)}
+                                    onChange={(e) => {
+                                      e.stopPropagation()
+                                      const currentPerms = (editForm.permissions && Array.isArray(editForm.permissions)) ? editForm.permissions : []
+                                      if (e.target.checked) {
+                                        setEditForm(prev => ({ ...prev, permissions: [...currentPerms, permission.id] }))
+                                      } else {
+                                        setEditForm(prev => ({ ...prev, permissions: currentPerms.filter((p: string) => p !== permission.id) }))
+                                      }
+                                    }}
+                                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                    style={{
+                                      accentColor: "#1F2A44"
+                                    }}
+                                  />
+                                  <span className="text-sm" style={{ color: "#212121" }}>
+                                    {permission.name}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -945,7 +1040,10 @@ export default function TeamPage() {
               }}
             >
               <button 
-                onClick={() => setShowEditModal(false)}
+                onClick={() => {
+                  setShowEditModal(false)
+                  setShowPermissionsDropdown(false)
+                }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                 style={{ 
                   padding: "8.52px 10px", 
@@ -989,7 +1087,10 @@ export default function TeamPage() {
             >
               <h2 className="text-lg font-semibold text-black">Add Member</h2>
               <button 
-                onClick={() => setShowAddModal(false)}
+                onClick={() => {
+                  setShowAddModal(false)
+                  setShowPermissionsDropdown(false)
+                }}
                 className="flex items-center justify-center"
                 style={{ width: "24px", height: "24px", aspectRatio: "1/1" }}
               >
@@ -1069,22 +1170,89 @@ export default function TeamPage() {
                         onChange={(e) => handleInputChange('email', e.target.value)}
                       />
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-[#212121]">Role</label>
-                      <input
-                        type="text"
-                        placeholder="Member (fixed)"
-                        className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-gray-100"
-                        style={{
-                          padding: "7.52px 12px",
-                          border: "1px solid #CED4DA",
-                          borderRadius: "4px",
-                          background: "#F3F4F6"
-                        }}
-                        value="member"
-                        disabled
-                        readOnly
-                      />
+                    <div className="flex flex-col gap-2 relative" ref={permissionsDropdownRef}>
+                      <label className="text-sm font-medium text-[#212121]">Permissions</label>
+                      <div className="relative">
+                        <div
+                          onClick={() => setShowPermissionsDropdown(!showPermissionsDropdown)}
+                          className="w-full px-3 py-2 border rounded pr-10 cursor-pointer flex items-center"
+                          style={{
+                            padding: "7.52px 12px",
+                            borderRadius: "4px",
+                            border: "1px solid #CED4DA",
+                            background: "#FFF",
+                            minHeight: "36px"
+                          }}
+                        >
+                          {formData.permissions.length === 0 ? (
+                            <span className="text-gray-400 text-sm">Select permissions</span>
+                          ) : (
+                            <span className="text-sm" style={{ color: "#212121" }}>
+                              {formData.permissions.length} permission{formData.permissions.length > 1 ? 's' : ''} selected
+                            </span>
+                          )}
+                        </div>
+                        <svg
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none transition-transform"
+                          style={{ 
+                            color: "#D9D9D9",
+                            transform: showPermissionsDropdown ? 'translateY(-50%) rotate(180deg)' : 'translateY(-50%)'
+                          }}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        {showPermissionsDropdown && (
+                          <div
+                            className="absolute z-50 w-full mt-1 bg-white border rounded shadow-lg"
+                            style={{
+                              borderRadius: "4px",
+                              border: "1px solid #CED4DA",
+                              background: "#FFF",
+                              maxHeight: "200px",
+                              overflowY: "auto",
+                              top: "100%",
+                              marginTop: "4px"
+                            }}
+                          >
+                            <div className="flex flex-col gap-1 p-2">
+                              {availablePermissions.map((permission) => (
+                                <label
+                                  key={permission.id}
+                                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
+                                  style={{
+                                    padding: "4px 8px",
+                                    borderRadius: "4px"
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.permissions.includes(permission.id)}
+                                    onChange={(e) => {
+                                      e.stopPropagation()
+                                      if (e.target.checked) {
+                                        handleInputChange('permissions', [...formData.permissions, permission.id])
+                                      } else {
+                                        handleInputChange('permissions', formData.permissions.filter(p => p !== permission.id))
+                                      }
+                                    }}
+                                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                    style={{
+                                      accentColor: "#1F2A44"
+                                    }}
+                                  />
+                                  <span className="text-sm" style={{ color: "#212121" }}>
+                                    {permission.name}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1166,7 +1334,10 @@ export default function TeamPage() {
               }}
             >
               <button 
-                onClick={() => setShowAddModal(false)}
+                onClick={() => {
+                  setShowAddModal(false)
+                  setShowPermissionsDropdown(false)
+                }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                 style={{ 
                   padding: "8.52px 10px", 
@@ -1435,6 +1606,15 @@ export default function TeamPage() {
           </div>
         </div>
       )}
+
+      {/* Alert Dialog */}
+      <AlertDialog
+        isOpen={alertDialog.isOpen}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        variant={alertDialog.variant}
+        onClose={() => setAlertDialog({ ...alertDialog, isOpen: false })}
+      />
     </div>
   )
 }
