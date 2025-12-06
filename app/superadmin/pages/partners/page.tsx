@@ -32,6 +32,7 @@ import AlertDialog from "@/app/partner/components/alert-dialog"
 import { FaTrash } from "react-icons/fa"
 import ResetPasswordModal from "@/app/superadmin/components/reset-password-modal"
 import { uploadImageToCloudinary } from "@/lib/cloudinary"
+import SuccessCard from "@/app/superadmin/components/success-card"
 
 interface Partner {
   id: string
@@ -284,6 +285,7 @@ export default function PartnersPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [showSuccessCard, setShowSuccessCard] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
   const [lastCreatedHotelName, setLastCreatedHotelName] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(8)
@@ -353,7 +355,13 @@ export default function PartnersPage() {
   })
 
   const showAlert = (title: string, message: string, variant: "success" | "error" | "warning" | "info" = "info") => {
-    setAlertDialog({ isOpen: true, title, message, variant })
+    // Use success card for success messages, alert dialog for others
+    if (variant === "success") {
+      setSuccessMessage(message)
+      setShowSuccessCard(true)
+    } else {
+      setAlertDialog({ isOpen: true, title, message, variant })
+    }
   }
   const calendarIconRef = useRef<HTMLDivElement | null>(null)
   const datePickerRef = useRef<HTMLDivElement | null>(null)
@@ -4029,6 +4037,18 @@ export default function PartnersPage() {
         onClose={() => setAlertDialog({ ...alertDialog, isOpen: false })}
       />
 
+      {/* Success Card - For other success messages (password reset, etc.) */}
+      {showSuccessCard && !lastCreatedHotelName && (
+        <SuccessCard
+          isOpen={showSuccessCard}
+          message={successMessage}
+          onClose={() => {
+            setShowSuccessCard(false)
+            setSuccessMessage("")
+          }}
+        />
+      )}
+
       {/* Reset Password Modal */}
       <ResetPasswordModal
         isOpen={showResetPasswordModal}
@@ -4039,9 +4059,9 @@ export default function PartnersPage() {
         memberId={partnerIdForReset || undefined}
         activeTab="partner"
         onSuccess={() => {
-          // Optionally refresh partners list or show success message
           setShowResetPasswordModal(false)
           setPartnerIdForReset(null)
+          showAlert('Success', 'Password updated successfully', 'success')
         }}
       />
     </div>

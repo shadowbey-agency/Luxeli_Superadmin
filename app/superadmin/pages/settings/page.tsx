@@ -7,6 +7,7 @@ import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
 import { getAuthToken } from "@/lib/auth-utils"
 import { uploadImageToCloudinary } from "@/lib/cloudinary"
+import SuccessCard from "@/app/superadmin/components/success-card"
 
 interface NotificationSetting {
   id: string
@@ -69,6 +70,8 @@ export default function SettingsPage() {
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const [showSuccessCard, setShowSuccessCard] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
 
   // Get initials helper
   const getInitials = (name: string | undefined) => {
@@ -250,6 +253,12 @@ export default function SettingsPage() {
     }))
   }
 
+  // Show success card
+  const showSuccess = (message: string) => {
+    setSuccessMessage(message)
+    setShowSuccessCard(true)
+  }
+
   // Save account changes
   const saveAccountChanges = async () => {
     if (!userData || !token) {
@@ -341,7 +350,24 @@ export default function SettingsPage() {
       console.log('Response ok:', response.ok)
 
       if (response.ok) {
-        alert('Account updated successfully!')
+        // Determine success message
+        const hasPasswordChange = formData.currentPassword && formData.newPassword && formData.confirmPassword
+        const hasProfileImageChange = profileImageUrl && profileImageUrl !== userData.profileImage
+        const hasOtherChanges = formData.fullName !== userData.fullName || 
+                                formData.email !== userData.email || 
+                                formData.phoneNumber !== userData.phoneNumber
+
+        let message = 'Account updated successfully!'
+        if (hasPasswordChange) {
+          message = 'Password updated successfully!'
+        } else if (hasProfileImageChange) {
+          message = 'Profile picture updated successfully!'
+        } else if (hasOtherChanges) {
+          message = 'Account information updated successfully!'
+        }
+
+        showSuccess(message)
+        
         // Update local user data
         if (result.superAdmin) {
           setUserData(prev => prev ? { ...prev, ...result.superAdmin } : null)
@@ -381,8 +407,10 @@ export default function SettingsPage() {
         setProfileImageFile(null)
         setImageError(false)
         
-        // Reload page to update header profile image
-        window.location.reload()
+        // Reload page to update header profile image after a short delay to show success card
+        setTimeout(() => {
+          window.location.reload()
+        }, 2000)
       } else {
         console.error('API Error Response:', result)
         alert(`Error: ${result.error || result.message || 'Unknown error occurred'}`)
@@ -766,6 +794,13 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* Success Card */}
+      <SuccessCard
+        isOpen={showSuccessCard}
+        message={successMessage}
+        onClose={() => setShowSuccessCard(false)}
+      />
     </div>
   )
 }

@@ -108,7 +108,6 @@ export default function ResetPasswordModal({
         console.error('Failed to parse JSON response:', jsonError)
         // If response is ok but JSON parsing fails, password might still be updated
         if (response.ok) {
-          alert('✅ Password reset successfully!')
           if (onSuccess) {
             onSuccess()
           }
@@ -126,7 +125,6 @@ export default function ResetPasswordModal({
         // Password update is successful if response is ok, regardless of result.success
         // Some APIs might return success:true, others might just return 200
         if (result.success !== false) {
-          alert('✅ Password reset successfully!')
           if (onSuccess) {
             onSuccess()
           }

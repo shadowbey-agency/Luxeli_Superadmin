@@ -18,6 +18,7 @@ import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-ar
 import { getAuthToken } from "@/lib/auth-utils"
 import AlertDialog from "@/app/partner/components/alert-dialog"
 import ResetPasswordModal from "@/app/superadmin/components/reset-password-modal"
+import SuccessCard from "@/app/superadmin/components/success-card"
 
 interface TeamMember {
   id: string
@@ -92,6 +93,8 @@ export default function TeamPage() {
   const [isLoadingMembers, setIsLoadingMembers] = useState(true)
   const [showPermissionsDropdown, setShowPermissionsDropdown] = useState(false)
   const permissionsDropdownRef = React.useRef<HTMLDivElement | null>(null)
+  const [showSuccessCard, setShowSuccessCard] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
   const [alertDialog, setAlertDialog] = useState<{
     isOpen: boolean
     title: string
@@ -1448,10 +1451,19 @@ export default function TeamPage() {
         onSuccess={() => {
           setShowResetPasswordModal(false)
           setMemberIdForReset(null)
-          showAlert('Success', 'Password updated successfully', 'success')
+          // Show success card instead of alert
+          setShowSuccessCard(true)
+          setSuccessMessage('Password updated successfully')
           // Optionally refresh members list
           fetchMembers()
         }}
+      />
+
+      {/* Success Card */}
+      <SuccessCard
+        isOpen={showSuccessCard}
+        message={successMessage}
+        onClose={() => setShowSuccessCard(false)}
       />
 
       {/* Alert Dialog */}
