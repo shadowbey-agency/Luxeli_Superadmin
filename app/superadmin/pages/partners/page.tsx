@@ -1,7 +1,5 @@
 "use client"
 
-export const dynamic = 'force-dynamic'
-
 import React, { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import { createPortal } from "react-dom"
@@ -1356,7 +1354,7 @@ export default function PartnersPage() {
         {selectedPartners.length > 0 && (
           <div className="flex items-center justify-between py-3 px-4 ">
             <h3 className="text-base font-semibold text-foreground">Partners list</h3>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               {selectedPartners.length > 0 && (
                 <div className="flex items-center gap-2">
                   <button
