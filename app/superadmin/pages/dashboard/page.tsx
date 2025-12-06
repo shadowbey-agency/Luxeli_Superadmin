@@ -1334,7 +1334,7 @@ export default function DashboardPage() {
   )
 
   return (
-    <div className="p-6">
+    <div className="p-4">
       {/* Navigation Buttons (like original tabs but always visible) */}
       <div className="w-full border-b border-black/[0.06]">
         <div className="flex max-w-[1180px] p-5 justify-end items-center gap-4">

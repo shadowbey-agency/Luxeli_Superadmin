@@ -17,6 +17,7 @@ import SortArrows from "@/app/superadmin/components/sort-arrows"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
 import { getAuthToken } from "@/lib/auth-utils"
 import AlertDialog from "@/app/partner/components/alert-dialog"
+import ResetPasswordModal from "@/app/superadmin/components/reset-password-modal"
 
 interface TeamMember {
   id: string
@@ -82,7 +83,7 @@ export default function TeamPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
-  const [resetForm, setResetForm] = useState({ password: '', confirm: '', showPassword: false, showConfirm: false })
+  const [memberIdForReset, setMemberIdForReset] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', permissions: [] as string[] })
   const [showAddModal, setShowAddModal] = useState(false)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
@@ -294,8 +295,7 @@ export default function TeamPage() {
   }
 
   const handleResetPassword = (member: TeamMember) => {
-    setSelectedMember(member)
-    setResetForm({ password: '', confirm: '', showPassword: false, showConfirm: false })
+    setMemberIdForReset(member.id)
     setShowResetPasswordModal(true)
   }
 
@@ -474,43 +474,6 @@ export default function TeamPage() {
     }
   }
 
-  const handleSaveResetPassword = async () => {
-    if (!selectedMember) return
-    if (!resetForm.password || resetForm.password.length < 6) {
-      showAlert('Validation Error', 'Password must be at least 6 characters long', 'warning')
-      return
-    }
-    if (resetForm.password !== resetForm.confirm) {
-      showAlert('Validation Error', 'Passwords do not match', 'warning')
-      return
-    }
-    try {
-      const token = getAuthToken()
-      if (!token) {
-        showAlert('Authentication Required', 'Please log in to update password', 'warning')
-        return
-      }
-      const response = await fetch(`/api/superadmin/members/${selectedMember.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ password: resetForm.password })
-      })
-      const result = await response.json().catch(() => ({}))
-      if (!response.ok || (result as any).success === false) {
-        showAlert('Error', `${(result as any).error || 'Failed to update password'}`, 'error')
-        return
-      }
-      showAlert('Success', 'Password updated successfully', 'success')
-      setShowResetPasswordModal(false)
-      setSelectedMember(null)
-    } catch (e) {
-      console.error('Error updating password:', e)
-      showAlert('Error', 'Failed to update password. Please try again.', 'error')
-    }
-  }
 
   const norm = (v: string) => v.toLowerCase()
   const filteredMembers = teamMembers.filter((m) => {
@@ -530,7 +493,7 @@ export default function TeamPage() {
   const currentMembers = filteredMembers.slice(startIndex, endIndex)
 
   return (
-    <div className="p-6">
+    <div className="p-4">
       {/* Page Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">Team</h1>
@@ -1474,138 +1437,22 @@ export default function TeamPage() {
       />
 
       {/* Reset Password Modal */}
-      {showResetPasswordModal && selectedMember && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
-          <div className="bg-white rounded-xl w-[40vw] mx-4 max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div 
-              className="flex justify-between items-center border-b"
-              style={{
-                padding: "20px 16px",
-                borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
-                borderRadius: "10px 10px 0 0",
-                background: "#FFF"
-              }}
-            >
-              <div>
-                <h2 className="text-lg font-semibold text-black">Reset Password</h2>
-                <p className="text-sm text-[#525866]">Click save when you're done</p>
-              </div>
-              <button 
-                onClick={() => setShowResetPasswordModal(false)}
-                className="flex items-center justify-center"
-                style={{ width: "24px", height: "24px", aspectRatio: "1/1" }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
-                  <path d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244" stroke="#525866" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-[#212121]">New Password</label>
-                  <div className="relative">
-                    <input
-                      type={resetForm.showPassword ? 'text' : 'password'}
-                      placeholder="Enter new password"
-                      className="w-full px-3 py-2 pr-10 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                      style={{
-                        padding: "7.52px 12px",
-                        border: "1px solid #CED4DA",
-                        borderRadius: "4px",
-                        background: "#FFF"
-                      }}
-                      value={resetForm.password}
-                      onChange={(e) => setResetForm(prev => ({ ...prev, password: e.target.value }))}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setResetForm(prev => ({ ...prev, showPassword: !prev.showPassword }))}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M14.3623 5.21847C14.565 5.50268 14.6663 5.64479 14.6663 5.85514C14.6663 6.0655 14.565 6.20761 14.3623 6.49182C13.4516 7.76885 11.1258 10.5218 7.99968 10.5218C4.87353 10.5218 2.54774 7.76885 1.63704 6.49182C1.43435 6.20761 1.33301 6.0655 1.33301 5.85514C1.33301 5.64479 1.43435 5.50268 1.63703 5.21847C2.54774 3.94144 4.87353 1.18848 7.99968 1.18848C11.1258 1.18848 13.4516 3.94144 14.3623 5.21847Z" stroke="#141B34"/>
-                        <path d="M10 5.85547C10 4.7509 9.10457 3.85547 8 3.85547C6.89543 3.85547 6 4.7509 6 5.85547C6 6.96004 6.89543 7.85547 8 7.85547C9.10457 7.85547 10 6.96004 10 5.85547Z" stroke="#121212"/>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-[#212121]">Confirm Password</label>
-                  <div className="relative">
-                    <input
-                      type={resetForm.showConfirm ? 'text' : 'password'}
-                      placeholder="Confirm new password"
-                      className="w-full px-3 py-2 pr-10 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                      style={{
-                        padding: "7.52px 12px",
-                        border: "1px solid #CED4DA",
-                        borderRadius: "4px",
-                        background: "#FFF"
-                      }}
-                      value={resetForm.confirm}
-                      onChange={(e) => setResetForm(prev => ({ ...prev, confirm: e.target.value }))}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setResetForm(prev => ({ ...prev, showConfirm: !prev.showConfirm }))}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M14.3623 5.21847C14.565 5.50268 14.6663 5.64479 14.6663 5.85514C14.6663 6.0655 14.565 6.20761 14.3623 6.49182C13.4516 7.76885 11.1258 10.5218 7.99968 10.5218C4.87353 10.5218 2.54774 7.76885 1.63704 6.49182C1.43435 6.20761 1.33301 6.0655 1.33301 5.85514C1.33301 5.64479 1.43435 5.50268 1.63703 5.21847C2.54774 3.94144 4.87353 1.18848 7.99968 1.18848C11.1258 1.18848 13.4516 3.94144 14.3623 5.21847Z" stroke="#141B34"/>
-                        <path d="M10 5.85547C10 4.7509 9.10457 3.85547 8 3.85547C6.89543 3.85547 6 4.7509 6 5.85547C6 6.96004 6.89543 7.85547 8 7.85547C9.10457 7.85547 10 6.96004 10 5.85547Z" stroke="#121212"/>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div 
-              className="flex justify-end items-center border-t"
-              style={{
-                padding: "20px 16px",
-                justifyContent: "flex-end",
-                alignItems: "center",
-                gap: "10px",
-                alignSelf: "stretch",
-                borderRadius: "0 0 10px 10px",
-                borderTop: "1px solid rgba(0, 0, 0, 0.04)",
-                background: "#FFF"
-              }}
-            >
-              <button 
-                onClick={() => setShowResetPasswordModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                style={{ 
-                  padding: "8.52px 10px", 
-                  borderRadius: "6px", 
-                  background: "#FBFAFA",
-                  border: "1px solid #CED4DA",
-                  color: "#525866"
-                }}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleSaveResetPassword}
-                className="px-4 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors"
-                style={{ 
-                  padding: "8.52px 20px", 
-                  borderRadius: "6px", 
-                  background: "#1F2A44" 
-                }}
-              >
-                Update
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ResetPasswordModal
+        isOpen={showResetPasswordModal}
+        onClose={() => {
+          setShowResetPasswordModal(false)
+          setMemberIdForReset(null)
+        }}
+        memberId={memberIdForReset || undefined}
+        activeTab="members"
+        onSuccess={() => {
+          setShowResetPasswordModal(false)
+          setMemberIdForReset(null)
+          showAlert('Success', 'Password updated successfully', 'success')
+          // Optionally refresh members list
+          fetchMembers()
+        }}
+      />
 
       {/* Alert Dialog */}
       <AlertDialog

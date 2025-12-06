@@ -5,6 +5,7 @@ import Staff from '@/models/Staff';
 import Room from '@/models/Room';
 import Guest from '@/models/Guest';
 import { handleApiError } from '@/lib/middleware';
+import { hashPassword } from '@/lib/auth';
 
 export class PartnerController {
   /**
@@ -204,6 +205,7 @@ export class PartnerController {
     taxeProfessionnelle: string;
     hotelImage: string;
     username: string;
+    password: string;
     startDate: Date;
     endDate: Date;
     plan: 'starter pack' | 'gold pack';
@@ -243,9 +245,21 @@ export class PartnerController {
         }
       }
 
+      // Handle password update - hash it before saving
+      if (data.password) {
+        if (data.password.length < 6) {
+          return NextResponse.json(
+            { success: false, error: 'Password must be at least 6 characters long' },
+            { status: 400 }
+          );
+        }
+        const hashedPassword = await hashPassword(data.password);
+        partner.password = hashedPassword;
+      }
+
       // Only apply fields that are explicitly provided (not undefined)
       const updates = Object.fromEntries(
-        Object.entries(data).filter(([, value]) => value !== undefined)
+        Object.entries(data).filter(([key, value]) => value !== undefined && key !== 'password')
       );
       Object.assign(partner, updates);
       await partner.save();

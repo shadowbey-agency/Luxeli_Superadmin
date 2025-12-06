@@ -93,7 +93,7 @@ export const POST = withSuperAdminAuth(async (request: NextRequest) => {
       ICE: ICE.trim(),
       identifiantFiscal: identifiantFiscal.trim(),
       taxeProfessionnelle: taxeProfessionnelle.trim(),
-      hotelImage: hotelImage || undefined,
+      hotelImage: hotelImage && typeof hotelImage === 'string' && hotelImage.trim() ? hotelImage.trim() : undefined,
       username: username.trim(),
       password: hashedPassword,
       startDate: new Date(startDate),

@@ -1036,7 +1036,7 @@ export default function RoomPage() {
           </div>
 
           {/* Content */}
-          <div className="p-6">
+          <div className="p-4">
             <div className="grid grid-cols-2 gap-4">{children}</div>
           </div>
 
@@ -1070,7 +1070,7 @@ export default function RoomPage() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4">
       {/* Page Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">

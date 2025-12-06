@@ -10,8 +10,8 @@ import {
   RiMoreLine,
   RiAddLine,
   RiEyeLine,
-  RiEditLine,
   RiDeleteBinLine,
+  RiLockPasswordLine,
 } from "react-icons/ri"
 import StatCard from "@/app/superadmin/components/stat-card"
 import ToggleSwitch from "@/app/superadmin/components/toggle-switch"
@@ -24,10 +24,14 @@ import SortArrows from "@/app/superadmin/components/sort-arrows"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
 import { getAuthToken } from "@/lib/auth-utils"
 import ExportToExcel from "@/app/exportin-excel/export-to-excel"
+import * as XLSX from "xlsx"
+import { saveAs } from "file-saver"
 import PublicIcon from "@/app/partner/components/public-icon"
 import { FiEye, FiEyeOff } from "react-icons/fi"
 import AlertDialog from "@/app/partner/components/alert-dialog"
 import { FaTrash } from "react-icons/fa"
+import ResetPasswordModal from "@/app/superadmin/components/reset-password-modal"
+import { uploadImageToCloudinary } from "@/lib/cloudinary"
 
 interface Partner {
   id: string
@@ -295,7 +299,7 @@ export default function PartnersPage() {
     ICE: '',
     identifiantFiscal: '',
     taxeProfessionnelle: '',
-    hotelImage: null as File | null,
+    hotelImage: null as File | string | null,
     username: '',
     password: '',
     startDate: '',
@@ -303,6 +307,8 @@ export default function PartnersPage() {
     plan: 'starter pack' as 'starter pack' | 'gold pack',
     services: [] as string[]
   })
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [serviceOptions, setServiceOptions] = useState<string[]>([])
   const [servicesLoading, setServicesLoading] = useState(false)
   const [showServicesDropdown, setShowServicesDropdown] = useState(false)
@@ -311,8 +317,12 @@ export default function PartnersPage() {
   const endDateRef = useRef<HTMLInputElement | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [partnerToDelete, setPartnerToDelete] = useState<Partner | null>(null)
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [showViewDetail, setShowViewDetail] = useState(false)
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null)
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
+  const [partnerIdForReset, setPartnerIdForReset] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'partner-info' | 'subscription' | 'room-api'>('partner-info')
   const [showPasswordDetails, setShowPasswordDetails] = useState(false)
   const [partnerStats, setPartnerStats] = useState<{
@@ -402,6 +412,7 @@ export default function PartnersPage() {
           })
 
           console.log('Transformed partners:', transformedPartners)
+          console.log('Total partners:', transformedPartners.length, 'Active partners:', transformedPartners.filter(p => p.status === 'active').length)
           setPartners(transformedPartners)
         } else {
           console.error('Partners API returned no partners data:', result)
@@ -447,11 +458,15 @@ export default function PartnersPage() {
         }
         const data = await res.json().catch(() => ({}))
         const stats = data.stats || data // controller returns {stats: {...}}
-        if (stats) {
+        console.log('Partner stats from API:', stats)
+        if (stats && (stats.totalPartners !== undefined || stats.activePartners !== undefined)) {
           setPartnerStats({
             totalPartners: stats.totalPartners ?? 0,
             activePartners: stats.activePartners ?? 0,
           })
+        } else {
+          // If API doesn't return stats, calculate from partners array
+          console.log('API stats not available, will use local calculation')
         }
       } catch (e) {
         console.error('Error fetching partner stats:', e)
@@ -525,9 +540,10 @@ export default function PartnersPage() {
     })
   }
 
-  // Calculate period-based stats
+  // Calculate period-based stats (for percentage changes only)
   const calculatePeriodStats = React.useMemo(() => {
-    if (statsLoading) return null
+    // Don't return null during loading if we have partners
+    if (statsLoading && partners.length === 0) return null
 
     let currentRange: { start: Date; end: Date }
     let previousRange: { start: Date; end: Date }
@@ -625,12 +641,36 @@ export default function PartnersPage() {
 
   // Calculate stats from local partners array as fallback (keep for backward compatibility)
   const localStats = React.useMemo(() => {
-    if (calculatePeriodStats) return calculatePeriodStats
-    if (partnerStats) return partnerStats
-    if (statsLoading) return null
-
+    // Always calculate TOTAL from ALL partners (not filtered by period)
     const total = partners.length
     const active = partners.filter(p => p.status === 'active').length
+    
+    console.log('Calculating localStats:', { total, active, partnersCount: partners.length })
+    
+    // Use calculatePeriodStats for percentage changes, but keep total counts from all partners
+    if (calculatePeriodStats) {
+      return {
+        ...calculatePeriodStats,
+        // Override with total counts from ALL partners (not period-filtered)
+        totalPartners: total,
+        activePartners: active,
+      }
+    }
+    
+    // Use partnerStats from API if available (has API stats)
+    if (partnerStats && (partnerStats.totalPartners !== undefined || partnerStats.activePartners !== undefined)) {
+      return {
+        totalPartners: partnerStats.totalPartners ?? total,
+        activePartners: partnerStats.activePartners ?? active,
+        totalStaff: partnerStats.totalStaff ?? 42,
+        totalPartnersChange: partnerStats.totalPartnersChange ?? 0,
+        activePartnersChange: partnerStats.activePartnersChange ?? 0,
+        totalStaffChange: partnerStats.totalStaffChange ?? 0,
+        subtitle: partnerStats.subtitle || 'vs last week'
+      }
+    }
+    
+    // Fallback: always calculate from local partners array (ensures values are shown)
     return {
       totalPartners: total,
       activePartners: active,
@@ -694,6 +734,69 @@ export default function PartnersPage() {
     })
   }
 
+  // Handle image upload to Cloudinary
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file')
+      return
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image size must be less than 10MB')
+      return
+    }
+
+    setIsUploadingImage(true)
+    try {
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+
+      // Upload to Cloudinary
+      const uploadResult = await uploadImageToCloudinary(file, {
+        folder: 'partners'
+      })
+
+      // Update form data with Cloudinary secure URL
+      // The secure_url is the HTTPS URL that should be stored in MongoDB
+      const imageUrl = uploadResult.secure_url
+      setFormData(prev => ({
+        ...prev,
+        hotelImage: imageUrl
+      }))
+      
+      console.log('Image uploaded to Cloudinary:', {
+        secure_url: uploadResult.secure_url,
+        public_id: uploadResult.public_id,
+        width: uploadResult.width,
+        height: uploadResult.height
+      })
+    } catch (error: any) {
+      console.error('Image upload error:', error)
+      alert(error.message || 'Failed to upload image. Please try again.')
+      setImagePreview(null)
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
+
+  // Remove image
+  const handleRemoveImage = () => {
+    setFormData(prev => ({
+      ...prev,
+      hotelImage: null
+    }))
+    setImagePreview(null)
+  }
+
 
   const handleEditPartner = (partner: any) => {
     setIsEditingPartner(true)
@@ -715,6 +818,12 @@ export default function PartnersPage() {
       plan: partner.plan || 'starter pack',
       services: partner.services || [],
     })
+    // Set image preview if editing and image exists
+    if (partner.hotelImage && typeof partner.hotelImage === 'string') {
+      setImagePreview(partner.hotelImage)
+    } else {
+      setImagePreview(null)
+    }
     setCurrentStep(1)
     setShowAddPartnerModal(true)
   }
@@ -769,7 +878,13 @@ export default function PartnersPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${finalToken}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          // Ensure hotelImage is a valid URL string or null
+          hotelImage: typeof formData.hotelImage === 'string' && formData.hotelImage.trim() 
+            ? formData.hotelImage.trim() 
+            : null
+        })
       })
 
       const result = await response.json()
@@ -821,6 +936,7 @@ export default function PartnersPage() {
           plan: 'starter pack',
           services: []
         })
+        setImagePreview(null)
 
         // Auto hide success card after 5 seconds
         setTimeout(() => {
@@ -945,6 +1061,85 @@ export default function PartnersPage() {
   const cancelDelete = () => {
     setShowDeleteModal(false)
     setPartnerToDelete(null)
+  }
+
+  // Handle bulk delete
+  const handleBulkDelete = () => {
+    if (selectedPartners.length === 0) return
+    setShowBulkDeleteModal(true)
+  }
+
+  const confirmBulkDelete = async () => {
+    if (selectedPartners.length === 0) return
+
+    setIsDeleting(true)
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        showAlert('Authentication Required', 'Please login again.', 'warning')
+        setIsDeleting(false)
+        return
+      }
+
+      // Delete all selected partners
+      const deletePromises = selectedPartners.map(async (partnerId) => {
+        try {
+          const response = await fetch(`/api/superadmin/partners/${partnerId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          })
+          return { id: partnerId, success: response.ok }
+        } catch (error) {
+          console.error(`Error deleting partner ${partnerId}:`, error)
+          return { id: partnerId, success: false }
+        }
+      })
+
+      const results = await Promise.all(deletePromises)
+      const successful = results.filter(r => r.success).length
+      const failed = results.filter(r => !r.success).length
+
+      if (successful > 0) {
+        // Remove deleted partners from selection
+        const deletedIds = results.filter(r => r.success).map(r => r.id)
+        setSelectedPartners(prev => prev.filter(id => !deletedIds.includes(id)))
+        
+        // Close view detail if deleted partner was being viewed
+        if (selectedPartner && deletedIds.includes(selectedPartner.id)) {
+          setShowViewDetail(false)
+          setSelectedPartner(null)
+        }
+
+        // Refresh partners list
+        await fetchPartners()
+
+        if (failed > 0) {
+          showAlert('Partial Success', `${successful} partner(s) deleted successfully, ${failed} failed.`, 'warning')
+        } else {
+          showAlert('Success', `${successful} partner(s) deleted successfully`, 'success')
+        }
+      } else {
+        showAlert('Error', 'Failed to delete partners. Please try again.', 'error')
+      }
+    } catch (error) {
+      console.error('Error deleting partners:', error)
+      showAlert('Error', 'Failed to delete partners. Please try again.', 'error')
+    } finally {
+      setIsDeleting(false)
+      setShowBulkDeleteModal(false)
+    }
+  }
+
+  const cancelBulkDelete = () => {
+    setShowBulkDeleteModal(false)
+  }
+
+  const handleResetPassword = (partner: Partner) => {
+    setPartnerIdForReset(partner.id)
+    setShowResetPasswordModal(true)
   }
 
   const handleViewDetails = (partner: Partner) => {
@@ -1221,12 +1416,12 @@ export default function PartnersPage() {
         <StatCard
           icon={<CarIcon />}
           label="Total Partners"
-          value={localStats ? localStats.totalPartners : 0}
-          isLoading={statsLoading}
-          change={localStats && localStats.totalPartnersChange !== undefined
+          value={localStats?.totalPartners ?? partners.length}
+          isLoading={statsLoading && partners.length === 0}
+          change={localStats?.totalPartnersChange !== undefined
             ? `${localStats.totalPartnersChange >= 0 ? '+' : ''}${localStats.totalPartnersChange}%`
             : '+0%'}
-          changeType={localStats && localStats.totalPartnersChange !== undefined
+          changeType={localStats?.totalPartnersChange !== undefined
             ? localStats.totalPartnersChange > 0 ? 'positive' : localStats.totalPartnersChange < 0 ? 'negative' : 'neutral'
             : 'neutral'}
           subtitle={localStats?.subtitle || 'vs last week'}
@@ -1234,11 +1429,11 @@ export default function PartnersPage() {
         <StatCard
           icon={<StaffIcon />}
           label="Total Staff"
-          value={localStats?.totalStaff || 42}
-          change={localStats && localStats.totalStaffChange !== undefined
+          value={localStats?.totalStaff ?? 42}
+          change={localStats?.totalStaffChange !== undefined
             ? `${localStats.totalStaffChange >= 0 ? '+' : ''}${localStats.totalStaffChange}%`
             : '+0%'}
-          changeType={localStats && localStats.totalStaffChange !== undefined
+          changeType={localStats?.totalStaffChange !== undefined
             ? localStats.totalStaffChange > 0 ? 'positive' : localStats.totalStaffChange < 0 ? 'negative' : 'neutral'
             : 'neutral'}
           subtitle={localStats?.subtitle || 'vs last week'}
@@ -1246,12 +1441,12 @@ export default function PartnersPage() {
         <StatCard
           icon={<ActivePartnerIcon />}
           label="Active Partners"
-          value={localStats ? localStats.activePartners : 0}
-          isLoading={statsLoading}
-          change={localStats && localStats.activePartnersChange !== undefined
+          value={localStats?.activePartners ?? partners.filter(p => p.status === 'active').length}
+          isLoading={statsLoading && partners.length === 0}
+          change={localStats?.activePartnersChange !== undefined
             ? `${localStats.activePartnersChange >= 0 ? '+' : ''}${localStats.activePartnersChange}%`
             : '+0%'}
-          changeType={localStats && localStats.activePartnersChange !== undefined
+          changeType={localStats?.activePartnersChange !== undefined
             ? localStats.activePartnersChange > 0 ? 'positive' : localStats.activePartnersChange < 0 ? 'negative' : 'neutral'
             : 'neutral'}
           subtitle={localStats?.subtitle || 'vs last week'}
@@ -1383,29 +1578,82 @@ export default function PartnersPage() {
               )}
               <button
                 onClick={handleSelectAllFiltered}
-                className="text-sm font-small text-primary hover:text-primary/80 transition-colors cursor-pointer underline"
-                style={{ color: "#1F2A44" }}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#1F2A44] hover:text-[#1F2A44]/80 transition-colors cursor-pointer underline"
               >
                 Select all items
               </button>
-              <ExportToExcel
-                data={filteredPartners.filter((partner) => selectedPartners.includes(partner.id)).map((partner) => ({
-                  "Hotel Name": partner.hotelName,
-                  "Email": partner.hotelAddressEmail,
-                  "Phone number": partner.phone,
-                  "City": partner.city,
-                  "Services": partner.services.join(", "),
-                  "Plan": partner.plan,
-                  "Created At": partner.createdAt,
-                  "Account": partner.status === 'active' ? 'Active' : 'Inactive'
-                }))}
-                fileName={`selected-partners-export-${new Date().toISOString().split('T')[0]}.xlsx`}
-                sheetName="SelectedPartners"
-              />
-              <FaTrash className="w-4 h-4 cursor-pointer" fill="#1F2A44" />
-              <h3 className="text-md font-small text-primary hover:text-primary/80 transition-colors cursor-pointer underline" style={{ color: "#1F2A44" }}>
+              <button
+                onClick={() => {
+                  const exportData = filteredPartners.filter((partner) => selectedPartners.includes(partner.id)).map((partner) => ({
+                    "Hotel Name": partner.hotelName,
+                    "Email": partner.hotelAddressEmail,
+                    "Phone number": partner.phone,
+                    "City": partner.city,
+                    "Services": partner.services.join(", "),
+                    "Plan": partner.plan,
+                    "Created At": partner.createdAt,
+                    "Account": partner.status === 'active' ? 'Active' : 'Inactive'
+                  }))
+                  
+                  if (!exportData || exportData.length === 0) {
+                    alert("No data to export!")
+                    return
+                  }
+
+                  const worksheet = XLSX.utils.json_to_sheet(exportData)
+                  const workbook = XLSX.utils.book_new()
+                  XLSX.utils.book_append_sheet(workbook, worksheet, "SelectedPartners")
+
+                  const excelBuffer = XLSX.write(workbook, {
+                    bookType: "xlsx",
+                    type: "array",
+                  })
+
+                  const blob = new Blob([excelBuffer], {
+                    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                  })
+
+                  saveAs(blob, `selected-partners-export-${new Date().toISOString().split('T')[0]}.xlsx`)
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#1F2A44] hover:text-[#1F2A44]/80 transition-colors cursor-pointer underline"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="16"
+                  viewBox="0 0 14 16"
+                  fill="none"
+                  className="w-[14px] h-4"
+                >
+                  <path
+                    d="M11.3333 10.6666C11.6705 10.9943 13 11.8665 13 12.3333M11.3333 14C11.6705 13.6723 13 12.8001 13 12.3333M13 12.3333L7.66667 12.3333"
+                    stroke="#1F2A44"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M6.33398 14.6666H6.15217C3.97803 14.6666 2.89096 14.6666 2.13603 14.1347C1.91973 13.9823 1.7277 13.8016 1.56578 13.598C1.00065 12.8875 1.00065 11.8644 1.00065 9.81814V8.12117C1.00065 6.14572 1.00065 5.158 1.31328 4.36913C1.81586 3.10091 2.87874 2.10055 4.22622 1.62753C5.0644 1.33329 6.11386 1.33329 8.21277 1.33329C9.41215 1.33329 10.0118 1.33329 10.4908 1.50143C11.2608 1.77172 11.8682 2.34336 12.1553 3.06805C12.334 3.51884 12.334 4.08325 12.334 5.21208V8.66663"
+                    stroke="#1F2A44"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M1.0013 8C1.0013 6.7727 1.99622 5.77778 3.22352 5.77778C3.66738 5.77778 4.19066 5.85555 4.62221 5.73992C5.00565 5.63718 5.30514 5.33768 5.40789 4.95424C5.52352 4.52269 5.44575 3.99941 5.44575 3.55556C5.44575 2.32826 6.44067 1.33333 7.66797 1.33333"
+                    stroke="#1F2A44"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Export
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={isDeleting}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#1F2A44] hover:text-[#1F2A44]/80 transition-colors cursor-pointer underline disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FaTrash className="w-4 h-4" />
                 Delete
-              </h3>
+              </button>
             </div>
           </div>
         )}
@@ -1602,7 +1850,10 @@ export default function PartnersPage() {
                         }
                         items={[
                           { label: "View Details", icon: <RiEyeLine className="w-4 h-4" />, onClick: () => handleViewDetails(partner) },
-                          { label: "Edit Partner", icon: <RiEditLine className="w-4 h-4" />, onClick: () => handleEditPartner(partner) },
+                          { label: "Edit Partner", icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>, onClick: () => handleEditPartner(partner) },
+                          { label: "Reset Password", icon: <RiLockPasswordLine className="w-4 h-4" />, onClick: () => handleResetPassword(partner) },
                           { label: "Supprimer", icon: <RiDeleteBinLine className="w-4 h-4 text-error" />, onClick: () => handleDeletePartner(partner), variant: "danger" },
                         ]}
                       />
@@ -1660,9 +1911,80 @@ export default function PartnersPage() {
   )
 
   return (
-    <div className="p-6">
+    <div className="p-4">
       {/* Content */}
       {overviewContent}
+
+      {/* Bulk Delete Modal */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 bg-black/40 bg-opacity-80 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+          <div className="bg-white rounded-[10px] w-full max-w-md mx-4">
+            {/* First Section - Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-[#212121]">
+                Delete Partners
+              </h2>
+              <button
+                onClick={cancelBulkDelete}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Second Section - Content */}
+            <div className="p-4">
+              <p className="text-sm text-[#212121] mb-4">
+                Are you sure you want to delete {selectedPartners.length} partner{selectedPartners.length > 1 ? 's' : ''}? This action cannot be undone.
+              </p>
+              <div className="max-h-48 overflow-y-auto mb-4">
+                <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+                  {filteredPartners
+                    .filter(p => selectedPartners.includes(p.id))
+                    .slice(0, 10)
+                    .map(partner => (
+                      <li key={partner.id}>{partner.hotelName}</li>
+                    ))}
+                  {selectedPartners.length > 10 && (
+                    <li className="text-gray-400">...and {selectedPartners.length - 10} more</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+
+            {/* Third Section - Actions */}
+            <div className="flex items-center justify-end gap-3 p-4 border-t border-gray-200">
+              <button
+                onClick={cancelBulkDelete}
+                disabled={isDeleting}
+                className="flex flex-col justify-center items-center px-2.5 py-2 rounded-md text-center font-medium text-sm leading-5 transition-colors disabled:opacity-50"
+                style={{
+                  padding: "8.52px 10px",
+                  border: "1px solid #E5E7EB",
+                  backgroundColor: "white",
+                  color: "#212121"
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmBulkDelete}
+                disabled={isDeleting}
+                className="flex flex-col justify-center items-center px-2.5 py-2 rounded-md text-center font-medium text-sm leading-5 transition-colors disabled:opacity-50"
+                style={{
+                  padding: "8.52px 10px",
+                  backgroundColor: "#DC2626",
+                  color: "white"
+                }}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Partner Modal */}
       {showDeleteModal && (
@@ -2386,7 +2708,9 @@ export default function PartnersPage() {
                   className="text-gray-500 hover:text-gray-700 transition-colors p-1"
                   title="Edit Partner"
                 >
-                  <RiEditLine className="w-5 h-5" />
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
                 </button>
                 <button
                   onClick={() => {
@@ -2945,39 +3269,83 @@ export default function PartnersPage() {
                       Hotel image
                     </h3>
 
-                    <div
-                      className="flex flex-col items-center justify-center"
-                      style={{
-                        height: "150px",
-                        padding: "25px 13px",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        gap: "12px",
-                        alignSelf: "stretch",
-                        borderRadius: "6.75px",
-                        border: "1px solid rgba(0, 0, 0, 0.06)",
-                        background: "#FBFAFA"
-                      }}
-                    >
-                      <div
+                    {imagePreview ? (
+                      <div className="relative w-full">
+                        <div className="relative" style={{ width: "100%", maxHeight: "300px", overflow: "hidden", borderRadius: "6.75px" }}>
+                          <Image
+                            src={imagePreview}
+                            alt="Hotel preview"
+                            width={500}
+                            height={300}
+                            className="w-full h-auto object-contain"
+                            style={{ borderRadius: "6.75px" }}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                          style={{ width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                        {isUploadingImage && (
+                          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded" style={{ borderRadius: "6.75px" }}>
+                            <div className="text-white text-sm">Uploading...</div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <label
+                        className="flex flex-col items-center justify-center cursor-pointer"
                         style={{
-                          width: "20px",
-                          height: "20px",
-                          flexShrink: "0"
+                          height: "150px",
+                          padding: "25px 13px",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          gap: "12px",
+                          alignSelf: "stretch",
+                          borderRadius: "6.75px",
+                          border: "1px solid rgba(0, 0, 0, 0.06)",
+                          background: "#FBFAFA"
                         }}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="23" viewBox="0 0 22 23" fill="none">
-                          <path d="M12 2.56872C11.5299 2.56641 11.0307 2.56641 10.5 2.56641C6.02166 2.56641 3.78249 2.56641 2.39124 3.95765C1 5.34889 1 7.58806 1 12.0664C1 16.5447 1 18.7839 2.39124 20.1752C3.78249 21.5664 6.02166 21.5664 10.5 21.5664C14.9783 21.5664 17.2175 21.5664 18.6088 20.1752C19.9472 18.8367 19.998 16.7134 19.9999 12.5664" stroke="#141B34" strokeWidth="1.5" strokeLinecap="round" />
-                          <path d="M1 13.7018C1.61902 13.6119 2.24484 13.5675 2.87171 13.5691C5.52365 13.513 8.11064 14.3394 10.1711 15.9006C12.082 17.3485 13.4247 19.3413 14 21.5664" stroke="#141B34" strokeWidth="1.5" strokeLinejoin="round" />
-                          <path d="M20 16.4626C18.8246 15.8673 17.6088 15.5652 16.3862 15.5665C14.5345 15.5592 12.7015 16.2398 11 17.5664" stroke="#141B34" strokeWidth="1.5" strokeLinejoin="round" />
-                          <path d="M16 4.06641C16.4915 3.56071 17.7998 1.56641 18.5 1.56641M21 4.06641C20.5085 3.56071 19.2002 1.56641 18.5 1.56641M18.5 1.56641V9.56641" stroke="#141B34" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </div>
-                      <span className="text-sm text-gray-600 text-center">
-                        Drag and drop your image here or <span className="text-blue-600 cursor-pointer hover:underline">choose file</span>
-                      </span>
-                    </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          disabled={isUploadingImage}
+                          className="hidden"
+                          id="hotel-image-input"
+                        />
+                        <div
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            flexShrink: "0"
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="23" viewBox="0 0 22 23" fill="none">
+                            <path d="M12 2.56872C11.5299 2.56641 11.0307 2.56641 10.5 2.56641C6.02166 2.56641 3.78249 2.56641 2.39124 3.95765C1 5.34889 1 7.58806 1 12.0664C1 16.5447 1 18.7839 2.39124 20.1752C3.78249 21.5664 6.02166 21.5664 10.5 21.5664C14.9783 21.5664 17.2175 21.5664 18.6088 20.1752C19.9472 18.8367 19.998 16.7134 19.9999 12.5664" stroke="#141B34" strokeWidth="1.5" strokeLinecap="round" />
+                            <path d="M1 13.7018C1.61902 13.6119 2.24484 13.5675 2.87171 13.5691C5.52365 13.513 8.11064 14.3394 10.1711 15.9006C12.082 17.3485 13.4247 19.3413 14 21.5664" stroke="#141B34" strokeWidth="1.5" strokeLinejoin="round" />
+                            <path d="M20 16.4626C18.8246 15.8673 17.6088 15.5652 16.3862 15.5665C14.5345 15.5592 12.7015 16.2398 11 17.5664" stroke="#141B34" strokeWidth="1.5" strokeLinejoin="round" />
+                            <path d="M16 4.06641C16.4915 3.56071 17.7998 1.56641 18.5 1.56641M21 4.06641C20.5085 3.56071 19.2002 1.56641 18.5 1.56641M18.5 1.56641V9.56641" stroke="#141B34" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                        <span className="text-sm text-gray-600 text-center">
+                          {isUploadingImage ? (
+                            "Uploading..."
+                          ) : (
+                            <>
+                              Drag and drop your image here or <span className="text-blue-600 hover:underline">choose file</span>
+                            </>
+                          )}
+                        </span>
+                      </label>
+                    )}
                   </div>
                 </div>
               )}
@@ -3659,6 +4027,22 @@ export default function PartnersPage() {
         message={alertDialog.message}
         variant={alertDialog.variant}
         onClose={() => setAlertDialog({ ...alertDialog, isOpen: false })}
+      />
+
+      {/* Reset Password Modal */}
+      <ResetPasswordModal
+        isOpen={showResetPasswordModal}
+        onClose={() => {
+          setShowResetPasswordModal(false)
+          setPartnerIdForReset(null)
+        }}
+        memberId={partnerIdForReset || undefined}
+        activeTab="partner"
+        onSuccess={() => {
+          // Optionally refresh partners list or show success message
+          setShowResetPasswordModal(false)
+          setPartnerIdForReset(null)
+        }}
       />
     </div>
   )

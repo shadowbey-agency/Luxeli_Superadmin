@@ -480,7 +480,7 @@ export default function SubscriptionPage() {
   }, [showUsersPlanView, selectedPlan, itemsPerPage])
 
   return (
-    <div className="p-6 ">
+    <div className="p-4 ">
       {/* Page Header */}
       <div className="mb-5">
         <h1 className="text-2xl font-bold text-foreground">Subscription</h1>

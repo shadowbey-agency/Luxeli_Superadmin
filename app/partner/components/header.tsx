@@ -119,8 +119,9 @@ export default function Header() {
       style={{
         left: `${sidebarWidth}px`,
         right: "0",
-        padding: "12px 24px",
+        padding: "8px 16px",
         justifyContent: "space-between",
+        height: "64px",
       }}
     >
       <div>

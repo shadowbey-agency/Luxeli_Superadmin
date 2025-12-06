@@ -782,7 +782,7 @@ export default function TeamPage() {
   const currentMembers = currentData.slice(startIndex, endIndex)
 
   return (
-    <div className="p-6">
+    <div className="p-4">
       {/* Tab Navigation */}
       <div className="mb-6">
         <div className="flex">

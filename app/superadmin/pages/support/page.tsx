@@ -578,7 +578,7 @@ export default function SupportPage() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4">
       {/* Page Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">Support</h1>

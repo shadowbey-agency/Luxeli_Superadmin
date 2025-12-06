@@ -6,6 +6,7 @@ import ToggleSwitch from "@/app/superadmin/components/toggle-switch"
 import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
 import { getAuthToken } from "@/lib/auth-utils"
+import { uploadImageToCloudinary } from "@/lib/cloudinary"
 
 interface NotificationSetting {
   id: string
@@ -65,6 +66,8 @@ export default function SettingsPage() {
   const [userType, setUserType] = useState<'superadmin' | 'member' | null>(null)
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null)
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [imageError, setImageError] = useState(false)
 
   // Get initials helper
@@ -81,6 +84,11 @@ export default function SettingsPage() {
   // Reset image error when userData changes
   useEffect(() => {
     setImageError(false)
+    // Set preview from userData when it loads
+    if (userData?.profileImage && !profileImagePreview) {
+      setProfileImagePreview(userData.profileImage)
+      setProfileImageUrl(userData.profileImage)
+    }
   }, [userData?.profileImage])
 
   // Detect user type and load user data
@@ -262,21 +270,9 @@ export default function SettingsPage() {
           phoneNumber: formData.phoneNumber
         }
 
-        // Handle profile image upload
-        if (profileImageFile) {
-          // Convert image to base64 for now (in production, you might want to upload to a service like Cloudinary)
-          const reader = new FileReader()
-          await new Promise((resolve, reject) => {
-            reader.onloadend = () => {
-              updateData.profileImage = reader.result as string
-              resolve(null)
-            }
-            reader.onerror = reject
-            reader.readAsDataURL(profileImageFile)
-          })
-        } else if (profileImagePreview && profileImagePreview.startsWith('data:')) {
-          // If preview exists and is a data URL, use it
-          updateData.profileImage = profileImagePreview
+        // Handle profile image upload - use Cloudinary URL if uploaded
+        if (profileImageUrl) {
+          updateData.profileImage = profileImageUrl
         }
 
         // Add password fields if provided
@@ -349,8 +345,10 @@ export default function SettingsPage() {
         // Update local user data
         if (result.superAdmin) {
           setUserData(prev => prev ? { ...prev, ...result.superAdmin } : null)
-          // Update auth context if profileImage was updated
+          // Update profile image state if profileImage was updated
           if (result.superAdmin.profileImage) {
+            setProfileImageUrl(result.superAdmin.profileImage)
+            setProfileImagePreview(result.superAdmin.profileImage)
             // Update localStorage/sessionStorage with new user data
             const storedUser = localStorage.getItem('user_data') || sessionStorage.getItem('user_data')
             if (storedUser) {
@@ -365,17 +363,22 @@ export default function SettingsPage() {
           }
         } else if (result.data) {
           setUserData(prev => prev ? { ...prev, ...result.data } : null)
+          // Update profile image state for members if profileImage was updated
+          if (result.data.profileImage) {
+            setProfileImageUrl(result.data.profileImage)
+            setProfileImagePreview(result.data.profileImage)
+          }
         }
         
-        // Clear password fields and image preview after successful update
+        // Clear password fields after successful update
         setFormData(prev => ({
           ...prev,
           currentPassword: '',
           newPassword: '',
           confirmPassword: ''
         }))
+        // Don't clear image preview/URL - keep the updated image
         setProfileImageFile(null)
-        setProfileImagePreview(null)
         setImageError(false)
         
         // Reload page to update header profile image
@@ -393,7 +396,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-6 min-h-screen  ">
+    <div className="p-4 min-h-screen  ">
       <div className="mb-6">
         <div className="flex items-center">
           <button
@@ -506,9 +509,13 @@ export default function SettingsPage() {
                 <div className="flex max-w-[327px] h-[142px] p-[22px] items-center gap-5 rounded-[11px] border border-dashed border-[rgba(0,0,0,0.12)] bg-white">
                   {/* Profile Circle */}
                   <div className="flex w-[84px] h-[84px] justify-center items-center flex-shrink-0 rounded-full overflow-hidden bg-primary relative">
-                    {((profileImagePreview || (userData && userData.profileImage)) && !imageError) ? (
+                    {isUploadingImage ? (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : ((profileImagePreview || profileImageUrl || (userData && userData.profileImage)) && !imageError) ? (
                       <Image
-                        src={profileImagePreview || (userData?.profileImage || '')}
+                        src={profileImagePreview || profileImageUrl || (userData?.profileImage || '')}
                         alt="Profile"
                         fill
                         className="object-cover"
@@ -525,25 +532,56 @@ export default function SettingsPage() {
                   <div className="flex flex-col gap-2 flex-1">
                     <h4 className="text-sm font-semibold text-[#212121]">Profile Picture</h4>
                     <p className="text-xs text-muted-foreground">Update your profile picture.</p>
-                    <label className="flex h-7 px-[11.5px] py-[1px] justify-center items-center rounded-[5px] border border-[#E5E7EB] bg-white text-sm font-medium text-[#212121] hover:bg-gray-50 transition-colors w-fit cursor-pointer">
+                    <label className="flex h-7 px-[11.5px] py-[1px] justify-center items-center rounded-[5px] border border-[#E5E7EB] bg-white text-sm font-medium text-[#212121] hover:bg-gray-50 transition-colors w-fit cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => {
+                        disabled={isUploadingImage}
+                        onChange={async (e) => {
                           const file = e.target.files?.[0]
                           if (file) {
                             setProfileImageFile(file)
+                            setIsUploadingImage(true)
+                            setImageError(false)
+                            
+                            // Show preview immediately
                             const reader = new FileReader()
                             reader.onloadend = () => {
                               setProfileImagePreview(reader.result as string)
-                              setImageError(false)
                             }
                             reader.readAsDataURL(file)
+                            
+                            try {
+                              // Upload to Cloudinary
+                              const result = await uploadImageToCloudinary(file, {
+                                folder: 'superadmin/profiles',
+                                transformation: {
+                                  width: 300,
+                                  height: 300,
+                                  crop: 'fill',
+                                  quality: 'auto',
+                                  format: 'auto'
+                                }
+                              })
+                              
+                              setProfileImageUrl(result.secure_url)
+                              setProfileImagePreview(result.secure_url)
+                              console.log('Profile image uploaded successfully:', result.secure_url)
+                            } catch (error) {
+                              console.error('Error uploading profile image:', error)
+                              setImageError(true)
+                              alert('Failed to upload image. Please try again.')
+                              // Reset to previous image
+                              setProfileImagePreview(userData?.profileImage || null)
+                              setProfileImageUrl(userData?.profileImage || null)
+                            } finally {
+                              setIsUploadingImage(false)
+                            }
                           }
                         }}
                       />
-                      Change Picture
+                      {isUploadingImage ? 'Uploading...' : 'Change Picture'}
                     </label>
                   </div>
                 </div>
