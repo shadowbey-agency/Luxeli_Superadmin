@@ -27,6 +27,7 @@ import ExportToExcel from "@/app/exportin-excel/export-to-excel"
 import PublicIcon from "@/app/partner/components/public-icon"
 import { FiEye, FiEyeOff } from "react-icons/fi"
 import AlertDialog from "@/app/partner/components/alert-dialog"
+import { FaTrash } from "react-icons/fa"
 
 interface Partner {
   id: string
@@ -923,9 +924,9 @@ export default function PartnersPage() {
             setShowViewDetail(false)
             setSelectedPartner(null)
           }
-          
+
           await fetchPartners()
-          
+
           showAlert('Success', 'Partner deleted successfully', 'success')
         }
       } else {
@@ -998,7 +999,7 @@ export default function PartnersPage() {
   // Handle select all checkbox
   const handleSelectAll = () => {
     const allCurrentSelected = currentPartners.length > 0 && currentPartners.every(p => selectedPartners.includes(p.id))
-    
+
     if (isAllSelected || allCurrentSelected) {
       // Deselect all current page partners
       const currentPartnerIds = currentPartners.map(p => p.id)
@@ -1022,6 +1023,15 @@ export default function PartnersPage() {
   const handleClearSelection = () => {
     setSelectedPartners([])
     setIsAllSelected(false)
+  }
+
+  // Select all filtered partners
+  const handleSelectAllFiltered = () => {
+    const allFilteredIds = filteredPartners.map(p => p.id)
+    setSelectedPartners(allFilteredIds)
+    if (allFilteredIds.length > 0) {
+      setIsAllSelected(true)
+    }
   }
 
   // Check if all items are selected (all filtered partners)
@@ -1253,17 +1263,43 @@ export default function PartnersPage() {
 
       <div className="bg-card rounded-[4px]  p-4 ">
         {/* Table Header */}
-        <div className="flex items-center justify-between  pb-4  ">
-          <h3 className="text-base font-semibold text-foreground">Partners list</h3>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <select
-                value={itemsPerPage}
-                onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="appearance-none"
+        {selectedPartners.length === 0 && (
+          <div className="flex items-center justify-between  pb-4  ">
+            <h3 className="text-base font-semibold text-foreground">Partners list</h3>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                  className="appearance-none"
+                  style={{
+                    padding: "7.52px 12px",
+                    paddingRight: "32px",
+                    borderRadius: "4px",
+                    border: "1px solid #CED4DA",
+                    background: "#FFF",
+                    color: "rgba(33, 33, 33, 0.60)",
+                    fontSize: "13px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
+                  }}
+                >
+                  <option value={8}>Display 8</option>
+                  <option value={10}>Display 10</option>
+                  <option value={20}>Display 20</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <DropdownArrow />
+                </div>
+              </div>
+
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => { setCurrentPage(1); setSearchTerm(e.target.value) }}
                 style={{
                   padding: "7.52px 12px",
-                  paddingRight: "32px",
                   borderRadius: "4px",
                   border: "1px solid #CED4DA",
                   background: "#FFF",
@@ -1272,92 +1308,105 @@ export default function PartnersPage() {
                   fontWeight: "400",
                   lineHeight: "19.5px"
                 }}
+                className="focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+
+              <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  className="w-4 h-4"
+                >
+                  <path
+                    d="M4 8H12M2 4H14M6 12H10"
+                    stroke="black"
+                    strokeWidth="1.11333"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="text-sm font-medium text-[#212121]">Filtre</span>
+              </button>
+
+              <ExportToExcel
+                data={exportData}
+                fileName={`partners-export-${new Date().toISOString().split('T')[0]}.xlsx`}
+                sheetName="Partners"
+              />
+
+              <button
+                type="button"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 text-sm font-medium transition-colors"
+                style={{ borderRadius: "6px" }}
+                onClick={() => setShowAddPartnerModal(true)}
               >
-                <option value={8}>Display 8</option>
-                <option value={10}>Display 10</option>
-                <option value={20}>Display 20</option>
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <DropdownArrow />
-              </div>
+                <RiAddLine className="w-5 h-5" />
+                Add new Partner
+              </button>
             </div>
-
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => { setCurrentPage(1); setSearchTerm(e.target.value) }}
-              style={{
-                padding: "7.52px 12px",
-                borderRadius: "4px",
-                border: "1px solid #CED4DA",
-                background: "#FFF",
-                color: "rgba(33, 33, 33, 0.60)",
-                fontSize: "13px",
-                fontWeight: "400",
-                lineHeight: "19.5px"
-              }}
-              className="focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-
-            <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 rounded-md border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                className="w-4 h-4"
-              >
-                <path
-                  d="M4 8H12M2 4H14M6 12H10"
-                  stroke="black"
-                  strokeWidth="1.11333"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className="text-sm font-medium text-[#212121]">Filtre</span>
-            </button>
-
-            <ExportToExcel
-              data={exportData}
-              fileName={`partners-export-${new Date().toISOString().split('T')[0]}.xlsx`}
-              sheetName="Partners"
-            />
-
-            <button
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 text-sm font-medium transition-colors"
-              style={{ borderRadius: "6px" }}
-              onClick={() => setShowAddPartnerModal(true)}
-            >
-              <RiAddLine className="w-5 h-5" />
-              Add new Partner
-            </button>
           </div>
-        </div>
+        )}
 
         {/* Selection Indicator Bar */}
         {selectedPartners.length > 0 && (
-          <div className="flex items-center justify-between py-3 px-4 mb-4 rounded-md border" style={{
-            background: "#F3F4F6",
-            border: "1px solid #E5E7EB",
-            borderRadius: "6px"
-          }}>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium" style={{ color: "#212121" }}>
-                {allFilteredSelected || isAllSelected ? 'All items selected' : `${selectedPartners.length} item${selectedPartners.length > 1 ? 's' : ''} selected`}
-              </span>
+          <div className="flex items-center justify-between py-3 px-4 ">
+            <h3 className="text-base font-semibold text-foreground">Partners list</h3>
+            <div className="flex items-center gap-4">
+              {selectedPartners.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleClearSelection}
+                    className="flex items-center justify-center w-5 h-5 rounded-lg bg-black hover:bg-gray-900 transition cursor-pointer"
+                    title="Clear selection"
+                  >
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="white"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                  <span className="text-sm font-small" style={{ color: "gray" }}>
+                    {selectedPartners.length} item{selectedPartners.length > 1 ? 's' : ''} selected
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={handleSelectAllFiltered}
+                className="text-sm font-small text-primary hover:text-primary/80 transition-colors cursor-pointer underline"
+                style={{ color: "#1F2A44" }}
+              >
+                Select all items
+              </button>
+              <ExportToExcel
+                data={filteredPartners.filter((partner) => selectedPartners.includes(partner.id)).map((partner) => ({
+                  "Hotel Name": partner.hotelName,
+                  "Email": partner.hotelAddressEmail,
+                  "Phone number": partner.phone,
+                  "City": partner.city,
+                  "Services": partner.services.join(", "),
+                  "Plan": partner.plan,
+                  "Created At": partner.createdAt,
+                  "Account": partner.status === 'active' ? 'Active' : 'Inactive'
+                }))}
+                fileName={`selected-partners-export-${new Date().toISOString().split('T')[0]}.xlsx`}
+                sheetName="SelectedPartners"
+              />
+              <FaTrash className="w45 h-4 cursor-pointer" fill="#1F2A44" />
+              <h3 className="text-md font-small text-primary hover:text-primary/80 transition-colors cursor-pointer underline" style={{ color: "#1F2A44" }}>
+                Delete
+              </h3>
             </div>
-            <button
-              onClick={handleClearSelection}
-              className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              <span className="underline">Clear selection</span>
-            </button>
           </div>
         )}
 
@@ -1367,9 +1416,9 @@ export default function PartnersPage() {
             <thead className="bg-muted/50">
               <tr>
                 <th className="w-12 px-4 py-4">
-                  <input 
-                    type="checkbox" 
-                    className="rounded" 
+                  <input
+                    type="checkbox"
+                    className="rounded"
                     checked={isAllSelected || (currentPartners.length > 0 && currentPartners.every(p => selectedPartners.includes(p.id)) && currentPartners.length > 0)}
                     onChange={handleSelectAll}
                   />
@@ -1461,9 +1510,9 @@ export default function PartnersPage() {
                 currentPartners.map((partner) => (
                   <tr key={partner.id} className="hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-4">
-                      <input 
-                        type="checkbox" 
-                        className="rounded" 
+                      <input
+                        type="checkbox"
+                        className="rounded"
                         checked={selectedPartners.includes(partner.id)}
                         onChange={() => handlePartnerSelect(partner.id)}
                       />
@@ -3205,7 +3254,7 @@ export default function PartnersPage() {
                         </div>
                         <svg
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none transition-transform"
-                          style={{ 
+                          style={{
                             color: "#D9D9D9",
                             transform: showServicesDropdown ? 'translateY(-50%) rotate(180deg)' : 'translateY(-50%)'
                           }}
