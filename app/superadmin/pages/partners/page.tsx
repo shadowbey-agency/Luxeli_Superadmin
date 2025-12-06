@@ -1402,7 +1402,7 @@ export default function PartnersPage() {
                 fileName={`selected-partners-export-${new Date().toISOString().split('T')[0]}.xlsx`}
                 sheetName="SelectedPartners"
               />
-              <FaTrash className="w45 h-4 cursor-pointer" fill="#1F2A44" />
+              <FaTrash className="w-4 h-4 cursor-pointer" fill="#1F2A44" />
               <h3 className="text-md font-small text-primary hover:text-primary/80 transition-colors cursor-pointer underline" style={{ color: "#1F2A44" }}>
                 Delete
               </h3>
