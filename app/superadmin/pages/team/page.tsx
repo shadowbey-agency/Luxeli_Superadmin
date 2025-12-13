@@ -569,9 +569,6 @@ export default function TeamPage() {
           <table className="w-full rounded-lg">
             <thead className="bg-muted/50 border-b rounded-lg">
               <tr>
-                <th className="w-12 px-4 py-4">
-                  <input type="checkbox" className="rounded" />
-                </th>
                 <th className="px-4 py-4 text-left">
                   <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
                     Member Name
@@ -603,7 +600,7 @@ export default function TeamPage() {
             <tbody className="divide-y divide-border">
               {isLoadingMembers ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                       Loading members...
@@ -612,16 +609,13 @@ export default function TeamPage() {
                 </tr>
               ) : currentMembers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                     No members found
                   </td>
                 </tr>
               ) : (
                 currentMembers.map((member) => (
                 <tr key={member.id} className="hover:bg-muted/50 transition-colors">
-                  <td className="px-4 py-4">
-                    <input type="checkbox" className="rounded" />
-                  </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold">

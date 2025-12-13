@@ -317,6 +317,85 @@ export default function PartnersPage() {
   const servicesDropdownRef = useRef<HTMLDivElement | null>(null)
   const startDateRef = useRef<HTMLInputElement | null>(null)
   const endDateRef = useRef<HTMLInputElement | null>(null)
+  const [showCityDropdown, setShowCityDropdown] = useState(false)
+  const [citySearchTerm, setCitySearchTerm] = useState("")
+  const cityDropdownRef = useRef<HTMLDivElement | null>(null)
+  
+  // List of all Moroccan cities
+  const allCities = [
+    "Casablanca",
+    "Rabat",
+    "Marrakech",
+    "Fes",
+    "Tangier",
+    "Agadir",
+    "Meknes",
+    "Oujda",
+    "Kenitra",
+    "Tetouan",
+    "Safi",
+    "El Jadida",
+    "Beni Mellal",
+    "Nador",
+    "Taza",
+    "Settat",
+    "Khouribga",
+    "Larache",
+    "Khemisset",
+    "Guelmim",
+    "Ait Melloul",
+    "Al Hoceima",
+    "Azemmour",
+    "Azilal",
+    "Ben Guerir",
+    "Berkane",
+    "Boujdour",
+    "Boulemane",
+    "Chefchaouen",
+    "Dakhla",
+    "Demnate",
+    "Errachidia",
+    "Essaouira",
+    "Figuig",
+    "Fnideq",
+    "Guercif",
+    "Ifrane",
+    "Imzouren",
+    "Jerada",
+    "Kalaat Sraghna",
+    "Kasbat Tadla",
+    "Laayoune",
+    "Martil",
+    "Midelt",
+    "Missour",
+    "Moulay Bousselham",
+    "Ouarzazate",
+    "Ouazzane",
+    "Oued Zem",
+    "Rissani",
+    "Sefrou",
+    "Sidi Bennour",
+    "Sidi Ifni",
+    "Sidi Kacem",
+    "Sidi Slimane",
+    "Skhirat",
+    "Souk El Arbaa",
+    "Taourirt",
+    "Taroudant",
+    "Tiflet",
+    "Tinghir",
+    "Tiznit",
+    "Youssoufia",
+    "Zagora",
+    "Smara",
+    "Assa",
+    "Tan-Tan"
+  ]
+  
+  // Filter cities based on search term
+  const filteredCities = allCities.filter(city =>
+    city.toLowerCase().includes(citySearchTerm.toLowerCase())
+  )
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [partnerToDelete, setPartnerToDelete] = useState<Partner | null>(null)
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
@@ -696,7 +775,14 @@ export default function PartnersPage() {
       setServicesLoading(true)
       setServiceOptions([])
       const timer = setTimeout(() => {
-        setServiceOptions(["Housekeeping", "Bookings interns", "Customized Services"])
+        setServiceOptions([
+          "Housekeeping", 
+          "Bookings interns", 
+          "Customized Services",
+          "Laundry",
+          "In room delivery",
+          "activity alerts"
+        ])
         setServicesLoading(false)
       }, 3000)
       return () => clearTimeout(timer)
@@ -723,6 +809,24 @@ export default function PartnersPage() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showServicesDropdown])
+
+  // Handle click outside to close city dropdown
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(event.target as Node)) {
+        setShowCityDropdown(false)
+        setCitySearchTerm("")
+      }
+    }
+
+    if (showCityDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showCityDropdown])
 
   // Services dropdown handled via portal in DropdownMenu
 
@@ -820,7 +924,7 @@ export default function PartnersPage() {
       taxeProfessionnelle: partner.taxeProfessionnelle || '',
       hotelImage: partner.hotelImage || null,
       username: partner.username || '',
-      password: '',
+      password: '*****', // Static password display, not editable
       startDate: partner.startDate || '',
       endDate: partner.endDate || '',
       plan: partner.plan || 'starter pack',
@@ -887,7 +991,15 @@ export default function PartnersPage() {
           'Authorization': `Bearer ${finalToken}`
         },
         body: JSON.stringify({
-          ...formData,
+          ...Object.fromEntries(
+            Object.entries(formData).filter(([key]) => {
+              // Exclude password when editing (it's just "*****" placeholder)
+              if (isEditingPartner && key === 'password') {
+                return false
+              }
+              return true
+            })
+          ),
           // Ensure hotelImage is a valid URL string or null
           hotelImage: typeof formData.hotelImage === 'string' && formData.hotelImage.trim() 
             ? formData.hotelImage.trim() 
@@ -3008,38 +3120,106 @@ export default function PartnersPage() {
                       >
                         Hotel city
                       </label>
-                      <div className="relative">
-                        <select
-                          className="w-full px-3 py-2 border rounded pr-10 appearance-none"
+                      <div className="relative" ref={cityDropdownRef}>
+                        <div
+                          onClick={() => setShowCityDropdown(!showCityDropdown)}
+                          className="w-full px-3 py-2 border rounded pr-10 cursor-pointer flex items-center"
                           style={{
                             padding: "7.52px 12px",
                             borderRadius: "4px",
                             border: formErrors.hotelCity ? "1px solid #EF4444" : "1px solid #CED4DA",
-                            background: "#FFF"
+                            background: "#FFF",
+                            minHeight: "36px"
                           }}
-                          value={formData.hotelCity}
-                          onChange={(e) => handleInputChange('hotelCity', e.target.value)}
                         >
-                          <option value="">Select</option>
-                          <option value="Casablanca">Casablanca</option>
-                          <option value="Rabat">Rabat</option>
-                          <option value="Marrakech">Marrakech</option>
-                          <option value="Fez">Fez</option>
-                          <option value="Tangier">Tangier</option>
-                          <option value="Agadir">Agadir</option>
-                        </select>
-                        {formErrors.hotelCity && (
-                          <p className="text-xs text-red-500 mt-1">{formErrors.hotelCity}</p>
-                        )}
+                          {formData.hotelCity ? (
+                            <span className="text-sm" style={{ color: "#212121" }}>
+                              {formData.hotelCity}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-sm">Select city</span>
+                          )}
+                        </div>
                         <svg
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none"
-                          style={{ color: "#D9D9D9" }}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none transition-transform"
+                          style={{
+                            color: "#D9D9D9",
+                            transform: showCityDropdown ? 'translateY(-50%) rotate(180deg)' : 'translateY(-50%)'
+                          }}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
+                        {showCityDropdown && (
+                          <div
+                            className="absolute z-50 w-full mt-1 bg-white border rounded shadow-lg"
+                            style={{
+                              borderRadius: "4px",
+                              border: "1px solid #CED4DA",
+                              background: "#FFF",
+                              maxHeight: "200px",
+                              overflowY: "auto",
+                              top: "100%",
+                              marginTop: "4px"
+                            }}
+                          >
+                            {/* Search Input */}
+                            <div className="p-2 border-b" style={{ borderBottom: "1px solid #E6E6E6" }}>
+                              <input
+                                type="text"
+                                placeholder="Search city..."
+                                className="w-full px-2 py-1.5 border rounded text-sm"
+                                style={{
+                                  padding: "6px 10px",
+                                  borderRadius: "4px",
+                                  border: "1px solid #CED4DA",
+                                  background: "#FFF"
+                                }}
+                                value={citySearchTerm}
+                                onChange={(e) => {
+                                  e.stopPropagation()
+                                  setCitySearchTerm(e.target.value)
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                autoFocus
+                              />
+                            </div>
+                            {/* Cities List */}
+                            <div className="flex flex-col gap-1 p-1" style={{ maxHeight: "150px", overflowY: "auto" }}>
+                              {filteredCities.length > 0 ? (
+                                filteredCities.map((city) => (
+                                  <div
+                                    key={city}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleInputChange('hotelCity', city)
+                                      setShowCityDropdown(false)
+                                      setCitySearchTerm("")
+                                    }}
+                                    className="cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
+                                    style={{
+                                      padding: "6px 10px",
+                                      borderRadius: "4px"
+                                    }}
+                                  >
+                                    <span className="text-sm" style={{ color: "#212121" }}>
+                                      {city}
+                                    </span>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="p-2 text-sm text-gray-500 text-center">
+                                  No cities found
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {formErrors.hotelCity && (
+                          <p className="text-xs text-red-500 mt-1">{formErrors.hotelCity}</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -3419,33 +3599,39 @@ export default function PartnersPage() {
                       </label>
                       <div className="relative">
                         <input
-                          type={showPasswordDetails ? "text" : "password"}
+                          type="text"
                           placeholder="Enter password"
                           className="w-full px-3 py-2 border rounded pr-10"
                           style={{
                             padding: "7.52px 12px",
                             borderRadius: "4px",
                             border: formErrors.password ? "1px solid #EF4444" : "1px solid #CED4DA",
-                            background: "#FFF"
+                            background: isEditingPartner ? "#F5F5F5" : "#FFF",
+                            cursor: isEditingPartner ? "not-allowed" : "text"
                           }}
-                          value={formData.password}
-                          onChange={(e) => handleInputChange('password', e.target.value)}
+                          value={isEditingPartner ? "*****" : formData.password}
+                          onChange={(e) => {
+                            if (!isEditingPartner) {
+                              handleInputChange('password', e.target.value)
+                            }
+                          }}
+                          disabled={isEditingPartner}
+                          readOnly={isEditingPartner}
                         />
-                        {/* <button className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                          {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
-                        </button> */}
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                          {formErrors.password && (
-                            <PublicIcon src="/assets/icons/status error.svg" alt="Error" width={16} height={16} />
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => setShowPasswordDetails(!showPasswordDetails)}
-                            className="text-[#6B7280] hover:text-[#1F2A44] transition-colors"
-                          >
-                            {showPasswordDetails ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
-                          </button>
-                        </div>
+                        {!isEditingPartner && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                            {formErrors.password && (
+                              <PublicIcon src="/assets/icons/status error.svg" alt="Error" width={16} height={16} />
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setShowPasswordDetails(!showPasswordDetails)}
+                              className="text-[#6B7280] hover:text-[#1F2A44] transition-colors"
+                            >
+                              {showPasswordDetails ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                            </button>
+                          </div>
+                        )}
                         {formErrors.password && (
                           <p className="text-xs text-red-500 mt-1">{formErrors.password}</p>
                         )}
