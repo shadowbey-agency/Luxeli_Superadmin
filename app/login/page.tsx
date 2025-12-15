@@ -417,7 +417,7 @@ export default function LoginPage() {
               </div>
 
               {/* Copyright */}
-              <p className="text-[#6B7280] text-sm">© 2025 Luxeli</p>
+              <p className="text-[#6B7280] text-sm">© 2025 Luxelio</p>
           </div>
         </div>
       </div>

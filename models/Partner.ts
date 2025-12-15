@@ -16,7 +16,14 @@ export interface IPartner extends Document {
   startDate: Date;
   endDate: Date;
   plan: "starter pack" | "gold pack";
-  services: string[];
+  services: {
+    housekeeping: boolean;
+    bookingInterns: boolean;
+    customizedServices: boolean;
+    activityAlerts: boolean;
+    laundry: boolean;
+    roomDelivery: boolean;
+  };
   status: "active" | "disable";
   createdAt: Date;
   updatedAt: Date;
@@ -56,8 +63,22 @@ const PartnerSchema = new Schema<IPartner>(
       default: "starter pack",
     },
     services: {
-      type: [String],
-      default: [],
+      type: {
+        housekeeping: { type: Boolean, default: false },
+        bookingInterns: { type: Boolean, default: false },
+        customizedServices: { type: Boolean, default: false },
+        activityAlerts: { type: Boolean, default: false },
+        laundry: { type: Boolean, default: false },
+        roomDelivery: { type: Boolean, default: false },
+      },
+      default: {
+        housekeeping: false,
+        bookingInterns: false,
+        customizedServices: false,
+        activityAlerts: false,
+        laundry: false,
+        roomDelivery: false,
+      },
     },
 
     // Status

@@ -84,6 +84,21 @@ export const POST = withSuperAdminAuth(async (request: NextRequest) => {
     // Hash password
     const hashedPassword = await hashPassword(password);
 
+    // Default services object if not provided
+    const defaultServices = {
+      housekeeping: false,
+      bookingInterns: false,
+      customizedServices: false,
+      activityAlerts: false,
+      laundry: false,
+      roomDelivery: false,
+    };
+
+    // Merge provided services with defaults
+    const servicesData = services && typeof services === 'object' 
+      ? { ...defaultServices, ...services }
+      : defaultServices;
+
     return await PartnerController.createPartner({
       hotelName: hotelName.trim(),
       hotelCity: hotelCity.trim(),
@@ -99,7 +114,7 @@ export const POST = withSuperAdminAuth(async (request: NextRequest) => {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       plan: plan as 'starter pack' | 'gold pack',
-      services: services || [],
+      services: servicesData,
     });
   } catch (error) {
     console.error('Create Partner API Error:', error);

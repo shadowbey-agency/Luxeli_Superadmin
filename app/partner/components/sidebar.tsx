@@ -21,6 +21,7 @@ import DashboardSidebarIcon from "./dashboard-sidebar-icon"
 import TeamSidebarIcon from "./team-sidebar-icon"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useSidebar } from "./sidebar-context"
+import { usePartnerServices } from "@/hooks/usePartnerServices"
 
 const menuItems = [
   { icon: DashboardSidebarIcon, label: "Dashboard", href: "/partner/pages/dashboard" },
@@ -31,9 +32,10 @@ const menuItems = [
   { icon: PublicIcon, label: "Settings", href: "/partner/pages/settings", isPublicIcon: true, iconProps: { src: "/assets/icons/settings.svg", alt: "Settings", width: 20, height: 20 } },
 ]
 
-const servicesItems = [
+const allServicesItems = [
   {
     label: "Housekeeping",
+    serviceKey: "housekeeping" as const,
     icon: PublicIcon,
     href: "/partner/pages/housekeeping",
     isPublicIcon: true,
@@ -46,6 +48,7 @@ const servicesItems = [
   },
   {
     label: "Bookings interns",
+    serviceKey: "bookingInterns" as const,
     icon: PublicIcon,
     href: "/partner/pages/booking",
     isPublicIcon: true,
@@ -57,6 +60,7 @@ const servicesItems = [
   },
   {
     label: "Customized services",
+    serviceKey: "customizedServices" as const,
     icon: PublicIcon,
     href: "/partner/pages/customized-services",
     isPublicIcon: true,
@@ -67,6 +71,7 @@ const servicesItems = [
   },
   {
     label: "Activity alerts",
+    serviceKey: "activityAlerts" as const,
     icon: PublicIcon,
     href: "/partner/pages/activity-alerts",
     isPublicIcon: true,
@@ -78,6 +83,7 @@ const servicesItems = [
   },
   {
     label: "Laundry",
+    serviceKey: "laundry" as const,
     icon: PublicIcon,
     href: "/partner/pages/laundry",
     isPublicIcon: true,
@@ -89,6 +95,7 @@ const servicesItems = [
   },
   {
     label: "Room delivery",
+    serviceKey: "roomDelivery" as const,
     icon: PublicIcon,
     href: "/partner/pages/room-delivery",
     isPublicIcon: true,
@@ -105,6 +112,7 @@ export default function Sidebar() {
   const { isCollapsed, setIsCollapsed } = useSidebar()
   const [expandedServices, setExpandedServices] = useState<string[]>([])
   const { hasPermission, loading } = usePermissions()
+  const { services, loading: servicesLoading, hasService } = usePartnerServices()
   
   // Get current URL with search params (if any)
   const [currentFullPath, setCurrentFullPath] = useState("")
@@ -116,16 +124,23 @@ export default function Sidebar() {
   // Filter menu items based on permissions
   const visibleMenuItems = loading ? [] : menuItems.filter(item => hasPermission(item.href))
   
-  // Filter service items based on permissions
-  const visibleServicesItems = loading ? [] : servicesItems.map(service => {
-    const visibleSubItems = service.subItems.filter(subItem => hasPermission(subItem.href))
-    return { ...service, subItems: visibleSubItems }
-  }).filter(service => service.subItems.length > 0) // Only show service if it has visible sub-items
+  // Filter service items based on partner enabled services and permissions
+  const visibleServicesItems = (loading || servicesLoading) ? [] : allServicesItems
+    .filter(service => {
+      // Only show service if it's enabled for the partner
+      return hasService(service.serviceKey)
+    })
+    .map(service => {
+      // Filter sub-items based on permissions
+      const visibleSubItems = service.subItems.filter(subItem => hasPermission(subItem.href))
+      return { ...service, subItems: visibleSubItems }
+    })
+    .filter(service => service.subItems.length > 0) // Only show service if it has visible sub-items
 
   // Auto-expand service if on one of its sub-pages
   useEffect(() => {
     if (currentFullPath || pathname) {
-      servicesItems.forEach((service) => {
+      visibleServicesItems.forEach((service) => {
         const hasActiveSubItem = service.subItems.some(subItem => {
           // Check exact match with query params or if pathname starts with the subItem href
           return currentFullPath === subItem.href || pathname.startsWith(subItem.href.split('?')[0])
@@ -136,7 +151,7 @@ export default function Sidebar() {
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentFullPath, pathname])
+  }, [currentFullPath, pathname, visibleServicesItems])
 
   return (
     <aside

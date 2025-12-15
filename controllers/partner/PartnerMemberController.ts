@@ -156,18 +156,28 @@ export class PartnerMemberController {
     try {
       await connectDB();
 
-      // Check if member with email or username already exists for this partner
-      const existingMember = await PartnerMember.findOne({
+      // Check if member with email already exists for THIS specific partner only
+      const existingMemberByEmail = await PartnerMember.findOne({
         partnerId: data.partnerId,
-        $or: [
-          { email: data.email.toLowerCase() },
-          { username: data.username }
-        ]
+        email: data.email.toLowerCase().trim()
       });
 
-      if (existingMember) {
+      if (existingMemberByEmail) {
         return NextResponse.json(
-          { success: false, error: 'Partner member with this email or username already exists' },
+          { success: false, error: 'A member with this email already exists for your partner account' },
+          { status: 409 }
+        );
+      }
+
+      // Check if member with username already exists for THIS specific partner only
+      const existingMemberByUsername = await PartnerMember.findOne({
+        partnerId: data.partnerId,
+        username: data.username.trim()
+      });
+
+      if (existingMemberByUsername) {
+        return NextResponse.json(
+          { success: false, error: 'A member with this username already exists for your partner account' },
           { status: 409 }
         );
       }
@@ -196,18 +206,23 @@ export class PartnerMemberController {
       }, { status: 201 });
     } catch (error: any) {
       // Check for duplicate key error (MongoDB error code 11000)
+      // This should not happen if our manual check above works, but handle it as a fallback
       if (error.code === 11000) {
         // Determine which field caused the duplicate from the keyPattern
         let duplicateField = 'email or username';
+        let errorMessage = 'A member with this email or username already exists for your partner account';
+        
         if (error.keyPattern) {
-          if (error.keyPattern.email) {
+          if (error.keyPattern.email && error.keyPattern.partnerId) {
             duplicateField = 'email';
-          } else if (error.keyPattern.username) {
+            errorMessage = 'A member with this email already exists for your partner account';
+          } else if (error.keyPattern.username && error.keyPattern.partnerId) {
             duplicateField = 'username';
+            errorMessage = 'A member with this username already exists for your partner account';
           }
         }
         return NextResponse.json(
-          { success: false, error: `Partner member with this ${duplicateField} already exists for this partner` },
+          { success: false, error: errorMessage },
           { status: 409 }
         );
       }

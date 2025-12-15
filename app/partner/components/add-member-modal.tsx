@@ -5,6 +5,7 @@ import { RiCloseLine, RiImageLine } from "react-icons/ri"
 import { getAuthToken } from "@/lib/auth-utils"
 import PublicIcon from "./public-icon"
 import PermissionDetailModal from "./permission-detail-modal"
+import AlertDialog from "./alert-dialog"
 
 interface AddMemberModalProps {
   isOpen: boolean
@@ -25,6 +26,22 @@ export default function AddMemberModal({ isOpen, onClose, onSuccess }: AddMember
   const [selectedPermissionKey, setSelectedPermissionKey] = useState<string>("")
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  // Alert dialog state
+  const [alertDialog, setAlertDialog] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    variant: "success" | "error" | "warning" | "info"
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    variant: "info"
+  })
+
+  const showAlert = (title: string, message: string, variant: "success" | "error" | "warning" | "info" = "info") => {
+    setAlertDialog({ isOpen: true, title, message, variant })
+  }
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -45,7 +62,14 @@ export default function AddMemberModal({ isOpen, onClose, onSuccess }: AddMember
 
   const handleSubmit = async () => {
     if (!memberName || !email || !phoneNumber || !username || !password) {
-      alert('Please fill in all required fields')
+      showAlert('Validation Error', 'Please fill in all required fields', 'warning')
+      return
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      showAlert('Validation Error', 'Please enter a valid email address', 'warning')
       return
     }
 
@@ -53,7 +77,13 @@ export default function AddMemberModal({ isOpen, onClose, onSuccess }: AddMember
     const phoneRegex = /^(\+212\s?[56]\d{2}[- ]?\d{6}|0[56]\d{2}[- ]?\d{6})$/
     const cleanedPhone = phoneNumber.replace(/\s|-/g, '')
     if (!phoneRegex.test(cleanedPhone)) {
-      alert('Please enter a valid Moroccan phone number (Format: +212 6XX-XXXXXX or 06XX-XXXXXX)')
+      showAlert('Validation Error', 'Please enter a valid Moroccan phone number (Format: +212 6XX-XXXXXX or 06XX-XXXXXX)', 'warning')
+      return
+    }
+
+    // Validate password strength
+    if (password.length < 6) {
+      showAlert('Validation Error', 'Password must be at least 6 characters long', 'warning')
       return
     }
 
@@ -61,7 +91,7 @@ export default function AddMemberModal({ isOpen, onClose, onSuccess }: AddMember
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to add a member')
+        showAlert('Authentication Required', 'Please log in to add a member', 'warning')
         setIsLoading(false)
         return
       }
@@ -134,18 +164,22 @@ export default function AddMemberModal({ isOpen, onClose, onSuccess }: AddMember
         setPassword("")
         setSelectedPermissions({})
         
-        // Close modal and refresh list
+        // Close modal first
         onClose()
+        
+        // Refresh list
         if (onSuccess) {
           onSuccess()
         }
-        alert('✅ Member added successfully')
+        
+        // Show success alert
+        showAlert('Success', 'Member added successfully', 'success')
       } else {
-        alert(result.error || 'Failed to add member')
+        showAlert('Error', result.error || 'Failed to add member', 'error')
       }
     } catch (error) {
       console.error('Error adding member:', error)
-      alert('Failed to add member. Please try again.')
+      showAlert('Error', 'Failed to add member. Please try again.', 'error')
     } finally {
       setIsLoading(false)
     }
@@ -703,6 +737,15 @@ export default function AddMemberModal({ isOpen, onClose, onSuccess }: AddMember
             })()}
           />
         )}
+
+      {/* Alert Dialog */}
+      <AlertDialog
+        isOpen={alertDialog.isOpen}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        variant={alertDialog.variant}
+        onClose={() => setAlertDialog({ ...alertDialog, isOpen: false })}
+      />
     </div>
   )
 }

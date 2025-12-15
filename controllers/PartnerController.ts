@@ -115,7 +115,14 @@ export class PartnerController {
     startDate: Date;
     endDate: Date;
     plan: 'starter pack' | 'gold pack';
-    services: string[];
+    services: {
+      housekeeping: boolean;
+      bookingInterns: boolean;
+      customizedServices: boolean;
+      activityAlerts: boolean;
+      laundry: boolean;
+      roomDelivery: boolean;
+    };
   }) {
     try {
       await connectDB();
@@ -209,7 +216,14 @@ export class PartnerController {
     startDate: Date;
     endDate: Date;
     plan: 'starter pack' | 'gold pack';
-    services: string[];
+    services: {
+      housekeeping: boolean;
+      bookingInterns: boolean;
+      customizedServices: boolean;
+      activityAlerts: boolean;
+      laundry: boolean;
+      roomDelivery: boolean;
+    };
     status: string;
   }>) {
     try {

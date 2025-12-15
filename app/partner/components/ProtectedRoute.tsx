@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { usePermissions } from '@/hooks/usePermissions';
+import { usePartnerServices } from '@/hooks/usePartnerServices';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -22,16 +23,29 @@ export default function ProtectedRoute({
   const router = useRouter();
   const pathname = usePathname();
   const { hasPermission, loading, userType } = usePermissions();
+  const { hasServiceAccess, loading: servicesLoading } = usePartnerServices();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || servicesLoading) return;
 
     // Use requiredRoute if provided, otherwise use current pathname
     const routeToCheck = requiredRoute || pathname;
 
-    // Partners and staff have full access
-    if (userType === 'partner' || userType === 'partnerstaff') {
+    // For partner users, check service access
+    if (userType === 'partner') {
+      const hasAccess = hasServiceAccess(routeToCheck);
+      if (!hasAccess) {
+        console.warn(`Service access denied to route: ${routeToCheck}`);
+        router.push(fallbackRoute);
+        return;
+      }
+      setIsChecking(false);
+      return;
+    }
+
+    // Partner staff have full access (checked via permissions)
+    if (userType === 'partnerstaff') {
       setIsChecking(false);
       return;
     }
@@ -46,10 +60,10 @@ export default function ProtectedRoute({
     }
 
     setIsChecking(false);
-  }, [loading, hasPermission, pathname, requiredRoute, router, fallbackRoute, userType]);
+  }, [loading, servicesLoading, hasPermission, hasServiceAccess, pathname, requiredRoute, router, fallbackRoute, userType]);
 
   // Show loading state while checking permissions
-  if (loading || isChecking) {
+  if (loading || servicesLoading || isChecking) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

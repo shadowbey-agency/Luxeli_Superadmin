@@ -41,7 +41,14 @@ interface Partner {
   username: string
   phone: string
   city: string
-  services: string[]
+  services: {
+    housekeeping: boolean;
+    bookingInterns: boolean;
+    customizedServices: boolean;
+    activityAlerts: boolean;
+    laundry: boolean;
+    roomDelivery: boolean;
+  }
   plan: string
   createdAt: string
   createdAtDate?: Date // Store original date for filtering
@@ -90,7 +97,14 @@ const createMockPartners = (): Partner[] => {
       username: "hotel_user1",
       phone: "+212 532-002529",
       city: "Casablanca",
-      services: ["Housekeeping", "Bookings interns", "Customized Services"],
+      services: {
+        housekeeping: true,
+        bookingInterns: true,
+        customizedServices: true,
+        activityAlerts: false,
+        laundry: false,
+        roomDelivery: false,
+      },
       plan: "Plan name",
       createdAt: formatDate(new Date(thisWeekStart.getTime() + 2 * 24 * 60 * 60 * 1000)), // 2 days into this week
       createdAtDate: new Date(thisWeekStart.getTime() + 2 * 24 * 60 * 60 * 1000),
@@ -107,7 +121,14 @@ const createMockPartners = (): Partner[] => {
       username: "hotel_user2",
       phone: "+212 532-002529",
       city: "Casablanca",
-      services: ["Housekeeping", "Bookings interns"],
+      services: {
+        housekeeping: true,
+        bookingInterns: true,
+        customizedServices: false,
+        activityAlerts: false,
+        laundry: false,
+        roomDelivery: false,
+      },
       plan: "Plan name",
       createdAt: formatDate(new Date(lastWeekStart.getTime() + 3 * 24 * 60 * 60 * 1000)), // Last week
       createdAtDate: new Date(lastWeekStart.getTime() + 3 * 24 * 60 * 60 * 1000),
@@ -120,7 +141,14 @@ const createMockPartners = (): Partner[] => {
       username: "hotel_user3",
       phone: "+212 532-002529",
       city: "Casablanca",
-      services: ["Housekeeping"],
+      services: {
+        housekeeping: true,
+        bookingInterns: false,
+        customizedServices: false,
+        activityAlerts: false,
+        laundry: false,
+        roomDelivery: false,
+      },
       plan: "Plan name",
       createdAt: formatDate(new Date(thisMonthStart.getTime() + 5 * 24 * 60 * 60 * 1000)), // This month
       createdAtDate: new Date(thisMonthStart.getTime() + 5 * 24 * 60 * 60 * 1000),
@@ -307,14 +335,17 @@ export default function PartnersPage() {
     startDate: '',
     endDate: '',
     plan: 'starter pack' as 'starter pack' | 'gold pack',
-    services: [] as string[]
+    services: {
+      housekeeping: false,
+      bookingInterns: false,
+      customizedServices: false,
+      activityAlerts: false,
+      laundry: false,
+      roomDelivery: false,
+    }
   })
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
-  const [serviceOptions, setServiceOptions] = useState<string[]>([])
-  const [servicesLoading, setServicesLoading] = useState(false)
-  const [showServicesDropdown, setShowServicesDropdown] = useState(false)
-  const servicesDropdownRef = useRef<HTMLDivElement | null>(null)
   const startDateRef = useRef<HTMLInputElement | null>(null)
   const endDateRef = useRef<HTMLInputElement | null>(null)
   const [showCityDropdown, setShowCityDropdown] = useState(false)
@@ -482,7 +513,14 @@ export default function PartnersPage() {
               username: partner.username,
               phone: partner.phoneNumber,
               city: partner.hotelCity,
-              services: partner.services || [],
+              services: partner.services || {
+                housekeeping: false,
+                bookingInterns: false,
+                customizedServices: false,
+                activityAlerts: false,
+                laundry: false,
+                roomDelivery: false,
+              },
               plan: partner.plan || 'starter pack',
               createdAt: createdAtDate.toLocaleDateString('fr-FR', {
                 day: 'numeric',
@@ -769,47 +807,6 @@ export default function PartnersPage() {
     }
   }, [calculatePeriodStats, partners, partnerStats, statsLoading])
 
-  // Load services options 3 seconds after opening Add Partner modal
-  React.useEffect(() => {
-    if (showAddPartnerModal) {
-      setServicesLoading(true)
-      setServiceOptions([])
-      const timer = setTimeout(() => {
-        setServiceOptions([
-          "Housekeeping", 
-          "Bookings interns", 
-          "Customized Services",
-          "Laundry",
-          "In room delivery",
-          "activity alerts"
-        ])
-        setServicesLoading(false)
-      }, 3000)
-      return () => clearTimeout(timer)
-    } else {
-      setServicesLoading(false)
-      setServiceOptions([])
-      setShowServicesDropdown(false)
-    }
-  }, [showAddPartnerModal])
-
-  // Handle click outside to close services dropdown
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (servicesDropdownRef.current && !servicesDropdownRef.current.contains(event.target as Node)) {
-        setShowServicesDropdown(false)
-      }
-    }
-
-    if (showServicesDropdown) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showServicesDropdown])
-
   // Handle click outside to close city dropdown
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -828,10 +825,27 @@ export default function PartnersPage() {
     }
   }, [showCityDropdown])
 
-  // Services dropdown handled via portal in DropdownMenu
+  // Helper function to get enabled services as array of strings
+  const getEnabledServices = (services: {
+    housekeeping: boolean;
+    bookingInterns: boolean;
+    customizedServices: boolean;
+    activityAlerts: boolean;
+    laundry: boolean;
+    roomDelivery: boolean;
+  }): string[] => {
+    const enabled: string[] = []
+    if (services.housekeeping) enabled.push('Housekeeping')
+    if (services.bookingInterns) enabled.push('Booking Interns')
+    if (services.customizedServices) enabled.push('Customized Services')
+    if (services.activityAlerts) enabled.push('Activity Alerts')
+    if (services.laundry) enabled.push('Laundry')
+    if (services.roomDelivery) enabled.push('Room Delivery')
+    return enabled
+  }
 
   // Handle form input changes
-  const handleInputChange = (field: string, value: string | File | string[]) => {
+  const handleInputChange = (field: string, value: string | File | string[] | { [key: string]: boolean }) => {
     console.log(`Updating field ${field} with value:`, value)
     setFormData(prev => ({
       ...prev,
@@ -844,6 +858,17 @@ export default function PartnersPage() {
       const { [field]: _removed, ...rest } = prev
       return rest
     })
+  }
+
+  // Handle service toggle
+  const handleServiceToggle = (serviceKey: keyof typeof formData.services) => {
+    setFormData(prev => ({
+      ...prev,
+      services: {
+        ...prev.services,
+        [serviceKey]: !prev.services[serviceKey]
+      }
+    }))
   }
 
   // Handle image upload to Cloudinary
@@ -928,7 +953,14 @@ export default function PartnersPage() {
       startDate: partner.startDate || '',
       endDate: partner.endDate || '',
       plan: partner.plan || 'starter pack',
-      services: partner.services || [],
+      services: partner.services || {
+        housekeeping: false,
+        bookingInterns: false,
+        customizedServices: false,
+        activityAlerts: false,
+        laundry: false,
+        roomDelivery: false,
+      },
     })
     // Set image preview if editing and image exists
     if (partner.hotelImage && typeof partner.hotelImage === 'string') {
@@ -1019,7 +1051,14 @@ export default function PartnersPage() {
           username: result.data.username,
           phone: result.data.phoneNumber,
           city: result.data.hotelCity,
-          services: result.data.services || [],
+          services: result.data.services || {
+            housekeeping: false,
+            bookingInterns: false,
+            customizedServices: false,
+            activityAlerts: false,
+            laundry: false,
+            roomDelivery: false,
+          },
           plan: result.data.plan,
           createdAt: new Date(result.data.createdAt).toLocaleDateString('fr-FR', {
             day: 'numeric',
@@ -1054,7 +1093,14 @@ export default function PartnersPage() {
           startDate: '',
           endDate: '',
           plan: 'starter pack',
-          services: []
+          services: {
+            housekeeping: false,
+            bookingInterns: false,
+            customizedServices: false,
+            activityAlerts: false,
+            laundry: false,
+            roomDelivery: false,
+          }
         })
         setImagePreview(null)
 
@@ -1358,7 +1404,7 @@ export default function PartnersPage() {
     "Email": partner.hotelAddressEmail,
     "Phone number": partner.phone,
     "City": partner.city,
-    "Services": partner.services.join(", "),
+    "Services": getEnabledServices(partner.services).join(", "),
     "Plan": partner.plan,
     "Created At": partner.createdAt,
     "Account": partner.status === 'active' ? 'Active' : 'Inactive'
@@ -1709,7 +1755,7 @@ export default function PartnersPage() {
                     "Email": partner.hotelAddressEmail,
                     "Phone number": partner.phone,
                     "City": partner.city,
-                    "Services": partner.services.join(", "),
+                    "Services": getEnabledServices(partner.services).join(", "),
                     "Plan": partner.plan,
                     "Created At": partner.createdAt,
                     "Account": partner.status === 'active' ? 'Active' : 'Inactive'
@@ -1928,16 +1974,16 @@ export default function PartnersPage() {
                       <DropdownMenu
                         trigger={
                           <button className="flex items-center gap-1 text-sm text-primary hover:underline">
-                            <span>{partner.services.length}</span>
+                            <span>{getEnabledServices(partner.services).length}</span>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                           </button>
                         }
                         items={
-                          (partner.services.length === 0
+                          (getEnabledServices(partner.services).length === 0
                             ? [{ label: 'No services', onClick: () => { } }]
-                            : partner.services.map((s) => ({ label: s, onClick: () => { } }))
+                            : getEnabledServices(partner.services).map((s) => ({ label: s, onClick: () => { } }))
                           )
                         }
                       />
@@ -2473,7 +2519,7 @@ export default function PartnersPage() {
                           </svg>
                           <span className="text-sm text-gray-700">Services</span>
                         </div>
-                        <span className="text-sm text-black">{selectedPartner.services.join(", ")}</span>
+                        <span className="text-sm text-black">{getEnabledServices(selectedPartner.services).join(", ") || 'No services'}</span>
                       </div>
 
                       <div className="flex items-center justify-between">
@@ -3780,7 +3826,7 @@ export default function PartnersPage() {
                         <p className="text-xs text-red-500 mt-1">{formErrors.plan}</p>
                       )}
                     </div>
-                    <div className="flex flex-col gap-2 flex-1 relative" ref={servicesDropdownRef}>
+                    <div className="flex flex-col gap-2 flex-1">
                       <label
                         className="text-sm font-medium"
                         style={{
@@ -3792,90 +3838,102 @@ export default function PartnersPage() {
                       >
                         Services
                       </label>
-                      <div className="relative">
                         <div
-                          onClick={() => !servicesLoading && setShowServicesDropdown(!showServicesDropdown)}
-                          className="w-full px-3 py-2 border rounded pr-10 cursor-pointer flex items-center"
+                        className="w-full px-3 py-2 border rounded"
                           style={{
                             padding: "7.52px 12px",
                             borderRadius: "4px",
                             border: formErrors.services ? "1px solid #EF4444" : "1px solid #CED4DA",
                             background: "#FFF",
-                            minHeight: "36px"
-                          }}
-                        >
-                          {formData.services.length === 0 ? (
-                            <span className="text-gray-400 text-sm">
-                              {servicesLoading ? 'Loading services...' : 'Select services'}
-                            </span>
-                          ) : (
+                          minHeight: "120px"
+                        }}
+                      >
+                        <div className="flex flex-col gap-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.services.housekeeping}
+                              onChange={() => handleServiceToggle('housekeeping')}
+                              className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                              style={{
+                                accentColor: "#1F2A44"
+                              }}
+                            />
                             <span className="text-sm" style={{ color: "#212121" }}>
-                              {formData.services.length} service{formData.services.length > 1 ? 's' : ''} selected
+                              Housekeeping
                             </span>
-                          )}
-                        </div>
-                        <svg
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none transition-transform"
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.services.bookingInterns}
+                              onChange={() => handleServiceToggle('bookingInterns')}
+                              className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
                           style={{
-                            color: "#D9D9D9",
-                            transform: showServicesDropdown ? 'translateY(-50%) rotate(180deg)' : 'translateY(-50%)'
-                          }}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                        {showServicesDropdown && !servicesLoading && serviceOptions.length > 0 && (
-                          <div
-                            className="absolute z-50 w-full mt-1 bg-white border rounded shadow-lg"
+                                accentColor: "#1F2A44"
+                              }}
+                            />
+                            <span className="text-sm" style={{ color: "#212121" }}>
+                              Booking Interns
+                            </span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.services.customizedServices}
+                              onChange={() => handleServiceToggle('customizedServices')}
+                              className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
                             style={{
-                              borderRadius: "4px",
-                              border: "1px solid #CED4DA",
-                              background: "#FFF",
-                              maxHeight: "200px",
-                              overflowY: "auto",
-                              top: "100%",
-                              marginTop: "4px"
-                            }}
-                          >
-                            <div className="flex flex-col gap-1 p-2">
-                              {serviceOptions.map((service) => (
-                                <label
-                                  key={service}
-                                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
+                                accentColor: "#1F2A44"
+                              }}
+                            />
+                            <span className="text-sm" style={{ color: "#212121" }}>
+                              Customized Services
+                            </span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.services.activityAlerts}
+                              onChange={() => handleServiceToggle('activityAlerts')}
+                              className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
                                   style={{
-                                    padding: "4px 8px",
-                                    borderRadius: "4px"
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
+                                accentColor: "#1F2A44"
+                              }}
+                            />
+                            <span className="text-sm" style={{ color: "#212121" }}>
+                              Activity Alerts
+                            </span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
                                   <input
                                     type="checkbox"
-                                    checked={formData.services.includes(service)}
-                                    onChange={(e) => {
-                                      e.stopPropagation()
-                                      if (e.target.checked) {
-                                        // Add service if checked
-                                        handleInputChange('services', [...formData.services, service])
-                                      } else {
-                                        // Remove service if unchecked
-                                        handleInputChange('services', formData.services.filter(s => s !== service))
-                                      }
-                                    }}
+                              checked={formData.services.laundry}
+                              onChange={() => handleServiceToggle('laundry')}
+                              className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                              style={{
+                                accentColor: "#1F2A44"
+                              }}
+                            />
+                            <span className="text-sm" style={{ color: "#212121" }}>
+                              Laundry
+                            </span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.services.roomDelivery}
+                              onChange={() => handleServiceToggle('roomDelivery')}
                                     className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
                                     style={{
                                       accentColor: "#1F2A44"
                                     }}
                                   />
                                   <span className="text-sm" style={{ color: "#212121" }}>
-                                    {service}
+                              Room Delivery
                                   </span>
                                 </label>
-                              ))}
                             </div>
-                          </div>
-                        )}
                       </div>
                       {formErrors.services && (
                         <p className="text-xs text-red-500 mt-1">{formErrors.services}</p>
@@ -4073,7 +4131,8 @@ export default function PartnersPage() {
                     if (!startDate?.trim()) newErrors.startDate = 'Please fill this field'
                     if (!endDate?.trim()) newErrors.endDate = 'Please fill this field'
                     if (!plan?.trim()) newErrors.plan = 'Please fill this field'
-                    if (!services || services.length === 0) newErrors.services = 'Please select at least one service'
+                    const enabledServices = services ? Object.values(services).filter(Boolean) : []
+                    if (enabledServices.length === 0) newErrors.services = 'Please select at least one service'
 
                     if (Object.keys(newErrors).length > 0) {
                       setFormErrors(prev => ({ ...prev, ...newErrors }))
