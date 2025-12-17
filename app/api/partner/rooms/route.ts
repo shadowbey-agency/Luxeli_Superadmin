@@ -9,7 +9,14 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
     page: searchParams.get('page') || undefined,
     limit: searchParams.get('limit') || undefined,
   }
-  return RoomController.getRooms(query)
+  const partnerId = getPartnerId(req)
+  if (!partnerId) {
+    return NextResponse.json(
+      { success: false, error: 'Partner ID not found in token' },
+      { status: 401 }
+    )
+  }
+  return RoomController.getRooms(query, partnerId)
 })
 
 // POST /api/partner/rooms - create room

@@ -349,8 +349,10 @@ export default function PartnersPage() {
   const startDateRef = useRef<HTMLInputElement | null>(null)
   const endDateRef = useRef<HTMLInputElement | null>(null)
   const [showCityDropdown, setShowCityDropdown] = useState(false)
+  const [showServicesDropdown, setShowServicesDropdown] = useState(false)
   const [citySearchTerm, setCitySearchTerm] = useState("")
   const cityDropdownRef = useRef<HTMLDivElement | null>(null)
+  const servicesDropdownRef = useRef<HTMLDivElement | null>(null)
   
   // List of all Moroccan cities
   const allCities = [
@@ -824,6 +826,23 @@ export default function PartnersPage() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showCityDropdown])
+
+  // Handle click outside to close services dropdown
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (servicesDropdownRef.current && !servicesDropdownRef.current.contains(event.target as Node)) {
+        setShowServicesDropdown(false)
+      }
+    }
+
+    if (showServicesDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showServicesDropdown])
 
   // Helper function to get enabled services as array of strings
   const getEnabledServices = (services: {
@@ -3838,102 +3857,63 @@ export default function PartnersPage() {
                       >
                         Services
                       </label>
-                        <div
-                        className="w-full px-3 py-2 border rounded"
+                      <div className="relative" ref={servicesDropdownRef}>
+                        <button
+                          type="button"
+                          onClick={() => setShowServicesDropdown((open) => !open)}
+                          className="w-full flex justify-between items-center px-3 py-2 border rounded"
                           style={{
                             padding: "7.52px 12px",
                             borderRadius: "4px",
                             border: formErrors.services ? "1px solid #EF4444" : "1px solid #CED4DA",
                             background: "#FFF",
-                          minHeight: "120px"
-                        }}
-                      >
-                        <div className="flex flex-col gap-2">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.services.housekeeping}
-                              onChange={() => handleServiceToggle('housekeeping')}
-                              className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
-                              style={{
-                                accentColor: "#1F2A44"
-                              }}
-                            />
-                            <span className="text-sm" style={{ color: "#212121" }}>
-                              Housekeeping
-                            </span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.services.bookingInterns}
-                              onChange={() => handleServiceToggle('bookingInterns')}
-                              className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
-                          style={{
-                                accentColor: "#1F2A44"
-                              }}
-                            />
-                            <span className="text-sm" style={{ color: "#212121" }}>
-                              Booking Interns
-                            </span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.services.customizedServices}
-                              onChange={() => handleServiceToggle('customizedServices')}
-                              className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
-                            style={{
-                                accentColor: "#1F2A44"
-                              }}
-                            />
-                            <span className="text-sm" style={{ color: "#212121" }}>
-                              Customized Services
-                            </span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.services.activityAlerts}
-                              onChange={() => handleServiceToggle('activityAlerts')}
-                              className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
-                                  style={{
-                                accentColor: "#1F2A44"
-                              }}
-                            />
-                            <span className="text-sm" style={{ color: "#212121" }}>
-                              Activity Alerts
-                            </span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
+                          }}
+                        >
+                          <span className="text-sm" style={{ color: "#212121" }}>
+                            {getEnabledServices(formData.services).length > 0
+                              ? getEnabledServices(formData.services).join(", ")
+                              : "Select services"}
+                          </span>
+                          <svg
+                            className="w-4 h-4 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+
+                        {showServicesDropdown && (
+                          <div
+                            className="absolute z-20 mt-1 w-full rounded border bg-white shadow-md"
+                            style={{ borderColor: formErrors.services ? "#EF4444" : "#E5E7EB" }}
+                          >
+                            <div className="flex flex-col gap-2 p-3 max-h-56 overflow-y-auto">
+                              {[
+                                { key: 'housekeeping', label: 'Housekeeping' },
+                                { key: 'bookingInterns', label: 'Booking Interns' },
+                                { key: 'customizedServices', label: 'Customized Services' },
+                                { key: 'activityAlerts', label: 'Activity Alerts' },
+                                { key: 'laundry', label: 'Laundry' },
+                                { key: 'roomDelivery', label: 'Room Delivery' },
+                              ].map(({ key, label }) => (
+                                <label key={key} className="flex items-center gap-2 cursor-pointer">
                                   <input
                                     type="checkbox"
-                              checked={formData.services.laundry}
-                              onChange={() => handleServiceToggle('laundry')}
-                              className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
-                              style={{
-                                accentColor: "#1F2A44"
-                              }}
-                            />
-                            <span className="text-sm" style={{ color: "#212121" }}>
-                              Laundry
-                            </span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.services.roomDelivery}
-                              onChange={() => handleServiceToggle('roomDelivery')}
+                                    checked={(formData.services as any)[key]}
+                                    onChange={() => handleServiceToggle(key as keyof typeof formData.services)}
                                     className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
-                                    style={{
-                                      accentColor: "#1F2A44"
-                                    }}
+                                    style={{ accentColor: "#1F2A44" }}
                                   />
                                   <span className="text-sm" style={{ color: "#212121" }}>
-                              Room Delivery
+                                    {label}
                                   </span>
                                 </label>
+                              ))}
                             </div>
+                          </div>
+                        )}
                       </div>
                       {formErrors.services && (
                         <p className="text-xs text-red-500 mt-1">{formErrors.services}</p>

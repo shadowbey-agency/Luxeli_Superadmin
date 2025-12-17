@@ -9,10 +9,13 @@ export class RoomController {
   /**
    * Get all rooms with pagination
    */
-  static async getRooms(query: {
-    page?: string;
-    limit?: string;
-  }) {
+  static async getRooms(
+    query: {
+      page?: string;
+      limit?: string;
+    },
+    partnerId: string
+  ) {
     try {
       await connectDB();
 
@@ -21,8 +24,8 @@ export class RoomController {
       const skip = (page - 1) * limit;
 
       const [rooms, total] = await Promise.all([
-        Room.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-        Room.countDocuments({}),
+        Room.find({ partnerId }).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+        Room.countDocuments({ partnerId }),
       ]);
 
       // For each room, fetch the active guest if any
@@ -99,13 +102,23 @@ export class RoomController {
         );
       }
 
-      const newRoom = new Room({
+      let newRoom = new Room({
         partnerId,
         roomName: roomName.trim(),
         roomStatus: roomStatus === 'full' ? 'full' : 'empty',
       });
 
-      await newRoom.save();
+      try {
+        await newRoom.save();
+      } catch (error: any) {
+        // If a duplicate roomId slipped through due to a stale index, regenerate once
+        if (error?.code === 11000 && error?.keyPattern?.roomId) {
+          newRoom.roomId = undefined as any;
+          await newRoom.save();
+        } else {
+          throw error;
+        }
+      }
       return NextResponse.json({ success: true, room: newRoom.toObject() }, { status: 201 });
     } catch (error: any) {
       // Handle duplicate entry errors
@@ -154,10 +167,14 @@ export class RoomController {
   /**
    * Update a room by room name
    */
-  static async updateRoomByName(originalRoomName: string, body: {
-    roomName?: string;
-    roomStatus?: 'full' | 'empty' | string;
-  }) {
+  static async updateRoomByName(
+    partnerId: string,
+    originalRoomName: string,
+    body: {
+      roomName?: string;
+      roomStatus?: 'full' | 'empty' | string;
+    }
+  ) {
     try {
       await connectDB();
 
@@ -166,7 +183,7 @@ export class RoomController {
       if (typeof body.roomStatus === 'string') update.roomStatus = body.roomStatus === 'full' ? 'full' : 'empty';
 
       const room = await Room.findOneAndUpdate(
-        { roomName: originalRoomName.trim() },
+        { partnerId, roomName: originalRoomName.trim() },
         update,
         { new: true }
       );

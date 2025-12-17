@@ -8,13 +8,16 @@ export class TicketController {
   /**
    * Get all tickets with pagination and filtering
    */
-  static async getTickets(query: {
-    page?: string;
-    limit?: string;
-    search?: string;
-    status?: string;
-    priority?: string;
-  }) {
+  static async getTickets(
+    query: {
+      page?: string;
+      limit?: string;
+      search?: string;
+      status?: string;
+      priority?: string;
+    },
+    partnerId: string
+  ) {
     try {
       await connectDB();
 
@@ -23,7 +26,8 @@ export class TicketController {
       const skip = (page - 1) * limit;
 
       // Build filter object
-      const filter: any = {};
+      // Partner scope is mandatory for partner endpoints
+      const filter: any = { partnerId };
 
       if (query.search) {
         filter.$or = [

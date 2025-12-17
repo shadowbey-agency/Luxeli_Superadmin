@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware'
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware'
 import { RoomController } from '@/controllers/partner/RoomController'
 
 // PATCH /api/partner/rooms/update-by-name - update room by room name
@@ -14,8 +14,16 @@ export const PATCH = withAuth(async (request: AuthenticatedRequest) => {
       )
     }
 
+    const partnerId = getPartnerId(request)
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found in token' },
+        { status: 401 }
+      )
+    }
+
     const { originalRoomName, ...updateData } = body
-    return await RoomController.updateRoomByName(originalRoomName, updateData)
+    return await RoomController.updateRoomByName(partnerId, originalRoomName, updateData)
   } catch (error: any) {
     console.error('Update Room by Name API Error:', error)
     return NextResponse.json(

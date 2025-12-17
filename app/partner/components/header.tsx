@@ -50,7 +50,15 @@ export default function Header() {
     }
   }
 
-  const pageInfo = getPageInfo()
+  const [pageInfo, setPageInfo] = useState<{ title: string; description: string }>({
+    title: "",
+    description: ""
+  })
+
+  // Compute page info client-side to avoid hydration mismatch from Date()
+  useEffect(() => {
+    setPageInfo(getPageInfo())
+  }, [pathname])
 
   // Get user data and set name/role
   useEffect(() => {

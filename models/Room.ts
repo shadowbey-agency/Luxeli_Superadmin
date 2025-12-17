@@ -56,7 +56,8 @@ RoomSchema.pre("save", async function (next) {
 
     let nextNumber = 1;
     if (lastRoom && lastRoom.roomId) {
-      const lastNumber = parseInt(String(lastRoom.roomId).replace("#", ""), 10);
+      // Extract numeric portion from legacy formats (e.g., "#01", "R-01", "01")
+      const lastNumber = parseInt(String(lastRoom.roomId).replace(/[^0-9]/g, ""), 10);
       if (!Number.isNaN(lastNumber)) {
         nextNumber = lastNumber + 1;
       }
@@ -64,7 +65,8 @@ RoomSchema.pre("save", async function (next) {
 
     // Generate roomId and check for uniqueness
     let attempts = 0;
-    let roomId = `#${String(nextNumber).padStart(2, "0")}`;
+    // New format: numeric string without "#" (e.g., "01", "02", "10")
+    let roomId = `${String(nextNumber).padStart(2, "0")}`;
     
     // Check if this roomId already exists for this partner
     while (attempts < 100) {
@@ -80,7 +82,7 @@ RoomSchema.pre("save", async function (next) {
       
       // roomId exists, try next number
       nextNumber++;
-      roomId = `#${String(nextNumber).padStart(2, "0")}`;
+      roomId = `${String(nextNumber).padStart(2, "0")}`;
       attempts++;
     }
 

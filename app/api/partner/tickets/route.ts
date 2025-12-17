@@ -13,7 +13,15 @@ export const GET = withAuth(async (request: NextRequest) => {
     priority: searchParams.get('priority') || undefined,
   };
 
-  return await TicketController.getTickets(query);
+  const partnerId = getPartnerId(request as any);
+  if (!partnerId) {
+    return Response.json(
+      { success: false, error: 'Partner ID not found' },
+      { status: 401 }
+    );
+  }
+
+  return await TicketController.getTickets(query, partnerId);
 });
 
 export const POST = withAuth(async (request: NextRequest) => {

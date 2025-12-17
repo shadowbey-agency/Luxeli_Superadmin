@@ -233,6 +233,12 @@ export default function RoomPage() {
     }
   }
 
+  // Normalize display of room numbers (strip legacy "#" or "R-" prefixes)
+  const displayRoomNumber = (roomNumber: string) =>
+    (roomNumber || "")
+      .replace(/^#/, "")
+      .replace(/^R-?/i, "");
+
   // Fetch rooms from API
   const fetchRooms = async () => {
     try {
@@ -328,16 +334,20 @@ export default function RoomPage() {
   }
 
   const confirmDelete = async () => {
-    if (isBulkDelete) {
-      // Bulk delete
-      if (selectedRooms.size === 0) return
-      try {
-        const token = getAuthToken()
-        if (!token) {
-          showAlert('Authentication Required', 'Please log in to delete rooms', 'warning')
-          return
-        }
-        
+    // Prevent action if nothing selected
+    if (isBulkDelete && selectedRooms.size === 0) return
+    if (!isBulkDelete && !roomToDelete) return
+
+    setIsDeletingRoom(true)
+
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        showAlert('Authentication Required', 'Please log in to delete room', 'warning')
+        return
+      }
+
+      if (isBulkDelete) {
         // Delete all selected rooms
         const deletePromises = Array.from(selectedRooms).map(roomId =>
           fetch(`/api/partner/rooms/${roomId}`, {
@@ -347,10 +357,10 @@ export default function RoomPage() {
             }
           })
         )
-        
+
         const results = await Promise.all(deletePromises)
         const failed = results.filter(r => !r.ok)
-        
+
         if (failed.length === 0) {
           await fetchRooms()
           setShowDeleteModal(false)
@@ -360,20 +370,9 @@ export default function RoomPage() {
         } else {
           showAlert('Error', `Failed to delete ${failed.length} room(s). Please try again.`, 'error')
         }
-      } catch (error) {
-        console.error('Error deleting rooms:', error)
-        showAlert('Error', 'Failed to delete rooms. Please try again.', 'error')
-      }
-    } else {
-      // Single delete
-      if (!roomToDelete) return
-      try {
-        const token = getAuthToken()
-        if (!token) {
-          showAlert('Authentication Required', 'Please log in to delete room', 'warning')
-          return
-        }
-        const response = await fetch(`/api/partner/rooms/${roomToDelete.id}`, {
+      } else {
+        // Single delete
+        const response = await fetch(`/api/partner/rooms/${roomToDelete!.id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -388,10 +387,12 @@ export default function RoomPage() {
         } else {
           showAlert('Error', result.error || 'Failed to delete room', 'error')
         }
-      } catch (error) {
-        console.error('Error deleting room:', error)
-        showAlert('Error', 'Failed to delete room. Please try again.', 'error')
       }
+    } catch (error) {
+      console.error('Error deleting room:', error)
+      showAlert('Error', 'Failed to delete room. Please try again.', 'error')
+    } finally {
+      setIsDeletingRoom(false)
     }
   }
 
@@ -843,9 +844,11 @@ export default function RoomPage() {
     if (newRoomStatus === "Empty") {
       // Save room with empty status immediately (no resident data)
       try {
+        setIsSavingStepOne(true)
         const token = getAuthToken()
         if (!token) {
           showAlert('Authentication Required', 'Please log in to add a room', 'warning')
+          setIsSavingStepOne(false)
           return
         }
         const response = await fetch('/api/partner/rooms', {
@@ -870,9 +873,12 @@ export default function RoomPage() {
       } catch (error) {
         console.error('Error adding room:', error)
         showAlert('Error', 'Failed to add room. Please try again.', 'error')
+      } finally {
+        setIsSavingStepOne(false)
       }
     } else {
       // Status is Full, proceed to full modal
+      setIsSavingStepOne(false)
       setShowAddStepOne(false)
       setShowAddModal(true)
     }
@@ -893,6 +899,8 @@ export default function RoomPage() {
 
   const [isSavingRoom, setIsSavingRoom] = useState(false)
   const [isUpdatingRoom, setIsUpdatingRoom] = useState(false)
+  const [isSavingStepOne, setIsSavingStepOne] = useState(false)
+  const [isDeletingRoom, setIsDeletingRoom] = useState(false)
 
   const handleSaveAddRoom = async () => {
     if (!newRoomName.trim()) {
@@ -1453,7 +1461,7 @@ export default function RoomPage() {
                      fontWeight: "400",
                      lineHeight: "19.5px"
                    }}>
-                     #{room.roomNumber}
+                    {displayRoomNumber(room.roomNumber)}
                    </td>
                    <td className="px-4 py-4" style={{
                      color: "#525866",
@@ -1696,6 +1704,7 @@ export default function RoomPage() {
                <div className="flex gap-[16px] flex-end">
                  <button
                    onClick={cancelDelete}
+                  disabled={isDeletingRoom}
                    className="flex flex-col justify-center items-center px-2.5 py-2 rounded-md text-center font-medium text-sm leading-5 transition-colors"
                    style={{
                      padding: "8.52px 10px",
@@ -1709,20 +1718,30 @@ export default function RoomPage() {
                  >
                    Cancel
                  </button>
-                 <button
-                   onClick={confirmDelete}
-                   className="flex flex-col justify-center items-center px-2.5 py-2 rounded-md text-center font-medium text-sm leading-5 transition-colors"
-                   style={{
-                     padding: "8.52px 10px",
-                     borderRadius: "6px",
-                     background: "#EB1D1D",
-                     color: "#FFF",
-                     fontSize: "14px",
-                     fontWeight: 500,
-                     lineHeight: "19.5px"
-                   }}
-                 >
-                   Delete
+                <button
+                  onClick={confirmDelete}
+                  disabled={isDeletingRoom}
+                  className="flex flex-col justify-center items-center px-2.5 py-2 rounded-md text-center font-medium text-sm leading-5 transition-colors"
+                  style={{
+                    padding: "8.52px 10px",
+                    borderRadius: "6px",
+                    background: "#EB1D1D",
+                    color: "#FFF",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    lineHeight: "19.5px",
+                    opacity: isDeletingRoom ? 0.7 : 1,
+                    cursor: isDeletingRoom ? "not-allowed" : "pointer"
+                  }}
+                >
+                  {isDeletingRoom ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      Deleting...
+                    </span>
+                  ) : (
+                    'Delete'
+                  )}
                  </button>
                </div>
              </div>
@@ -2747,6 +2766,7 @@ export default function RoomPage() {
              <div className="flex justify-end items-center border-t p-5 gap-4">
                <button
                  onClick={closeAddStepOne}
+                disabled={isSavingStepOne}
                  className="flex items-center justify-center border rounded text-black"
                  style={{
                    padding: "8.52px 10px",
@@ -2757,13 +2777,14 @@ export default function RoomPage() {
                    fontSize: "14px",
                    lineHeight: "19.5px",
                    textAlign: "center",
-                   opacity: 1,
+                  opacity: isSavingStepOne ? 0.6 : 1,
                  }}
                >
                  Cancel
                </button>
                <button
                  onClick={handleSaveStepOne}
+                disabled={isSavingStepOne}
                  className="flex items-center justify-center rounded text-white"
                  style={{
                    padding: "8.52px 20px",
@@ -2773,10 +2794,17 @@ export default function RoomPage() {
                    fontSize: "14px",
                    lineHeight: "19.5px",
                    textAlign: "center",
-                   opacity: 1,
+                  opacity: isSavingStepOne ? 0.7 : 1,
                  }}
                >
-                 Save
+                {isSavingStepOne ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    Saving...
+                  </span>
+                ) : (
+                  'Save'
+                )}
                </button>
              </div>
            </div>
