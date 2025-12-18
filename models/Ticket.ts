@@ -13,6 +13,7 @@ export interface ITicket extends Document {
     name: string;
     profilePic?: string;
   };
+  markasticket?: boolean; // Mark as ticket flag (superadmin can mark/unmark)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,6 +59,10 @@ const ticketSchema = new Schema<ITicket>(
     assignee: {
       name: { type: String },
       profilePic: { type: String },
+    },
+    markasticket: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true } // auto adds createdAt and updatedAt

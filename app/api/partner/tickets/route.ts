@@ -13,6 +13,14 @@ export const GET = withAuth(async (request: NextRequest) => {
     priority: searchParams.get('priority') || undefined,
   };
 
+  // Check if requesting saved tickets (from all partners)
+  const saved = searchParams.get('saved');
+  if (saved === 'true') {
+    // Return all saved tickets from all partners
+    return await TicketController.getSavedTickets(query);
+  }
+
+  // Otherwise, return partner's own tickets
   const partnerId = getPartnerId(request as any);
   if (!partnerId) {
     return Response.json(

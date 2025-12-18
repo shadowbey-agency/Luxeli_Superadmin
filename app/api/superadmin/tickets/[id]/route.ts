@@ -34,6 +34,7 @@ export const PUT = withAuth(async (request: AuthenticatedRequest) => {
       image,
       status,
       assignee,
+      markasticket,
     } = body;
 
     // Validate priority if provided
@@ -59,6 +60,7 @@ export const PUT = withAuth(async (request: AuthenticatedRequest) => {
     if (image !== undefined) updateData.image = image;
     if (status !== undefined) updateData.status = status;
     if (assignee !== undefined) updateData.assignee = assignee;
+    if (markasticket !== undefined) updateData.markasticket = markasticket;
 
     // Check if user is superadmin or partner
     const user = request.user;

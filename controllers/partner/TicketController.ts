@@ -162,6 +162,7 @@ export class TicketController {
       name: string;
       profilePic?: string;
     };
+    markasticket?: boolean;
   }, partnerId: string | null = null) {
     try {
       await connectDB();
@@ -219,6 +220,12 @@ export class TicketController {
       if (data.assignee !== undefined) {
         updateData.assignee = data.assignee;
       }
+      if (data.markasticket !== undefined) {
+        // Ensure it's a boolean value
+        updateData.markasticket = Boolean(data.markasticket);
+      }
+
+      console.log('Ticket update data:', { ticketId, updateData });
 
       // Use findByIdAndUpdate to update only specified fields
       // This avoids validation issues with required fields that aren't being updated
@@ -227,6 +234,8 @@ export class TicketController {
         { $set: updateData },
         { new: true, runValidators: true }
       );
+
+      console.log('Ticket after update:', ticket ? { id: ticket._id, markasticket: ticket.markasticket } : 'Ticket not found');
 
       if (!ticket) {
         return NextResponse.json(
@@ -445,6 +454,89 @@ export class TicketController {
       });
     } catch (error) {
       return handleApiError(error, 'Failed to get tickets');
+    }
+  }
+
+  /**
+   * Get all saved tickets (markasticket: true) from all partners
+   * This allows partners to see all tickets marked as saved by superadmin
+   */
+  static async getSavedTickets(query: {
+    page?: string;
+    limit?: string;
+    search?: string;
+    status?: string;
+    priority?: string;
+  }) {
+    try {
+      await connectDB();
+
+      const page = parseInt(query.page || '1');
+      const limit = parseInt(query.limit || '10');
+      const skip = (page - 1) * limit;
+
+      // Build filter object - only tickets with markasticket: true
+      const filter: any = { markasticket: true };
+
+      if (query.search) {
+        filter.$or = [
+          { title: { $regex: query.search, $options: 'i' } },
+          { description: { $regex: query.search, $options: 'i' } },
+          { ticketId: { $regex: query.search, $options: 'i' } },
+          { superadminTicketId: { $regex: query.search, $options: 'i' } },
+        ];
+      }
+
+      if (query.status) {
+        filter.status = query.status;
+      }
+
+      if (query.priority) {
+        filter.priority = query.priority;
+      }
+
+      // Get all saved tickets with pagination
+      const allTickets = await Ticket.find(filter)
+        .sort({ createdAt: -1 }) // Newest first
+        .lean();
+
+      // Apply pagination
+      const tickets = allTickets.slice(skip, skip + limit);
+
+      // Get total count
+      const total = await Ticket.countDocuments(filter);
+
+      // Get all partner IDs to fetch partner info
+      const partnerIds = [...new Set(tickets.map(t => t.partnerId))];
+      const partners = await Partner.find({ _id: { $in: partnerIds } })
+        .select('_id hotelName hotelAddressEmail')
+        .lean();
+
+      // Create a map of partnerId to partner info
+      const partnerMap = new Map(
+        partners.map(p => [String(p._id), { hotelName: p.hotelName, hotelEmail: p.hotelAddressEmail }])
+      );
+
+      // Enrich tickets with partner information
+      const enrichedTickets = tickets.map(ticket => ({
+        ...ticket,
+        partner: partnerMap.get(ticket.partnerId) || { hotelName: 'Unknown', hotelEmail: '' }
+      }));
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          tickets: enrichedTickets,
+          pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit),
+          },
+        },
+      });
+    } catch (error) {
+      return handleApiError(error, 'Failed to get saved tickets');
     }
   }
 

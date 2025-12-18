@@ -22,14 +22,14 @@ interface UnmarkTicketModalProps {
   ticket: Ticket | null
   isOpen: boolean
   onClose: () => void
-  onConfirm: (ticketId: string) => void
+  onConfirm: (ticketId: string) => Promise<void> | void
 }
 
 export default function UnmarkTicketModal({ ticket, isOpen, onClose, onConfirm }: UnmarkTicketModalProps) {
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (ticket) {
-      onConfirm(ticket.id)
-      onClose()
+      await onConfirm(ticket.id)
+      // Don't close here - let the parent handle closing after successful update
     }
   }
 
@@ -43,8 +43,8 @@ export default function UnmarkTicketModal({ ticket, isOpen, onClose, onConfirm }
   const isMarkedAsTicket = ticket.isMarkedAsTicket
   const headerTitle = isMarkedAsTicket ? "Unmark ticket" : "Mark as a ticket"
   const confirmMessage = isMarkedAsTicket 
-    ? "Convert this conversation/message into a support ticket. Message and attachment will be kept"
-    : "Convert this support ticket back to a conversation/message. Message and attachment will be kept"
+    ? "Convert this support ticket back to a conversation/message. Message and attachment will be kept"
+    : "Convert this conversation/message into a support ticket. Message and attachment will be kept"
 
   return (
     <div className="fixed inset-0 bg-black/40 bg-opacity-80 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>

@@ -262,7 +262,13 @@ export default function SupportPage() {
         return
       }
 
-      const response = await fetch(`/api/partner/tickets?page=${currentPage}&limit=${itemsPerPage}`, {
+      // If viewing saved tickets, fetch all saved tickets from all partners
+      // Otherwise, fetch only this partner's tickets
+      const url = activeTab === 'tickets-saved'
+        ? `/api/partner/tickets?page=${currentPage}&limit=${itemsPerPage}&saved=true`
+        : `/api/partner/tickets?page=${currentPage}&limit=${itemsPerPage}`
+
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -271,23 +277,29 @@ export default function SupportPage() {
 
       if (data.success && data.data?.tickets) {
         // Transform API response to match Ticket interface
-        const transformedTickets: Ticket[] = data.data.tickets.map((ticket: any) => ({
-          id: ticket._id || ticket.id,
-          ticketId: ticket.ticketId || `TCKT-${ticket._id?.slice(-6)}`, // Use TCKT- prefix to match model
-          title: ticket.title,
-          status: ticket.status as Ticket["status"],
-          priority: ticket.priority as Ticket["priority"],
-          assignee: ticket.assignee ? {
-            name: ticket.assignee.name || "Unassigned",
-            avatar: ticket.assignee.profilePic || (ticket.assignee.name ? ticket.assignee.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : "U")
-          } : { name: "Unassigned", avatar: "U" },
-          dateCreated: formatDate(ticket.createdAt || new Date()),
-          dateUpdate: formatDate(ticket.updatedAt || ticket.createdAt || new Date()),
-          hotelName: "Hotel name", // You may want to fetch this from partner data
-          hotelEmail: "hotel@gmail.com", // You may want to fetch this from partner data
-          description: ticket.description,
-          isMarkedAsTicket: true,
-        }))
+        const transformedTickets: Ticket[] = data.data.tickets.map((ticket: any) => {
+          // For saved tickets, use partner info from API response
+          // For regular tickets, use default values
+          const partner = ticket.partner || {}
+          
+          return {
+            id: ticket._id || ticket.id,
+            ticketId: ticket.superadminTicketId || ticket.ticketId || `TCKT-${ticket._id?.slice(-6)}`,
+            title: ticket.title,
+            status: ticket.status as Ticket["status"],
+            priority: ticket.priority as Ticket["priority"],
+            assignee: ticket.assignee ? {
+              name: ticket.assignee.name || "Unassigned",
+              avatar: ticket.assignee.profilePic || (ticket.assignee.name ? ticket.assignee.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : "U")
+            } : { name: "Unassigned", avatar: "U" },
+            dateCreated: formatDate(ticket.createdAt || new Date()),
+            dateUpdate: formatDate(ticket.updatedAt || ticket.createdAt || new Date()),
+            hotelName: partner.hotelName || "Hotel name",
+            hotelEmail: partner.hotelEmail || "hotel@gmail.com",
+            description: ticket.description,
+            isMarkedAsTicket: ticket.markasticket ?? false,
+          }
+        })
         setTickets(transformedTickets)
         
         // Update pagination info from API
@@ -305,7 +317,7 @@ export default function SupportPage() {
 
   useEffect(() => {
     fetchTickets()
-  }, [currentPage, itemsPerPage])
+  }, [currentPage, itemsPerPage, activeTab])
 
   // Refresh tickets after creating a new one
   const handleTicketCreated = () => {
@@ -314,9 +326,12 @@ export default function SupportPage() {
     fetchTickets()
   }
 
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = Math.min(startIndex + tickets.length, totalTickets)
+  // No need to filter on frontend anymore - API handles it
+  // For saved tickets, API returns only markasticket: true from all partners
+  // For my tickets, API returns only this partner's tickets
   const currentTickets = tickets
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = Math.min(startIndex + currentTickets.length, totalTickets)
 
   const handleStatusChange = (ticketId: string, newStatus: Ticket["status"]) => {
     setTickets(tickets.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)))
@@ -342,7 +357,7 @@ export default function SupportPage() {
     setTicketToChangeStatus(null)
   }
 
-  const confirmStatusChange = (ticketId: string, newStatus: Ticket["status"]) => {
+  const confirmStatusChange = async (ticketId: string, newStatus: Ticket["status"]) => {
     setTickets(tickets.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)))
   }
 
@@ -402,7 +417,7 @@ export default function SupportPage() {
     setTicketToContact(null)
   }
 
-  const confirmDeleteTicket = (ticketId: string) => {
+  const confirmDeleteTicket = async (ticketId: string) => {
     setTickets(tickets.filter((t) => t.id !== ticketId))
   }
 

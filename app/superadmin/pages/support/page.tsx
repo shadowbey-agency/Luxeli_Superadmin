@@ -133,7 +133,7 @@ export default function SupportPage() {
       hotelEmail: partner.hotelEmail || '',
       description: apiTicket.description || '',
       image: apiTicket.image || undefined,
-      isMarkedAsTicket: true // Default value, can be adjusted if needed
+      isMarkedAsTicket: apiTicket.markasticket ?? false
     }
   }
 
@@ -337,9 +337,56 @@ export default function SupportPage() {
     setTicketToUnmark(null)
   }
 
-  const confirmUnmarkTicket = (ticketId: string) => {
-    // Toggle the isMarkedAsTicket status
-    setTickets(tickets.map((t) => (t.id === ticketId ? { ...t, isMarkedAsTicket: !t.isMarkedAsTicket } : t)))
+  const confirmUnmarkTicket = async (ticketId: string) => {
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        alert('Authentication token not found. Please log in again.')
+        return
+      }
+
+      // Find the ticket to get current markasticket status
+      const ticket = tickets.find((t) => t.id === ticketId)
+      if (!ticket) {
+        console.error('Ticket not found')
+        return
+      }
+
+      // Toggle the markasticket status
+      const newMarkasticketStatus = !ticket.isMarkedAsTicket
+
+      console.log('Updating ticket:', ticketId, 'markasticket to:', newMarkasticketStatus)
+
+      const response = await fetch(`/api/superadmin/tickets/${ticketId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ markasticket: newMarkasticketStatus })
+      })
+
+      const responseData = await response.json().catch(() => ({}))
+      
+      if (response.ok) {
+        console.log('Ticket updated successfully:', responseData)
+        // Close modal after successful update
+        closeUnmarkTicketModal()
+        // Refresh tickets after update
+        await fetchTickets()
+      } else {
+        console.error('Failed to update ticket markasticket status:', {
+          status: response.status,
+          error: responseData.error || responseData.message || 'Unknown error',
+          fullResponse: responseData
+        })
+        alert(`Failed to update ticket: ${responseData.error || responseData.message || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error updating ticket markasticket status:', error)
+      alert(`Error updating ticket: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   const handleContactPartner = (ticket: Ticket) => {
