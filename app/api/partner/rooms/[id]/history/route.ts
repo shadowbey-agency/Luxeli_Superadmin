@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware'
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware'
 import { RoomController } from '@/controllers/partner/RoomController'
 
 // GET /api/partner/rooms/[id]/history - get room history
 export const GET = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -23,7 +31,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest, context?: { pa
       );
     }
 
-    return await RoomController.getRoomHistory(id);
+    return await RoomController.getRoomHistory(id, partnerId);
   } catch (error: any) {
     console.error('Get Room History API Error:', error);
     return NextResponse.json(

@@ -216,12 +216,30 @@ export class RoomController {
 
   /**
    * Get room history by room ID
+   * Verifies room belongs to partner for security
    */
-  static async getRoomHistory(roomId: string) {
+  static async getRoomHistory(roomId: string, partnerId: string) {
     try {
       await connectDB();
 
-      const history = await RoomHistory.find({ roomId })
+      // Verify room exists and belongs to this partner
+      const room = await Room.findById(roomId).lean();
+      if (!room) {
+        return NextResponse.json(
+          { success: false, error: 'Room not found' },
+          { status: 404 }
+        );
+      }
+
+      if (room.partnerId !== partnerId) {
+        return NextResponse.json(
+          { success: false, error: 'Room does not belong to your hotel' },
+          { status: 403 }
+        );
+      }
+
+      // Filter history by both roomId and partnerId for security
+      const history = await RoomHistory.find({ roomId, partnerId })
         .sort({ unassignedAt: -1 })
         .lean();
 

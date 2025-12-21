@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Guest from '@/models/Guest';
 import Room from '@/models/Room';
+import RoomHistory from '@/models/RoomHistory';
 import { generateGuestToken, verifyToken } from '@/lib/auth';
 import { handleApiError } from '@/lib/middleware';
 import QRCode from 'qrcode';
@@ -280,17 +281,60 @@ export class GuestController {
         );
       }
 
+      // Get room info before updating
+      const room = await Room.findById(roomId);
+      if (!room) {
+        return NextResponse.json(
+          { success: false, error: 'Room not found' },
+          { status: 404 }
+        );
+      }
+
+      // Format date and time for RoomHistory
+      const formatTime = (date: Date | null | undefined): string | null => {
+        if (!date) return null;
+        const d = new Date(date);
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+      };
+
+      const formatDate = (date: Date | null | undefined): Date | null => {
+        if (!date) return null;
+        const d = new Date(date);
+        // Return date with time set to midnight for date-only comparison
+        d.setHours(0, 0, 0, 0);
+        return d;
+      };
+
+      const checkOutDateTime = new Date();
+      const checkInDate = formatDate(guest.checkInDate);
+      const checkInTime = formatTime(guest.checkInDate);
+      const checkOutDate = formatDate(checkOutDateTime);
+      const checkOutTime = formatTime(checkOutDateTime);
+
       // Deactivate guest
       guest.isActive = false;
-      guest.checkOutDate = new Date();
+      guest.checkOutDate = checkOutDateTime;
       await guest.save();
 
+      // Create room history entry
+      const roomHistory = new RoomHistory({
+        partnerId,
+        roomId: roomId,
+        roomName: guest.roomName || room.roomName,
+        resident: guest.guestName,
+        checkInDate: checkInDate,
+        checkInTime: checkInTime,
+        checkOutDate: checkOutDate,
+        checkOutTime: checkOutTime,
+        unassignedAt: checkOutDateTime,
+      });
+      await roomHistory.save();
+
       // Update room status to empty
-      const room = await Room.findById(roomId);
-      if (room) {
-        room.roomStatus = 'empty';
-        await room.save();
-      }
+      room.roomStatus = 'empty';
+      await room.save();
 
       return NextResponse.json({
         success: true,
