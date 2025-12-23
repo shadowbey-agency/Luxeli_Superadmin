@@ -45,6 +45,7 @@ export const PATCH = withAuth(async (request: AuthenticatedRequest) => {
       identifiantFiscal,
       taxeProfessionnelle,
       hotelImage,
+      services,
     } = body
 
     return await PartnerController.updatePartner(userId, {
@@ -57,6 +58,7 @@ export const PATCH = withAuth(async (request: AuthenticatedRequest) => {
       identifiantFiscal,
       taxeProfessionnelle,
       hotelImage,
+      services,
     })
   } catch (error: any) {
     console.error('Update Partner Account API Error:', error)

@@ -23,6 +23,7 @@ export function usePartnerServices() {
   useEffect(() => {
     const fetchPartnerServices = async () => {
       try {
+        setLoading(true)
         const token = getAuthToken()
         if (!token) {
           setLoading(false)
@@ -71,6 +72,16 @@ export function usePartnerServices() {
     }
 
     fetchPartnerServices()
+
+    // Listen for service update events
+    const handleServiceUpdate = () => {
+      fetchPartnerServices()
+    }
+    window.addEventListener('partnerServicesUpdated', handleServiceUpdate)
+
+    return () => {
+      window.removeEventListener('partnerServicesUpdated', handleServiceUpdate)
+    }
   }, [])
 
   // Helper function to check if a service is enabled

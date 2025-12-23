@@ -100,56 +100,67 @@ export default function SettingsPage() {
     },
   ])
 
-  const [services, setServices] = useState<Service[]>([
+  // Service definitions with metadata
+  const allServiceDefinitions: Array<{
+    id: string;
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+    partnerServiceKey: keyof {
+      housekeeping: boolean;
+      bookingInterns: boolean;
+      customizedServices: boolean;
+      activityAlerts: boolean;
+      laundry: boolean;
+      roomDelivery: boolean;
+    };
+  }> = [
     {
       id: "housekeeping",
       title: "Housekeeping",
       description: "Guests request cleaning, turndown, towels, and amenities –auto-assigned to housekeeping with tracking.",
       icon: <PublicIcon src="/assets/icons/housekeeping.svg" alt="Housekeeping" width={32} height={32} />,
-      available: true,
-      status: "Active"
+      partnerServiceKey: "housekeeping"
     },
     {
       id: "bookings-interns",
       title: "Bookings interns",
       description: "Take on-property bookings for spa, restaurant, or activities, with time slots and capacity.",
       icon: <PublicIcon src="/assets/icons/calendar.svg" alt="Bookings interns" width={32} height={32} />,
-      available: false,
-      status: "Disable"
+      partnerServiceKey: "bookingInterns"
     },
     {
       id: "customized-services",
       title: "Customized services",
       description: "Offer tailored services-airport pickup, birthday setup- define price, lead time, and visibility.",
       icon: <PublicIcon src="/assets/icons/customized service.svg" alt="Customized services" width={32} height={32} />,
-      available: true,
-      status: "Disable"
+      partnerServiceKey: "customizedServices"
     },
     {
       id: "activity-alerts",
       title: "Activity alerts",
       description: "Send targeted notifications about events, offers, or schedule changes to selected guests.",
       icon: <PublicIcon src="/assets/icons/activity alert.svg" alt="Activity alerts" width={32} height={32} />,
-      available: true,
-      status: "Active"
+      partnerServiceKey: "activityAlerts"
     },
     {
       id: "laundry",
       title: "Laundry",
       description: "Schedule laundry pickup and delivery; per-item pricing with live status updates.",
       icon: <PublicIcon src="/assets/icons/laundary.svg" alt="Laundry" width={32} height={32} />,
-      available: true,
-      status: "Active"
+      partnerServiceKey: "laundry"
     },
     {
       id: "in-room-delivery",
       title: "In-room delivery",
       description: "Guests order food and amenities to the room, with prep-to-delivered tracking.",
       icon: <PublicIcon src="/assets/icons/in-room delivery.svg" alt="In-room delivery" width={32} height={32} />,
-      available: true,
-      status: "Active"
+      partnerServiceKey: "roomDelivery"
     }
-  ])
+  ]
+
+  const [services, setServices] = useState<Service[]>([])
+  const [isLoadingServices, setIsLoadingServices] = useState(false)
 
   const [banners, setBanners] = useState<Banner[]>([
     {
@@ -184,13 +195,108 @@ export default function SettingsPage() {
     )
   }
 
-  const handleServiceToggle = (id: string) => {
+  const handleServiceToggle = async (id: string) => {
+    // Find the service definition to get the partner service key
+    const serviceDef = allServiceDefinitions.find(def => def.id === id)
+    if (!serviceDef) return
+
+    // Find current service state
+    const currentService = services.find(s => s.id === id)
+    if (!currentService) return
+
+    // Calculate new status
+    const newStatus = currentService.status === "Active" ? false : true
+
+    // Optimistically update UI
     setServices(
       services.map((service) => ({
         ...service,
-        status: service.id === id ? (service.status === "Active" ? "Disable" : "Active") : service.status
+        status: service.id === id ? (newStatus ? "Active" : "Disable") : service.status
       }))
     )
+
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        setError("Authentication token not found. Please log in again.")
+        // Revert optimistic update
+        setServices(
+          services.map((service) => ({
+            ...service,
+            status: service.id === id ? currentService.status : service.status
+          }))
+        )
+        return
+      }
+
+      // Fetch current partner services to preserve other services
+      const response = await fetch('/api/partner/account', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const data = await response.json()
+      if (!response.ok || !data.partner?.services) {
+        throw new Error(data.error || 'Failed to fetch current services')
+      }
+
+      // Update the specific service
+      const updatedServices = {
+        ...data.partner.services,
+        [serviceDef.partnerServiceKey]: newStatus
+      }
+
+      // Call API to update service
+      const updateResponse = await fetch('/api/partner/account', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          services: updatedServices
+        })
+      })
+
+      const updateData = await updateResponse.json()
+
+      if (!updateResponse.ok || !updateData.success) {
+        throw new Error(updateData.error || 'Failed to update service')
+      }
+
+      // Update local state with the actual response
+      if (updateData.partner?.services) {
+        const partnerServices = updateData.partner.services
+        const updatedServiceList = allServiceDefinitions
+          .map(serviceDef => {
+            const serviceValue = partnerServices[serviceDef.partnerServiceKey] ?? false
+            return {
+              id: serviceDef.id,
+              title: serviceDef.title,
+              description: serviceDef.description,
+              icon: serviceDef.icon,
+              available: true,
+              status: serviceValue === true ? "Active" as const : "Disable" as const
+            }
+          })
+        setServices(updatedServiceList)
+      }
+
+      // Trigger event to refresh partner services hook (for sidebar update)
+      window.dispatchEvent(new Event('partnerServicesUpdated'))
+      
+    } catch (err: any) {
+      console.error('Error updating service:', err)
+      setError(err.message || 'Failed to update service')
+      // Revert optimistic update on error
+      setServices(
+        services.map((service) => ({
+          ...service,
+          status: service.id === id ? currentService.status : service.status
+        }))
+      )
+    }
   }
 
   const handleBannerToggle = (id: string) => {
@@ -381,10 +487,67 @@ export default function SettingsPage() {
     }
   }
 
+  // Fetch partner services from API
+  const fetchPartnerServices = async () => {
+    try {
+      setIsLoadingServices(true)
+      setError(null)
+      const token = getAuthToken()
+      if (!token) {
+        setError("Authentication token not found. Please log in again.")
+        setIsLoadingServices(false)
+        return
+      }
+
+      const response = await fetch('/api/partner/account', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.partner?.services) {
+        const partnerServices = data.partner.services
+        
+        // Show all services that were assigned by superadmin
+        // Since all services exist in the object by default (with false), we show all services
+        // that are part of allServiceDefinitions so partner can manage them
+        // Note: In a real scenario, we might want to track which services were originally assigned
+        // by superadmin, but for now we show all possible services so partner can toggle them
+        const assignedServices = allServiceDefinitions
+          .map(serviceDef => {
+            const serviceValue = partnerServices[serviceDef.partnerServiceKey] ?? false
+            return {
+              id: serviceDef.id,
+              title: serviceDef.title,
+              description: serviceDef.description,
+              icon: serviceDef.icon,
+              available: true, // All services are available to toggle
+              status: serviceValue === true ? "Active" as const : "Disable" as const
+            }
+          })
+
+        setServices(assignedServices)
+      } else {
+        setError(data.error || 'Failed to fetch services')
+        setServices([])
+      }
+    } catch (err: any) {
+      console.error('Error fetching partner services:', err)
+      setError(err.message || 'Failed to fetch services')
+      setServices([])
+    } finally {
+      setIsLoadingServices(false)
+    }
+  }
+
   // Fetch account data on mount
   useEffect(() => {
     if (activeTab === "account") {
       fetchPartnerAccount()
+    } else if (activeTab === "services") {
+      fetchPartnerServices()
     }
   }, [activeTab])
 
@@ -910,8 +1073,17 @@ export default function SettingsPage() {
             </div>
 
             <div className="p-6 bg-white rounded-b-lg">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                {services.map((service) => (
+              {isLoadingServices ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : services.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <p className="text-muted-foreground">No services available</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {services.map((service) => (
                   <div
                     key={service.id}
                     className="bg-white border border-[#E7E7E7] rounded-[10px] p-5 h-[168px] w-full"
@@ -976,8 +1148,9 @@ export default function SettingsPage() {
                       />
                     </div>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
