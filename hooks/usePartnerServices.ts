@@ -4,12 +4,30 @@ import { useEffect, useState } from 'react'
 import { getAuthToken } from '@/lib/auth-utils'
 
 export interface PartnerServices {
-  housekeeping: boolean
-  bookingInterns: boolean
-  customizedServices: boolean
-  activityAlerts: boolean
-  laundry: boolean
-  roomDelivery: boolean
+  housekeeping: {
+    assigned: boolean
+    isActive: boolean
+  }
+  bookingInterns: {
+    assigned: boolean
+    isActive: boolean
+  }
+  customizedServices: {
+    assigned: boolean
+    isActive: boolean
+  }
+  activityAlerts: {
+    assigned: boolean
+    isActive: boolean
+  }
+  laundry: {
+    assigned: boolean
+    isActive: boolean
+  }
+  roomDelivery: {
+    assigned: boolean
+    isActive: boolean
+  }
 }
 
 /**
@@ -46,12 +64,12 @@ export function usePartnerServices() {
         } else {
           // Default to all false if no services found
           setServices({
-            housekeeping: false,
-            bookingInterns: false,
-            customizedServices: false,
-            activityAlerts: false,
-            laundry: false,
-            roomDelivery: false,
+            housekeeping: { assigned: false, isActive: false },
+            bookingInterns: { assigned: false, isActive: false },
+            customizedServices: { assigned: false, isActive: false },
+            activityAlerts: { assigned: false, isActive: false },
+            laundry: { assigned: false, isActive: false },
+            roomDelivery: { assigned: false, isActive: false },
           })
         }
       } catch (err) {
@@ -59,12 +77,12 @@ export function usePartnerServices() {
         setError(err instanceof Error ? err.message : 'Unknown error')
         // Default to all false on error
         setServices({
-          housekeeping: false,
-          bookingInterns: false,
-          customizedServices: false,
-          activityAlerts: false,
-          laundry: false,
-          roomDelivery: false,
+          housekeeping: { assigned: false, isActive: false },
+          bookingInterns: { assigned: false, isActive: false },
+          customizedServices: { assigned: false, isActive: false },
+          activityAlerts: { assigned: false, isActive: false },
+          laundry: { assigned: false, isActive: false },
+          roomDelivery: { assigned: false, isActive: false },
         })
       } finally {
         setLoading(false)
@@ -84,9 +102,12 @@ export function usePartnerServices() {
     }
   }, [])
 
-  // Helper function to check if a service is enabled
+  // Helper function to check if a service is enabled (both assigned and active)
   const hasService = (serviceName: keyof PartnerServices): boolean => {
-    return services?.[serviceName] ?? false
+    const service = services?.[serviceName]
+    if (!service) return false
+    // Service must be both assigned (by SuperAdmin) and active (by Partner)
+    return service.assigned && service.isActive
   }
 
   // Helper function to check if partner has access to a route based on service

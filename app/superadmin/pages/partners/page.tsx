@@ -42,12 +42,12 @@ interface Partner {
   phone: string
   city: string
   services: {
-    housekeeping: boolean;
-    bookingInterns: boolean;
-    customizedServices: boolean;
-    activityAlerts: boolean;
-    laundry: boolean;
-    roomDelivery: boolean;
+    housekeeping: { assigned: boolean; isActive: boolean };
+    bookingInterns: { assigned: boolean; isActive: boolean };
+    customizedServices: { assigned: boolean; isActive: boolean };
+    activityAlerts: { assigned: boolean; isActive: boolean };
+    laundry: { assigned: boolean; isActive: boolean };
+    roomDelivery: { assigned: boolean; isActive: boolean };
   }
   plan: string
   createdAt: string
@@ -98,12 +98,12 @@ const createMockPartners = (): Partner[] => {
       phone: "+212 532-002529",
       city: "Casablanca",
       services: {
-        housekeeping: true,
-        bookingInterns: true,
-        customizedServices: true,
-        activityAlerts: false,
-        laundry: false,
-        roomDelivery: false,
+        housekeeping: { assigned: true, isActive: false },
+        bookingInterns: { assigned: true, isActive: false },
+        customizedServices: { assigned: true, isActive: false },
+        activityAlerts: { assigned: false, isActive: false },
+        laundry: { assigned: false, isActive: false },
+        roomDelivery: { assigned: false, isActive: false },
       },
       plan: "Plan name",
       createdAt: formatDate(new Date(thisWeekStart.getTime() + 2 * 24 * 60 * 60 * 1000)), // 2 days into this week
@@ -122,12 +122,12 @@ const createMockPartners = (): Partner[] => {
       phone: "+212 532-002529",
       city: "Casablanca",
       services: {
-        housekeeping: true,
-        bookingInterns: true,
-        customizedServices: false,
-        activityAlerts: false,
-        laundry: false,
-        roomDelivery: false,
+        housekeeping: { assigned: true, isActive: false },
+        bookingInterns: { assigned: true, isActive: false },
+        customizedServices: { assigned: false, isActive: false },
+        activityAlerts: { assigned: false, isActive: false },
+        laundry: { assigned: false, isActive: false },
+        roomDelivery: { assigned: false, isActive: false },
       },
       plan: "Plan name",
       createdAt: formatDate(new Date(lastWeekStart.getTime() + 3 * 24 * 60 * 60 * 1000)), // Last week
@@ -142,12 +142,12 @@ const createMockPartners = (): Partner[] => {
       phone: "+212 532-002529",
       city: "Casablanca",
       services: {
-        housekeeping: true,
-        bookingInterns: false,
-        customizedServices: false,
-        activityAlerts: false,
-        laundry: false,
-        roomDelivery: false,
+        housekeeping: { assigned: true, isActive: false },
+        bookingInterns: { assigned: false, isActive: false },
+        customizedServices: { assigned: false, isActive: false },
+        activityAlerts: { assigned: false, isActive: false },
+        laundry: { assigned: false, isActive: false },
+        roomDelivery: { assigned: false, isActive: false },
       },
       plan: "Plan name",
       createdAt: formatDate(new Date(thisMonthStart.getTime() + 5 * 24 * 60 * 60 * 1000)), // This month
@@ -336,12 +336,12 @@ export default function PartnersPage() {
     endDate: '',
     plan: 'starter pack' as 'starter pack' | 'gold pack',
     services: {
-      housekeeping: false,
-      bookingInterns: false,
-      customizedServices: false,
-      activityAlerts: false,
-      laundry: false,
-      roomDelivery: false,
+      housekeeping: { assigned: false, isActive: false },
+      bookingInterns: { assigned: false, isActive: false },
+      customizedServices: { assigned: false, isActive: false },
+      activityAlerts: { assigned: false, isActive: false },
+      laundry: { assigned: false, isActive: false },
+      roomDelivery: { assigned: false, isActive: false },
     }
   })
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -353,7 +353,7 @@ export default function PartnersPage() {
   const [citySearchTerm, setCitySearchTerm] = useState("")
   const cityDropdownRef = useRef<HTMLDivElement | null>(null)
   const servicesDropdownRef = useRef<HTMLDivElement | null>(null)
-  
+
   // List of all Moroccan cities
   const allCities = [
     "Casablanca",
@@ -424,7 +424,7 @@ export default function PartnersPage() {
     "Assa",
     "Tan-Tan"
   ]
-  
+
   // Filter cities based on search term
   const filteredCities = allCities.filter(city =>
     city.toLowerCase().includes(citySearchTerm.toLowerCase())
@@ -516,12 +516,12 @@ export default function PartnersPage() {
               phone: partner.phoneNumber,
               city: partner.hotelCity,
               services: partner.services || {
-                housekeeping: false,
-                bookingInterns: false,
-                customizedServices: false,
-                activityAlerts: false,
-                laundry: false,
-                roomDelivery: false,
+                housekeeping: { assigned: false, isActive: false },
+                bookingInterns: { assigned: false, isActive: false },
+                customizedServices: { assigned: false, isActive: false },
+                activityAlerts: { assigned: false, isActive: false },
+                laundry: { assigned: false, isActive: false },
+                roomDelivery: { assigned: false, isActive: false },
               },
               plan: partner.plan || 'starter pack',
               createdAt: createdAtDate.toLocaleDateString('fr-FR', {
@@ -771,9 +771,9 @@ export default function PartnersPage() {
     // Always calculate TOTAL from ALL partners (not filtered by period)
     const total = partners.length
     const active = partners.filter(p => p.status === 'active').length
-    
+
     console.log('Calculating localStats:', { total, active, partnersCount: partners.length })
-    
+
     // Use calculatePeriodStats for percentage changes, but keep total counts from all partners
     if (calculatePeriodStats) {
       return {
@@ -783,7 +783,7 @@ export default function PartnersPage() {
         activePartners: active,
       }
     }
-    
+
     // Use partnerStats from API if available (has API stats)
     if (partnerStats && (partnerStats.totalPartners !== undefined || partnerStats.activePartners !== undefined)) {
       return {
@@ -796,7 +796,7 @@ export default function PartnersPage() {
         subtitle: partnerStats.subtitle || 'vs last week'
       }
     }
-    
+
     // Fallback: always calculate from local partners array (ensures values are shown)
     return {
       totalPartners: total,
@@ -846,20 +846,21 @@ export default function PartnersPage() {
 
   // Helper function to get enabled services as array of strings
   const getEnabledServices = (services: {
-    housekeeping: boolean;
-    bookingInterns: boolean;
-    customizedServices: boolean;
-    activityAlerts: boolean;
-    laundry: boolean;
-    roomDelivery: boolean;
+    housekeeping?: { assigned: boolean; isActive: boolean };
+    bookingInterns?: { assigned: boolean; isActive: boolean };
+    customizedServices?: { assigned: boolean; isActive: boolean };
+    activityAlerts?: { assigned: boolean; isActive: boolean };
+    laundry?: { assigned: boolean; isActive: boolean };
+    roomDelivery?: { assigned: boolean; isActive: boolean };
   }): string[] => {
     const enabled: string[] = []
-    if (services.housekeeping) enabled.push('Housekeeping')
-    if (services.bookingInterns) enabled.push('Booking Interns')
-    if (services.customizedServices) enabled.push('Customized Services')
-    if (services.activityAlerts) enabled.push('Activity Alerts')
-    if (services.laundry) enabled.push('Laundry')
-    if (services.roomDelivery) enabled.push('Room Delivery')
+    // Check assigned field (set by SuperAdmin)
+    if (services.housekeeping?.assigned) enabled.push('Housekeeping')
+    if (services.bookingInterns?.assigned) enabled.push('Booking Interns')
+    if (services.customizedServices?.assigned) enabled.push('Customized Services')
+    if (services.activityAlerts?.assigned) enabled.push('Activity Alerts')
+    if (services.laundry?.assigned) enabled.push('Laundry')
+    if (services.roomDelivery?.assigned) enabled.push('Room Delivery')
     return enabled
   }
 
@@ -885,7 +886,10 @@ export default function PartnersPage() {
       ...prev,
       services: {
         ...prev.services,
-        [serviceKey]: !prev.services[serviceKey]
+        [serviceKey]: {
+          ...prev.services[serviceKey],
+          assigned: !prev.services[serviceKey].assigned
+        }
       }
     }))
   }
@@ -928,7 +932,7 @@ export default function PartnersPage() {
         ...prev,
         hotelImage: imageUrl
       }))
-      
+
       console.log('Image uploaded to Cloudinary:', {
         secure_url: uploadResult.secure_url,
         public_id: uploadResult.public_id,
@@ -973,12 +977,12 @@ export default function PartnersPage() {
       endDate: partner.endDate || '',
       plan: partner.plan || 'starter pack',
       services: partner.services || {
-        housekeeping: false,
-        bookingInterns: false,
-        customizedServices: false,
-        activityAlerts: false,
-        laundry: false,
-        roomDelivery: false,
+        housekeeping: { assigned: false, isActive: false },
+        bookingInterns: { assigned: false, isActive: false },
+        customizedServices: { assigned: false, isActive: false },
+        activityAlerts: { assigned: false, isActive: false },
+        laundry: { assigned: false, isActive: false },
+        roomDelivery: { assigned: false, isActive: false },
       },
     })
     // Set image preview if editing and image exists
@@ -1052,8 +1056,8 @@ export default function PartnersPage() {
             })
           ),
           // Ensure hotelImage is a valid URL string or null
-          hotelImage: typeof formData.hotelImage === 'string' && formData.hotelImage.trim() 
-            ? formData.hotelImage.trim() 
+          hotelImage: typeof formData.hotelImage === 'string' && formData.hotelImage.trim()
+            ? formData.hotelImage.trim()
             : null
         })
       })
@@ -1071,12 +1075,12 @@ export default function PartnersPage() {
           phone: result.data.phoneNumber,
           city: result.data.hotelCity,
           services: result.data.services || {
-            housekeeping: false,
-            bookingInterns: false,
-            customizedServices: false,
-            activityAlerts: false,
-            laundry: false,
-            roomDelivery: false,
+            housekeeping: { assigned: false, isActive: false },
+            bookingInterns: { assigned: false, isActive: false },
+            customizedServices: { assigned: false, isActive: false },
+            activityAlerts: { assigned: false, isActive: false },
+            laundry: { assigned: false, isActive: false },
+            roomDelivery: { assigned: false, isActive: false },
           },
           plan: result.data.plan,
           createdAt: new Date(result.data.createdAt).toLocaleDateString('fr-FR', {
@@ -1113,12 +1117,12 @@ export default function PartnersPage() {
           endDate: '',
           plan: 'starter pack',
           services: {
-            housekeeping: false,
-            bookingInterns: false,
-            customizedServices: false,
-            activityAlerts: false,
-            laundry: false,
-            roomDelivery: false,
+            housekeeping: { assigned: false, isActive: false },
+            bookingInterns: { assigned: false, isActive: false },
+            customizedServices: { assigned: false, isActive: false },
+            activityAlerts: { assigned: false, isActive: false },
+            laundry: { assigned: false, isActive: false },
+            roomDelivery: { assigned: false, isActive: false },
           }
         })
         setImagePreview(null)
@@ -1291,7 +1295,7 @@ export default function PartnersPage() {
         // Remove deleted partners from selection
         const deletedIds = results.filter(r => r.success).map(r => r.id)
         setSelectedPartners(prev => prev.filter(id => !deletedIds.includes(id)))
-        
+
         // Close view detail if deleted partner was being viewed
         if (selectedPartner && deletedIds.includes(selectedPartner.id)) {
           setShowViewDetail(false)
@@ -1779,7 +1783,7 @@ export default function PartnersPage() {
                     "Created At": partner.createdAt,
                     "Account": partner.status === 'active' ? 'Active' : 'Inactive'
                   }))
-                  
+
                   if (!exportData || exportData.length === 0) {
                     alert("No data to export!")
                     return
@@ -2035,9 +2039,11 @@ export default function PartnersPage() {
                         }
                         items={[
                           { label: "View Details", icon: <RiEyeLine className="w-4 h-4" />, onClick: () => handleViewDetails(partner) },
-                          { label: "Edit Partner", icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>, onClick: () => handleEditPartner(partner) },
+                          {
+                            label: "Edit Partner", icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>, onClick: () => handleEditPartner(partner)
+                          },
                           { label: "Reset Password", icon: <RiLockPasswordLine className="w-4 h-4" />, onClick: () => handleResetPassword(partner) },
                           { label: "Supprimer", icon: <RiDeleteBinLine className="w-4 h-4 text-error" />, onClick: () => handleDeletePartner(partner), variant: "danger" },
                         ]}
@@ -3901,7 +3907,7 @@ export default function PartnersPage() {
                                 <label key={key} className="flex items-center gap-2 cursor-pointer">
                                   <input
                                     type="checkbox"
-                                    checked={(formData.services as any)[key]}
+                                    checked={(formData.services as any)[key]?.assigned}
                                     onChange={() => handleServiceToggle(key as keyof typeof formData.services)}
                                     className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
                                     style={{ accentColor: "#1F2A44" }}

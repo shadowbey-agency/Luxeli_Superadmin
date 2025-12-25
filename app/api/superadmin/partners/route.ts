@@ -86,18 +86,27 @@ export const POST = withSuperAdminAuth(async (request: NextRequest) => {
 
     // Default services object if not provided
     const defaultServices = {
-      housekeeping: false,
-      bookingInterns: false,
-      customizedServices: false,
-      activityAlerts: false,
-      laundry: false,
-      roomDelivery: false,
+      housekeeping: { assigned: false, isActive: false },
+      bookingInterns: { assigned: false, isActive: false },
+      customizedServices: { assigned: false, isActive: false },
+      activityAlerts: { assigned: false, isActive: false },
+      laundry: { assigned: false, isActive: false },
+      roomDelivery: { assigned: false, isActive: false },
     };
 
-    // Merge provided services with defaults
-    const servicesData = services && typeof services === 'object' 
-      ? { ...defaultServices, ...services }
-      : defaultServices;
+    // Merge provided services with defaults (preserve structure)
+    let servicesData = defaultServices;
+    if (services && typeof services === 'object') {
+      // Merge each service key individually to preserve nested structure
+      servicesData = {
+        housekeeping: services.housekeeping || defaultServices.housekeeping,
+        bookingInterns: services.bookingInterns || defaultServices.bookingInterns,
+        customizedServices: services.customizedServices || defaultServices.customizedServices,
+        activityAlerts: services.activityAlerts || defaultServices.activityAlerts,
+        laundry: services.laundry || defaultServices.laundry,
+        roomDelivery: services.roomDelivery || defaultServices.roomDelivery,
+      };
+    }
 
     return await PartnerController.createPartner({
       hotelName: hotelName.trim(),

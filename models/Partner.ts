@@ -17,12 +17,30 @@ export interface IPartner extends Document {
   endDate: Date;
   plan: "starter pack" | "gold pack";
   services: {
-    housekeeping: boolean;
-    bookingInterns: boolean;
-    customizedServices: boolean;
-    activityAlerts: boolean;
-    laundry: boolean;
-    roomDelivery: boolean;
+    housekeeping: {
+      assigned: boolean;
+      isActive: boolean;
+    };
+    bookingInterns: {
+      assigned: boolean;
+      isActive: boolean;
+    };
+    customizedServices: {
+      assigned: boolean;
+      isActive: boolean;
+    };
+    activityAlerts: {
+      assigned: boolean;
+      isActive: boolean;
+    };
+    laundry: {
+      assigned: boolean;
+      isActive: boolean;
+    };
+    roomDelivery: {
+      assigned: boolean;
+      isActive: boolean;
+    };
   };
   status: "active" | "disable";
   createdAt: Date;
@@ -63,22 +81,30 @@ const PartnerSchema = new Schema<IPartner>(
       default: "starter pack",
     },
     services: {
-      type: {
-        housekeeping: { type: Boolean, default: false },
-        bookingInterns: { type: Boolean, default: false },
-        customizedServices: { type: Boolean, default: false },
-        activityAlerts: { type: Boolean, default: false },
-        laundry: { type: Boolean, default: false },
-        roomDelivery: { type: Boolean, default: false },
+      housekeeping: {
+        assigned: { type: Boolean, default: false }, // SuperAdmin assigns/unassigns
+        isActive: { type: Boolean, default: false }  // Partner enables/disables in settings
       },
-      default: {
-        housekeeping: false,
-        bookingInterns: false,
-        customizedServices: false,
-        activityAlerts: false,
-        laundry: false,
-        roomDelivery: false,
+      bookingInterns: {
+        assigned: { type: Boolean, default: false },
+        isActive: { type: Boolean, default: false }
       },
+      customizedServices: {
+        assigned: { type: Boolean, default: false },
+        isActive: { type: Boolean, default: false }
+      },
+      activityAlerts: {
+        assigned: { type: Boolean, default: false },
+        isActive: { type: Boolean, default: false }
+      },
+      laundry: {
+        assigned: { type: Boolean, default: false },
+        isActive: { type: Boolean, default: false }
+      },
+      roomDelivery: {
+        assigned: { type: Boolean, default: false },
+        isActive: { type: Boolean, default: false }
+      }
     },
 
     // Status

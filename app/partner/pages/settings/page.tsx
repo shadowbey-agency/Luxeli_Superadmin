@@ -107,57 +107,57 @@ export default function SettingsPage() {
     description: string;
     icon: React.ReactNode;
     partnerServiceKey: keyof {
-      housekeeping: boolean;
-      bookingInterns: boolean;
-      customizedServices: boolean;
-      activityAlerts: boolean;
-      laundry: boolean;
-      roomDelivery: boolean;
+      housekeeping: { assigned: boolean; isActive: boolean };
+      bookingInterns: { assigned: boolean; isActive: boolean };
+      customizedServices: { assigned: boolean; isActive: boolean };
+      activityAlerts: { assigned: boolean; isActive: boolean };
+      laundry: { assigned: boolean; isActive: boolean };
+      roomDelivery: { assigned: boolean; isActive: boolean };
     };
   }> = [
-    {
-      id: "housekeeping",
-      title: "Housekeeping",
-      description: "Guests request cleaning, turndown, towels, and amenities –auto-assigned to housekeeping with tracking.",
-      icon: <PublicIcon src="/assets/icons/housekeeping.svg" alt="Housekeeping" width={32} height={32} />,
-      partnerServiceKey: "housekeeping"
-    },
-    {
-      id: "bookings-interns",
-      title: "Bookings interns",
-      description: "Take on-property bookings for spa, restaurant, or activities, with time slots and capacity.",
-      icon: <PublicIcon src="/assets/icons/calendar.svg" alt="Bookings interns" width={32} height={32} />,
-      partnerServiceKey: "bookingInterns"
-    },
-    {
-      id: "customized-services",
-      title: "Customized services",
-      description: "Offer tailored services-airport pickup, birthday setup- define price, lead time, and visibility.",
-      icon: <PublicIcon src="/assets/icons/customized service.svg" alt="Customized services" width={32} height={32} />,
-      partnerServiceKey: "customizedServices"
-    },
-    {
-      id: "activity-alerts",
-      title: "Activity alerts",
-      description: "Send targeted notifications about events, offers, or schedule changes to selected guests.",
-      icon: <PublicIcon src="/assets/icons/activity alert.svg" alt="Activity alerts" width={32} height={32} />,
-      partnerServiceKey: "activityAlerts"
-    },
-    {
-      id: "laundry",
-      title: "Laundry",
-      description: "Schedule laundry pickup and delivery; per-item pricing with live status updates.",
-      icon: <PublicIcon src="/assets/icons/laundary.svg" alt="Laundry" width={32} height={32} />,
-      partnerServiceKey: "laundry"
-    },
-    {
-      id: "in-room-delivery",
-      title: "In-room delivery",
-      description: "Guests order food and amenities to the room, with prep-to-delivered tracking.",
-      icon: <PublicIcon src="/assets/icons/in-room delivery.svg" alt="In-room delivery" width={32} height={32} />,
-      partnerServiceKey: "roomDelivery"
-    }
-  ]
+      {
+        id: "housekeeping",
+        title: "Housekeeping",
+        description: "Guests request cleaning, turndown, towels, and amenities –auto-assigned to housekeeping with tracking.",
+        icon: <PublicIcon src="/assets/icons/housekeeping.svg" alt="Housekeeping" width={32} height={32} />,
+        partnerServiceKey: "housekeeping"
+      },
+      {
+        id: "bookings-interns",
+        title: "Bookings interns",
+        description: "Take on-property bookings for spa, restaurant, or activities, with time slots and capacity.",
+        icon: <PublicIcon src="/assets/icons/calendar.svg" alt="Bookings interns" width={32} height={32} />,
+        partnerServiceKey: "bookingInterns"
+      },
+      {
+        id: "customized-services",
+        title: "Customized services",
+        description: "Offer tailored services-airport pickup, birthday setup- define price, lead time, and visibility.",
+        icon: <PublicIcon src="/assets/icons/customized service.svg" alt="Customized services" width={32} height={32} />,
+        partnerServiceKey: "customizedServices"
+      },
+      {
+        id: "activity-alerts",
+        title: "Activity alerts",
+        description: "Send targeted notifications about events, offers, or schedule changes to selected guests.",
+        icon: <PublicIcon src="/assets/icons/activity alert.svg" alt="Activity alerts" width={32} height={32} />,
+        partnerServiceKey: "activityAlerts"
+      },
+      {
+        id: "laundry",
+        title: "Laundry",
+        description: "Schedule laundry pickup and delivery; per-item pricing with live status updates.",
+        icon: <PublicIcon src="/assets/icons/laundary.svg" alt="Laundry" width={32} height={32} />,
+        partnerServiceKey: "laundry"
+      },
+      {
+        id: "in-room-delivery",
+        title: "In-room delivery",
+        description: "Guests order food and amenities to the room, with prep-to-delivered tracking.",
+        icon: <PublicIcon src="/assets/icons/in-room delivery.svg" alt="In-room delivery" width={32} height={32} />,
+        partnerServiceKey: "roomDelivery"
+      }
+    ]
 
   const [services, setServices] = useState<Service[]>([])
   const [isLoadingServices, setIsLoadingServices] = useState(false)
@@ -170,21 +170,21 @@ export default function SettingsPage() {
       active: true
     },
     {
-      id: "2", 
+      id: "2",
       number: 2,
       image: "https://img.freepik.com/premium-vector/creative-social-food-banner-template-design_1119344-107.jpg",
       active: true
     },
     {
       id: "3",
-      number: 3, 
+      number: 3,
       image: "https://img.freepik.com/premium-vector/creative-social-food-banner-template-design_1119344-107.jpg",
       active: true
     },
     {
       id: "4",
       number: 4,
-      image: "https://img.freepik.com/premium-vector/creative-social-food-banner-template-design_1119344-107.jpg", 
+      image: "https://img.freepik.com/premium-vector/creative-social-food-banner-template-design_1119344-107.jpg",
       active: true
     }
   ])
@@ -241,10 +241,14 @@ export default function SettingsPage() {
         throw new Error(data.error || 'Failed to fetch current services')
       }
 
-      // Update the specific service
+      // Update only the isActive field for the specific service (preserve assigned)
+      const currentService = data.partner.services[serviceDef.partnerServiceKey] || { assigned: false, isActive: false }
       const updatedServices = {
         ...data.partner.services,
-        [serviceDef.partnerServiceKey]: newStatus
+        [serviceDef.partnerServiceKey]: {
+          ...currentService,
+          isActive: newStatus
+        }
       }
 
       // Call API to update service
@@ -270,22 +274,25 @@ export default function SettingsPage() {
         const partnerServices = updateData.partner.services
         const updatedServiceList = allServiceDefinitions
           .map(serviceDef => {
-            const serviceValue = partnerServices[serviceDef.partnerServiceKey] ?? false
+            const service = partnerServices[serviceDef.partnerServiceKey] || { assigned: false, isActive: false }
+            // Service is active only if both assigned (by SuperAdmin) and isActive (by Partner)
+            const isActive = service.assigned && service.isActive
             return {
               id: serviceDef.id,
               title: serviceDef.title,
               description: serviceDef.description,
               icon: serviceDef.icon,
-              available: true,
-              status: serviceValue === true ? "Active" as const : "Disable" as const
+              available: service.assigned, // Only show as available if assigned by SuperAdmin
+              status: isActive ? "Active" as const : "Disable" as const
             }
           })
+          .filter(service => service.available)
         setServices(updatedServiceList)
       }
 
       // Trigger event to refresh partner services hook (for sidebar update)
       window.dispatchEvent(new Event('partnerServicesUpdated'))
-      
+
     } catch (err: any) {
       console.error('Error updating service:', err)
       setError(err.message || 'Failed to update service')
@@ -509,24 +516,25 @@ export default function SettingsPage() {
 
       if (response.ok && data.partner?.services) {
         const partnerServices = data.partner.services
-        
-        // Show all services that were assigned by superadmin
-        // Since all services exist in the object by default (with false), we show all services
-        // that are part of allServiceDefinitions so partner can manage them
-        // Note: In a real scenario, we might want to track which services were originally assigned
-        // by superadmin, but for now we show all possible services so partner can toggle them
+
+        // Show only services that were assigned by superadmin
+        // Partner can only enable/disable services that are assigned (available = assigned)
         const assignedServices = allServiceDefinitions
           .map(serviceDef => {
-            const serviceValue = partnerServices[serviceDef.partnerServiceKey] ?? false
+            const service = partnerServices[serviceDef.partnerServiceKey] || { assigned: false, isActive: false }
+            // Service is active only if both assigned (by SuperAdmin) and isActive (by Partner)
+            const isActive = service.assigned && service.isActive
             return {
               id: serviceDef.id,
               title: serviceDef.title,
               description: serviceDef.description,
               icon: serviceDef.icon,
-              available: true, // All services are available to toggle
-              status: serviceValue === true ? "Active" as const : "Disable" as const
+              available: service.assigned, // Only available if assigned by SuperAdmin
+              status: isActive ? "Active" as const : "Disable" as const
             }
           })
+          // Filter to only show services assigned by SuperAdmin
+          .filter(service => service.available)
 
         setServices(assignedServices)
       } else {
@@ -619,7 +627,7 @@ export default function SettingsPage() {
 
         {/* Progress Section */}
         <div>
-          <div 
+          <div
             className="h-2 rounded-full mb-2"
             style={{
               width: "100%",
@@ -628,7 +636,7 @@ export default function SettingsPage() {
               background: "#EEF0F3"
             }}
           >
-            <div 
+            <div
               className="h-full rounded-full"
               style={{
                 width: "85%",
@@ -645,11 +653,10 @@ export default function SettingsPage() {
         <div className="flex items-center">
           <button
             onClick={() => setActiveTab("account")}
-            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
-              activeTab === "account"
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${activeTab === "account"
                 ? "text-foreground border-b-2 border-primary -mb-[2px]"
                 : "text-muted-foreground hover:text-foreground border-b-2 border-[#EDEDED] -mb-[2px]"
-            }`}
+              }`}
             style={{ width: "190px" }}
           >
             <PublicIcon src="/assets/icons/account.svg" alt="Account" width={20} height={20} />
@@ -657,11 +664,10 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={() => setActiveTab("notifications")}
-            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
-              activeTab === "notifications"
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${activeTab === "notifications"
                 ? "text-foreground border-b-2 border-primary -mb-[2px]"
                 : "text-muted-foreground hover:text-foreground border-b-2 border-[#EDEDED] -mb-[2px]"
-            }`}
+              }`}
             style={{ width: "190px" }}
           >
             <RiNotification3Line className="w-5 h-5" />
@@ -669,11 +675,10 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={() => setActiveTab("services")}
-            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
-              activeTab === "services"
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${activeTab === "services"
                 ? "text-foreground border-b-2 border-primary -mb-[2px]"
                 : "text-muted-foreground hover:text-foreground border-b-2 border-[#EDEDED] -mb-[2px]"
-            }`}
+              }`}
             style={{ width: "190px" }}
           >
             <PublicIcon src="/assets/icons/services.svg" alt="Services" width={20} height={20} />
@@ -681,11 +686,10 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={() => setActiveTab("app-management")}
-            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
-              activeTab === "app-management"
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${activeTab === "app-management"
                 ? "text-foreground border-b-2 border-primary -mb-[2px]"
                 : "text-muted-foreground hover:text-foreground border-b-2 border-[#EDEDED] -mb-[2px]"
-            }`}
+              }`}
             style={{ width: "190px" }}
           >
             <PublicIcon src="/assets/icons/app management.svg" alt="App management" width={20} height={20} />
@@ -708,7 +712,7 @@ export default function SettingsPage() {
                   date.
                 </p>
               </div>
-              <button 
+              <button
                 onClick={handleSaveAccount}
                 disabled={isSaving || isLoading}
                 className="px-6 py-2.5 bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -758,7 +762,7 @@ export default function SettingsPage() {
                         <div>
                           <label className="block text-sm font-medium text-[#212121] mb-2">Hotel city</label>
                           <div className="relative">
-                            <select 
+                            <select
                               value={hotelCity}
                               onChange={(e) => setHotelCity(e.target.value)}
                               className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-primary appearance-none pr-10"
@@ -1084,70 +1088,69 @@ export default function SettingsPage() {
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   {services.map((service) => (
-                  <div
-                    key={service.id}
-                    className="bg-white border border-[#E7E7E7] rounded-[10px] p-5 h-[168px] w-full"
-                  >
-                    {/* Upper Section */}
-                    <div className="flex gap-[15px] mb-[20px] h-[76px]">
-                      {/* Logo Circle */}
-                      <div 
-                        className="flex items-center justify-center rounded-full border border-[#DDDFE3] bg-[#E9EAEC80] p-2 w-[76px] h-[76px] flex-shrink-0"
-                      >
-                        <div className="w-8 h-8">
-                          {service.icon}
-                        </div>
-                      </div>
-
-                      {/* Content Section */}
-                      <div className="flex flex-col gap-[2px] flex-1">
-                        {/* Title with Status */}
-                        <div className="flex items-center justify-between h-[28px]">
-                          <h3 className="text-sm font-semibold text-foreground">{service.title}</h3>
-                          <div 
-                            className={`px-[10px] py-[5px] rounded-[10px] border text-xs font-medium h-[28px] flex items-center gap-1 ${
-                              service.available 
-                                ? "bg-[#F3FFEA] border-[#13B601] text-[#13B601]" 
-                                : "bg-[#FF0D0D0D] border-[#FF0D0D] text-[#FF0D0D]"
-                            }`}
-                          >
-                            {service.available ? (
-                              <>
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                                Available
-                              </>
-                            ) : (
-                              <>
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                                Unavailable
-                              </>
-                            )}
+                    <div
+                      key={service.id}
+                      className="bg-white border border-[#E7E7E7] rounded-[10px] p-5 h-[168px] w-full"
+                    >
+                      {/* Upper Section */}
+                      <div className="flex gap-[15px] mb-[20px] h-[76px]">
+                        {/* Logo Circle */}
+                        <div
+                          className="flex items-center justify-center rounded-full border border-[#DDDFE3] bg-[#E9EAEC80] p-2 w-[76px] h-[76px] flex-shrink-0"
+                        >
+                          <div className="w-8 h-8">
+                            {service.icon}
                           </div>
                         </div>
-                        
-                        {/* Description */}
-                        <p className="text-[#5C5C5C] text-sm leading-[22px] flex-1">
-                          {service.description}
-                        </p>
+
+                        {/* Content Section */}
+                        <div className="flex flex-col gap-[2px] flex-1">
+                          {/* Title with Status */}
+                          <div className="flex items-center justify-between h-[28px]">
+                            <h3 className="text-sm font-semibold text-foreground">{service.title}</h3>
+                            <div
+                              className={`px-[10px] py-[5px] rounded-[10px] border text-xs font-medium h-[28px] flex items-center gap-1 ${service.available
+                                  ? "bg-[#F3FFEA] border-[#13B601] text-[#13B601]"
+                                  : "bg-[#FF0D0D0D] border-[#FF0D0D] text-[#FF0D0D]"
+                                }`}
+                            >
+                              {service.available ? (
+                                <>
+                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                  Available
+                                </>
+                              ) : (
+                                <>
+                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                  Unavailable
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Description */}
+                          <p className="text-[#5C5C5C] text-sm leading-[22px] flex-1">
+                            {service.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Border */}
+                      <div className="w-full h-px bg-[#E6E6E6] mb-[20px]"></div>
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between h-[22px]">
+                        <span className="text-[#0A0A0A] text-sm font-medium leading-[22px]">{service.status}</span>
+                        <SimpleToggleSwitch
+                          checked={service.status === "Active"}
+                          onChange={() => handleServiceToggle(service.id)}
+                        />
                       </div>
                     </div>
-
-                    {/* Border */}
-                    <div className="w-full h-px bg-[#E6E6E6] mb-[20px]"></div>
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between h-[22px]">
-                      <span className="text-[#0A0A0A] text-sm font-medium leading-[22px]">{service.status}</span>
-                      <SimpleToggleSwitch 
-                        checked={service.status === "Active"} 
-                        onChange={() => handleServiceToggle(service.id)} 
-                      />
-                    </div>
-                  </div>
                   ))}
                 </div>
               )}
@@ -1195,19 +1198,19 @@ export default function SettingsPage() {
                           <span className="text-lg font-semibold text-foreground">{banner.number}</span>
                           <div className="flex items-center gap-2">
 
-                            <ToggleSwitch 
-                              checked={banner.active} 
-                              onChange={() => handleBannerToggle(banner.id)} 
+                            <ToggleSwitch
+                              checked={banner.active}
+                              onChange={() => handleBannerToggle(banner.id)}
                             />
-                            
+
                           </div>
                         </div>
 
                         {/* Image */}
                         <div className="flex-1 mb-2">
-                          <div 
+                          <div
                             className="w-full bg-gray-200 border border-[#00000014] flex items-center justify-center shadow-lg"
-                            style={{ 
+                            style={{
                               height: "270px",
                               borderRadius: "6px",
                               boxShadow: "0px 12px 24px 0px #12263F08"
@@ -1227,7 +1230,7 @@ export default function SettingsPage() {
                         {/* Bottom Row - Actions */}
                         <div className="flex items-center justify-between h-[20px]">
                           <RiMoreLine className="w-5 h-5 text-gray-400" />
-                          <button 
+                          <button
                             onClick={() => handleDeleteBanner(banner.id)}
                             className="text-red-500 hover:text-red-700 transition-colors"
                           >

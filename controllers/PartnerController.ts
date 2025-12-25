@@ -116,12 +116,12 @@ export class PartnerController {
     endDate: Date;
     plan: 'starter pack' | 'gold pack';
     services: {
-      housekeeping: boolean;
-      bookingInterns: boolean;
-      customizedServices: boolean;
-      activityAlerts: boolean;
-      laundry: boolean;
-      roomDelivery: boolean;
+      housekeeping: { assigned: boolean; isActive: boolean };
+      bookingInterns: { assigned: boolean; isActive: boolean };
+      customizedServices: { assigned: boolean; isActive: boolean };
+      activityAlerts: { assigned: boolean; isActive: boolean };
+      laundry: { assigned: boolean; isActive: boolean };
+      roomDelivery: { assigned: boolean; isActive: boolean };
     };
   }) {
     try {
@@ -217,12 +217,12 @@ export class PartnerController {
     endDate: Date;
     plan: 'starter pack' | 'gold pack';
     services: {
-      housekeeping: boolean;
-      bookingInterns: boolean;
-      customizedServices: boolean;
-      activityAlerts: boolean;
-      laundry: boolean;
-      roomDelivery: boolean;
+      housekeeping: { assigned: boolean; isActive: boolean };
+      bookingInterns: { assigned: boolean; isActive: boolean };
+      customizedServices: { assigned: boolean; isActive: boolean };
+      activityAlerts: { assigned: boolean; isActive: boolean };
+      laundry: { assigned: boolean; isActive: boolean };
+      roomDelivery: { assigned: boolean; isActive: boolean };
     };
     status: string;
   }>) {
@@ -271,9 +271,46 @@ export class PartnerController {
         partner.password = hashedPassword;
       }
 
-      // Only apply fields that are explicitly provided (not undefined)
+      // Handle services update - merge nested structure properly
+      if (data.services) {
+        // Merge services while preserving existing values for fields not being updated
+        const currentServices = partner.services || {
+          housekeeping: { assigned: false, isActive: false },
+          bookingInterns: { assigned: false, isActive: false },
+          customizedServices: { assigned: false, isActive: false },
+          activityAlerts: { assigned: false, isActive: false },
+          laundry: { assigned: false, isActive: false },
+          roomDelivery: { assigned: false, isActive: false },
+        };
+        
+        // Merge each service field
+        const serviceKeys: Array<keyof typeof currentServices> = [
+          'housekeeping', 'bookingInterns', 'customizedServices', 
+          'activityAlerts', 'laundry', 'roomDelivery'
+        ];
+        
+        const servicesData = data.services;
+        serviceKeys.forEach(serviceKey => {
+          const serviceData = servicesData[serviceKey];
+          if (serviceData) {
+            // If service object is provided, merge assigned and isActive
+            partner.services[serviceKey] = {
+              assigned: serviceData.assigned !== undefined 
+                ? serviceData.assigned 
+                : currentServices[serviceKey].assigned,
+              isActive: serviceData.isActive !== undefined 
+                ? serviceData.isActive 
+                : currentServices[serviceKey].isActive,
+            };
+          }
+        });
+      }
+
+      // Only apply other fields that are explicitly provided (not undefined)
       const updates = Object.fromEntries(
-        Object.entries(data).filter(([key, value]) => value !== undefined && key !== 'password')
+        Object.entries(data).filter(([key, value]) => 
+          value !== undefined && key !== 'password' && key !== 'services'
+        )
       );
       Object.assign(partner, updates);
       await partner.save();

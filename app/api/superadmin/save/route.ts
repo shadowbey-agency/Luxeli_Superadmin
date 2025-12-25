@@ -6,7 +6,6 @@ import { hashPassword } from '@/lib/auth';
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
-
     const body = await request.json();
     const { fullName, email, phoneNumber, password, profileImage } = body;
 

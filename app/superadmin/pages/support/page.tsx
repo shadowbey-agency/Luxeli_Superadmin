@@ -47,7 +47,6 @@ import DeleteTicketModal from "@/app/superadmin/components/delete-ticket-modal"
 import AssignTicketModal from "@/app/superadmin/components/assign-ticket-modal"
 import { 
   ChangeStatusIcon, 
-  AddReplyIcon, 
   MarkAsTicketIcon 
 } from "@/app/superadmin/components/icons"
 
@@ -68,6 +67,7 @@ interface Ticket {
   description: string
   image?: string
   isMarkedAsTicket: boolean
+  partnerId?: string
 }
 
 export default function SupportPage() {
@@ -133,7 +133,8 @@ export default function SupportPage() {
       hotelEmail: partner.hotelEmail || '',
       description: apiTicket.description || '',
       image: apiTicket.image || undefined,
-      isMarkedAsTicket: apiTicket.markasticket ?? false
+      isMarkedAsTicket: apiTicket.markasticket ?? false,
+      partnerId: apiTicket.partnerId || partner._id || partner.id || undefined
     }
   }
 
@@ -398,6 +399,7 @@ export default function SupportPage() {
     setShowContactPartnerModal(false)
     setTicketToContact(null)
   }
+
 
   const handleAssignTicket = (ticket: Ticket) => {
     setTicketToAssign(ticket)
@@ -1023,11 +1025,6 @@ export default function SupportPage() {
                             onClick: () => handleAssignTicket(ticket),
                           },
                           {
-                            label: "View messages",
-                            icon: <AddReplyIcon />,
-                            onClick: () => handleContactPartner(ticket),
-                          },
-                          {
                             label: ticket.isMarkedAsTicket ? "Unmark ticket" : "Mark as a ticket",
                             icon: <MarkAsTicketIcon />,
                             onClick: () => handleUnmarkTicket(ticket),
@@ -1147,6 +1144,7 @@ export default function SupportPage() {
         onConfirm={confirmAssignTicket}
         assigneeOptions={assigneeOptions}
       />
+
     </div>
   )
 }
