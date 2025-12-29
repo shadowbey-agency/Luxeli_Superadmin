@@ -787,8 +787,8 @@ export default function SupportPage() {
                             onClick: () => handleViewTicket(ticket),
                           },
                           {
-                            label: "View reply",
-                            icon: <SupportSidebarIcon size={16} strokeColor="#141B34" />,
+                            label: "View message",
+                            icon: <RiReplyLine className="w-4 h-4" />,
                             onClick: () => handleContactPartner(ticket),
                           },
                           {

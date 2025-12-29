@@ -82,6 +82,7 @@ export default function SupportPage() {
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null)
   const [showViewTicketModal, setShowViewTicketModal] = useState(false)
   const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null)
+  const [openChatOnView, setOpenChatOnView] = useState(false)
   const [showChangeStatusModal, setShowChangeStatusModal] = useState(false)
   const [ticketToChangeStatus, setTicketToChangeStatus] = useState<Ticket | null>(null)
   const [showUnmarkTicketModal, setShowUnmarkTicketModal] = useState(false)
@@ -287,14 +288,16 @@ export default function SupportPage() {
     }
   }
 
-  const handleViewTicket = (ticket: Ticket) => {
+  const handleViewTicket = (ticket: Ticket, openChat: boolean = false) => {
     setViewingTicket(ticket)
+    setOpenChatOnView(openChat)
     setShowViewTicketModal(true)
   }
 
   const closeViewTicketModal = () => {
     setShowViewTicketModal(false)
     setViewingTicket(null)
+    setOpenChatOnView(false)
   }
 
   const handleChangeStatus = (ticket: Ticket) => {
@@ -533,12 +536,12 @@ export default function SupportPage() {
       const exportData = tickets.map((ticket) => ({
         "Ticket ID": ticket.ticketId,
         "Title": ticket.title,
+        "Hotel Name": ticket.hotelName,
         "Status": ticket.status,
         "Priority": ticket.priority,
         "Assignee": ticket.assignee ? ticket.assignee.name : "-",
         "Date Created": ticket.dateCreated,
         "Date Update": ticket.dateUpdate,
-        "Hotel Name": ticket.hotelName,
         "Hotel Email": ticket.hotelEmail,
       }))
 
@@ -552,12 +555,12 @@ export default function SupportPage() {
       const colWidths = [
         { wch: 15 }, // Ticket ID
         { wch: 30 }, // Title
+        { wch: 25 }, // Hotel Name
         { wch: 12 }, // Status
         { wch: 12 }, // Priority
         { wch: 20 }, // Assignee
         { wch: 18 }, // Date Created
         { wch: 18 }, // Date Update
-        { wch: 25 }, // Hotel Name
         { wch: 30 }, // Hotel Email
       ]
       ws["!cols"] = colWidths
@@ -819,6 +822,11 @@ export default function SupportPage() {
                 </th>
                 <th className="px-4 py-4 text-left">
                   <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
+                    Hotel Name
+                  </span>
+                </th>
+                <th className="px-4 py-4 text-left">
+                  <span style={{ color: "#000", fontSize: "12px", fontWeight: "500", lineHeight: "19.5px" }}>
                     Status
                   </span>
                 </th>
@@ -848,7 +856,7 @@ export default function SupportPage() {
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-16">
+                  <td colSpan={10} className="px-4 py-16">
                     <div className="flex flex-col items-center justify-center text-center">
                       <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4" />
                       <p className="text-muted-foreground">Loading tickets...</p>
@@ -857,7 +865,7 @@ export default function SupportPage() {
                 </tr>
               ) : currentTickets.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-16">
+                  <td colSpan={10} className="px-4 py-16">
                     <div className="flex flex-col items-center justify-center text-center">
                       <div className="w-32 h-32 mb-4 opacity-50">
                         <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -917,6 +925,14 @@ export default function SupportPage() {
                       lineHeight: "19.5px"
                     }}>
                       {ticket.title}
+                    </td>
+                    <td className="px-4 py-4" style={{
+                      color: "#525866",
+                      fontSize: "12px",
+                      fontWeight: "400",
+                      lineHeight: "19.5px"
+                    }}>
+                      {ticket.hotelName}
                     </td>
                     <td className="px-4 py-4">
                       <span 
@@ -1008,6 +1024,11 @@ export default function SupportPage() {
                             label: "View ticket",
                             icon: <RiEyeLine className="w-4 h-4" />,
                             onClick: () => handleViewTicket(ticket),
+                          },
+                          {
+                            label: "View message",
+                            icon: <RiReplyLine className="w-4 h-4" />,
+                            onClick: () => handleViewTicket(ticket, true),
                           },
                           {
                             label: "Change status",
@@ -1102,6 +1123,7 @@ export default function SupportPage() {
         ticket={viewingTicket}
         isOpen={showViewTicketModal}
         onClose={closeViewTicketModal}
+        openChat={openChatOnView}
       />
 
       {/* Change Status Modal */}

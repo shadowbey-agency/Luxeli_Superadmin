@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { 
   HotelLogoIcon, 
   ClockIcon, 
@@ -8,7 +9,7 @@ import {
   AddReplyIcon, 
   MarkAsTicketIcon 
 } from "./icons"
-import SupportSidebarIcon from "@/app/partner/components/support-sidebar-icon"
+import ChatComponent from "./chat-component"
 
 interface Ticket {
   id: string
@@ -32,9 +33,11 @@ interface ViewTicketModalProps {
   ticket: Ticket | null
   isOpen: boolean
   onClose: () => void
+  openChat?: boolean
 }
 
-export default function ViewTicketModal({ ticket, isOpen, onClose }: ViewTicketModalProps) {
+export default function ViewTicketModal({ ticket, isOpen, onClose, openChat = false }: ViewTicketModalProps) {
+
   if (!isOpen || !ticket) return null
 
   return (
@@ -70,13 +73,24 @@ export default function ViewTicketModal({ ticket, isOpen, onClose }: ViewTicketM
 
         {/* Content Area */}
         <div 
-          className="flex-1 p-5 overflow-y-auto"
+          className="flex-1 flex flex-col overflow-hidden"
           style={{
-            width: "100%",
-            padding: "20px"
+            width: "100%"
           }}
         >
-          <div className="flex flex-col gap-5">
+          {openChat ? (
+            /* Chat View */
+            <div className="flex-1 flex flex-col" style={{ minHeight: 0 }}>
+              <ChatComponent 
+                ticketId={ticket.id}
+                partnerId={(ticket as any).partnerId}
+                partnerName={ticket.hotelName}
+              />
+            </div>
+          ) : (
+            /* Ticket Details View */
+            <div className="flex-1 p-5 overflow-y-auto" style={{ padding: "20px" }}>
+              <div className="flex flex-col gap-5">
             {/* Main Container */}
             <div 
               className="flex flex-col gap-5"
@@ -345,39 +359,22 @@ export default function ViewTicketModal({ ticket, isOpen, onClose }: ViewTicketM
                 </div>
               </div>
             )}
-          </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Footer Button */}
-        <div 
-          className="flex justify-end p-5 border-t border-black/8"
-          style={{
-            padding: "20px",
-            borderTop: "1px solid rgba(0, 0, 0, 0.08)"
-          }}
-        >
-          {/* View Reply Button */}
-          <button
-            className="flex items-center gap-1.5 border rounded transition-colors hover:bg-gray-50"
+        {/* Footer - Only show if not in chat mode */}
+        {!openChat && (
+          <div 
+            className="flex justify-end p-5 border-t border-black/8"
             style={{
-              display: "flex",
-              padding: "8.52px 20px",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "6px",
-              borderRadius: "6px",
-              border: "1px solid #CED4DA",
-              background: "#FBFAFA",
-              color: "#000",
-              fontSize: "14px",
-              fontWeight: 600,
-              lineHeight: "19.5px"
+              padding: "20px",
+              borderTop: "1px solid rgba(0, 0, 0, 0.08)"
             }}
           >
-            <SupportSidebarIcon size={16} strokeColor="#141B34" />
-            View reply
-          </button>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )
