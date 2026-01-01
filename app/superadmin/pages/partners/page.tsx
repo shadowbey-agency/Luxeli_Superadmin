@@ -57,6 +57,11 @@ interface Partner {
   ICE?: string
   identifiantFiscal?: string
   taxeProfessionnelle?: string
+  startDate?: string | Date
+  endDate?: string | Date
+  hotelImage?: string
+  hotelCity?: string
+  phoneNumber?: string
 }
 
 interface SubscriptionHistory {
@@ -508,6 +513,23 @@ export default function PartnersPage() {
           // Transform API data to match Partner interface
           const transformedPartners: Partner[] = result.partners.map((partner: any) => {
             const createdAtDate = new Date(partner.createdAt)
+            
+            // Format startDate and endDate for display (convert Date to YYYY-MM-DD format for input fields)
+            const formatDateForInput = (date: Date | string | undefined) => {
+              if (!date) return ''
+              try {
+                const d = date instanceof Date ? date : new Date(date)
+                if (isNaN(d.getTime())) return ''
+                // Return in YYYY-MM-DD format for date input
+                const year = d.getFullYear()
+                const month = String(d.getMonth() + 1).padStart(2, '0')
+                const day = String(d.getDate()).padStart(2, '0')
+                return `${year}-${month}-${day}`
+              } catch {
+                return ''
+              }
+            }
+            
             return {
               id: partner._id,
               hotelName: partner.hotelName,
@@ -534,7 +556,12 @@ export default function PartnersPage() {
               RC: partner.RC || '',
               ICE: partner.ICE || '',
               identifiantFiscal: partner.identifiantFiscal || '',
-              taxeProfessionnelle: partner.taxeProfessionnelle || ''
+              taxeProfessionnelle: partner.taxeProfessionnelle || '',
+              startDate: formatDateForInput(partner.startDate),
+              endDate: formatDateForInput(partner.endDate),
+              hotelImage: partner.hotelImage,
+              hotelCity: partner.hotelCity,
+              phoneNumber: partner.phoneNumber
             }
           })
 
@@ -961,6 +988,27 @@ export default function PartnersPage() {
   const handleEditPartner = (partner: any) => {
     setIsEditingPartner(true)
     setEditingPartnerId(partner.id)
+    
+    // Format dates for date input fields (YYYY-MM-DD format)
+    const formatDateForInput = (date: Date | string | undefined) => {
+      if (!date) return ''
+      try {
+        // If already in YYYY-MM-DD format, return as is
+        if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+          return date
+        }
+        const d = date instanceof Date ? date : new Date(date)
+        if (isNaN(d.getTime())) return ''
+        // Return in YYYY-MM-DD format for date input
+        const year = d.getFullYear()
+        const month = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      } catch {
+        return ''
+      }
+    }
+    
     setFormData({
       hotelName: partner.hotelName || '',
       hotelCity: partner.hotelCity || partner.city || '',
@@ -973,9 +1021,9 @@ export default function PartnersPage() {
       hotelImage: partner.hotelImage || null,
       username: partner.username || '',
       password: '*****', // Static password display, not editable
-      startDate: partner.startDate || '',
-      endDate: partner.endDate || '',
-      plan: partner.plan || 'starter pack',
+      startDate: formatDateForInput(partner.startDate) || '',
+      endDate: formatDateForInput(partner.endDate) || '',
+      plan: (partner.plan || 'starter pack') as 'starter pack' | 'gold pack',
       services: partner.services || {
         housekeeping: { assigned: false, isActive: false },
         bookingInterns: { assigned: false, isActive: false },
@@ -2649,8 +2697,14 @@ export default function PartnersPage() {
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-2xl font-bold text-black">Gold</h3>
-                      <p className="text-sm text-gray-600">Full access to premium hotel management features and priority support.</p>
+                      <h3 className="text-2xl font-bold text-black">
+                        {formData.plan === 'gold pack' ? 'Gold' : formData.plan === 'starter pack' ? 'Starter' : formData.plan || 'Gold'}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {formData.plan === 'gold pack' 
+                          ? 'Full access to premium hotel management features and priority support.'
+                          : 'Access to essential hotel management features and standard support.'}
+                      </p>
                     </div>
                   </div>
 
@@ -2675,7 +2729,39 @@ export default function PartnersPage() {
                         </svg>
                         <span className="text-sm text-black">Start date</span>
                       </div>
-                      <span className="text-sm text-gray-600">15 juin 2025</span>
+                      <span className="text-sm text-gray-600">
+                        {formData.startDate 
+                          ? (() => {
+                              try {
+                                // Handle YYYY-MM-DD format (from date input)
+                                if (typeof formData.startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(formData.startDate)) {
+                                  const [year, month, day] = formData.startDate.split('-')
+                                  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                                  if (!isNaN(date.getTime())) {
+                                    return date.toLocaleDateString('fr-FR', { 
+                                      day: 'numeric', 
+                                      month: 'long', 
+                                      year: 'numeric' 
+                                    })
+                                  }
+                                }
+                                // Handle Date objects or ISO strings
+                                const date = new Date(formData.startDate)
+                                if (!isNaN(date.getTime())) {
+                                  return date.toLocaleDateString('fr-FR', { 
+                                    day: 'numeric', 
+                                    month: 'long', 
+                                    year: 'numeric' 
+                                  })
+                                }
+                                // If it's already a formatted string, return as is
+                                return formData.startDate
+                              } catch {
+                                return formData.startDate || 'Not set'
+                              }
+                            })()
+                          : 'Not set'}
+                      </span>
                     </div>
 
                     {/* End Date Row */}
@@ -2689,7 +2775,39 @@ export default function PartnersPage() {
                         </svg>
                         <span className="text-sm text-black">End date</span>
                       </div>
-                      <span className="text-sm text-gray-600">15 juin 2026</span>
+                      <span className="text-sm text-gray-600">
+                        {formData.endDate 
+                          ? (() => {
+                              try {
+                                // Handle YYYY-MM-DD format (from date input)
+                                if (typeof formData.endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(formData.endDate)) {
+                                  const [year, month, day] = formData.endDate.split('-')
+                                  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+                                  if (!isNaN(date.getTime())) {
+                                    return date.toLocaleDateString('fr-FR', { 
+                                      day: 'numeric', 
+                                      month: 'long', 
+                                      year: 'numeric' 
+                                    })
+                                  }
+                                }
+                                // Handle Date objects or ISO strings
+                                const date = new Date(formData.endDate)
+                                if (!isNaN(date.getTime())) {
+                                  return date.toLocaleDateString('fr-FR', { 
+                                    day: 'numeric', 
+                                    month: 'long', 
+                                    year: 'numeric' 
+                                  })
+                                }
+                                // If it's already a formatted string, return as is
+                                return formData.endDate
+                              } catch {
+                                return formData.endDate || 'Not set'
+                              }
+                            })()
+                          : 'Not set'}
+                      </span>
                     </div>
                   </div>
 

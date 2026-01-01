@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { HotelLogoIcon } from "./icons"
-import ChatComponent from "@/app/superadmin/components/chat-component"
+import ChatComponent from "@/app/partner/components/chat-component"
 import { getUserData } from "@/lib/auth-utils"
 
 interface Ticket {
@@ -21,6 +21,7 @@ interface Ticket {
   hotelEmail: string
   description: string
   isMarkedAsTicket: boolean
+  partnerId?: string
 }
 
 interface ContactPartnerModalProps {
@@ -39,16 +40,16 @@ export default function ContactPartnerModal({ ticket, isOpen, onClose }: Contact
   return (
     <div className="fixed inset-0 z-50">
       {/* Background overlay */}
-      <div 
-        className="fixed inset-0" 
+      <div
+        className="fixed inset-0"
         style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
         onClick={onClose}
       />
-      
+
       {/* Slide-out panel */}
       <div className="fixed right-0 top-0 h-full w-1/2 bg-white flex flex-col w-[50vw]">
         {/* Header */}
-        <div 
+        <div
           className="flex justify-between items-center px-5 py-5 border-b border-black/8"
           style={{
             width: "100%",
@@ -68,7 +69,7 @@ export default function ContactPartnerModal({ ticket, isOpen, onClose }: Contact
         </div>
 
         {/* Secondary Header - Hotel Info */}
-        <div 
+        <div
           className="flex items-center gap-2.5 p-5 border-b border-black/8"
           style={{
             display: "flex",
@@ -83,10 +84,10 @@ export default function ContactPartnerModal({ ticket, isOpen, onClose }: Contact
           <div className="relative flex flex-start">
             <HotelLogoIcon />
           </div>
-          
+
           {/* Hotel Info */}
           <div className="flex flex-col">
-            <h3 
+            <h3
               className="text-black font-bold"
               style={{
                 color: "#000",
@@ -124,7 +125,7 @@ export default function ContactPartnerModal({ ticket, isOpen, onClose }: Contact
             >
               Open
             </button>
-            
+
             {/* Urgent Button */}
             <button
               className="flex items-center justify-center gap-1 border rounded"
@@ -152,315 +153,16 @@ export default function ContactPartnerModal({ ticket, isOpen, onClose }: Contact
 
         {/* Chat Area - Using ChatComponent */}
         <div className="flex-1 flex flex-col" style={{ minHeight: 0 }}>
-          <ChatComponent 
+          <ChatComponent
             ticketId={ticket.id}
             partnerId={partnerId}
-            partnerName={ticket.hotelName || (userData as any)?.hotelName || 'Partner'}
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-          {/* Hotel Info */}
-
-          <div className="flex flex-col">
-
-            <h3 
-
-              className="text-black font-bold"
-
-              style={{
-
-                color: "#000",
-
-                fontSize: "25px",
-
-                fontWeight: 700,
-
-                lineHeight: "32px"
-
-              }}
-
-            >
-
-              {ticket.hotelName}
-
-            </h3>
-
-            <p className="text-sm text-gray-600">{ticket.hotelEmail}</p>
-
-          </div>
-
-
-
-          {/* Status Buttons */}
-
-          <div className="flex items-center gap-2 ml-auto">
-
-            {/* Open Button */}
-
-            <button
-
-              className="flex items-center justify-center gap-1 border rounded"
-
-              style={{
-
-                display: "flex",
-
-                width: "80px",
-
-                height: "24px",
-
-                padding: "10px",
-
-                justifyContent: "center",
-
-                alignItems: "center",
-
-                gap: "4px",
-
-                borderRadius: "4px",
-
-                border: "0.5px solid rgba(31, 42, 68, 0.25)",
-
-                background: "rgba(31, 42, 68, 0.05)",
-
-                color: "#1F2A44",
-
-                fontSize: "11px",
-
-                fontWeight: 400,
-
-                lineHeight: "normal"
-
-              }}
-
-            >
-
-              Open
-
-            </button>
-
-            
-
-            {/* Urgent Button */}
-
-            <button
-
-              className="flex items-center justify-center gap-1 border rounded"
-
-              style={{
-
-                display: "flex",
-
-                width: "80px",
-
-                height: "24px",
-
-                padding: "10px",
-
-                justifyContent: "center",
-
-                alignItems: "center",
-
-                gap: "4px",
-
-                borderRadius: "4px",
-
-                border: "0.5px solid rgba(255, 13, 13, 0.25)",
-
-                background: "rgba(255, 13, 13, 0.05)",
-
-                color: "#FF0D0D",
-
-                fontSize: "11px",
-
-                fontWeight: 400,
-
-                lineHeight: "normal"
-
-              }}
-
-            >
-
-              Urgent
-
-            </button>
-
-          </div>
-
-        </div>
-
-
-
-        {/* Chat Area - Using ChatComponent */}
-        <div className="flex-1 flex flex-col" style={{ minHeight: 0 }}>
-          <ChatComponent 
-            ticketId={ticket.id}
-            partnerId={(ticket as any).partnerId}
             partnerName={ticket.hotelName}
           />
         </div>
-
       </div>
-
     </div>
-
   )
-
 }
 
-
-
-          {/* Hotel Info */}
-
-          <div className="flex flex-col">
-
-            <h3 
-
-              className="text-black font-bold"
-
-              style={{
-
-                color: "#000",
-
-                fontSize: "25px",
-
-                fontWeight: 700,
-
-                lineHeight: "32px"
-
-              }}
-
-            >
-
-              {ticket.hotelName}
-
-            </h3>
-
-            <p className="text-sm text-gray-600">{ticket.hotelEmail}</p>
-
-          </div>
-
-
-
-          {/* Status Buttons */}
-
-          <div className="flex items-center gap-2 ml-auto">
-
-            {/* Open Button */}
-
-            <button
-
-              className="flex items-center justify-center gap-1 border rounded"
-
-              style={{
-
-                display: "flex",
-
-                width: "80px",
-
-                height: "24px",
-
-                padding: "10px",
-
-                justifyContent: "center",
-
-                alignItems: "center",
-
-                gap: "4px",
-
-                borderRadius: "4px",
-
-                border: "0.5px solid rgba(31, 42, 68, 0.25)",
-
-                background: "rgba(31, 42, 68, 0.05)",
-
-                color: "#1F2A44",
-
-                fontSize: "11px",
-
-                fontWeight: 400,
-
-                lineHeight: "normal"
-
-              }}
-
-            >
-
-              Open
-
-            </button>
-
-            
-
-            {/* Urgent Button */}
-
-            <button
-
-              className="flex items-center justify-center gap-1 border rounded"
-
-              style={{
-
-                display: "flex",
-
-                width: "80px",
-
-                height: "24px",
-
-                padding: "10px",
-
-                justifyContent: "center",
-
-                alignItems: "center",
-
-                gap: "4px",
-
-                borderRadius: "4px",
-
-                border: "0.5px solid rgba(255, 13, 13, 0.25)",
-
-                background: "rgba(255, 13, 13, 0.05)",
-
-                color: "#FF0D0D",
-
-                fontSize: "11px",
-
-                fontWeight: 400,
-
-                lineHeight: "normal"
-
-              }}
-
-            >
-
-              Urgent
-
-            </button>
-
-          </div>
-
-        </div>
-
-
-
-        {/* Chat Area - Using ChatComponent */}
-        <div className="flex-1 flex flex-col" style={{ minHeight: 0 }}>
-          <ChatComponent 
-            ticketId={ticket.id}
-            partnerId={(ticket as any).partnerId}
-            partnerName={ticket.hotelName}
-          />
-        </div>
-
-      </div>
-
-    </div>
-
-  )
-
-}
 
 

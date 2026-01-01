@@ -337,9 +337,9 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
           if (tokenParts.length === 3) {
             const payload = JSON.parse(atob(tokenParts[1]))
             const tokenRole = payload.role
-            const expectedRole = userRole === 'superadmin' || userRole === 'member' ? 'superadmin' : 'partner'
+            const expectedRole = userRole === 'partner' ? 'partner' : 'superadmin'
             
-            if (tokenRole !== 'superadmin' && tokenRole !== 'member' && expectedRole === 'superadmin') {
+            if (tokenRole !== 'partner' && expectedRole === 'partner') {
               console.error('❌ Token role mismatch!', {
                 tokenRole,
                 expectedRole,
@@ -373,7 +373,7 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
       }
       
       console.log('📤 Sending message:', messageData)
-      console.log('📤 User role:', userRole, 'Expected senderType:', userRole === 'superadmin' || userRole === 'member' ? 'superadmin' : 'partner')
+      console.log('📤 User role:', userRole, 'Expected senderType:', userRole === 'partner' ? 'partner' : 'superadmin')
       
       socket.emit('message:send', messageData)
 

@@ -15,19 +15,69 @@ import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 export default function DashboardPage() {
   const router = useRouter()
   const [activeSection, setActiveSection] = useState("subscriptions")
-  
+
   // Get user role and determine allowed services
   const user = getUserData()
   const userRole = (user as any)?.role || user?.role
   const staffRoles = ['housekeeper', 'booking assistant', 'custom service agent', 'activity supervisor', 'laundary attendant', 'delivery staff']
   const isStaff = userRole && staffRoles.includes(userRole?.toLowerCase())
-  
+
   // Get allowed services for staff, or all services for partners
   const allServices = ["Housekeeping", "Bookings interns", "Customized services", "Activity alerts", "Laundry", "In-room delivery"]
-  const allowedServices = isStaff 
-    ? getAllowedDashboardSections(userRole) 
+
+  // Filter services for partners based on assigned and active status
+  let allowedServices = isStaff
+    ? getAllowedDashboardSections(userRole)
     : allServices
-  
+
+  const [partnerServices, setPartnerServices] = useState<any>((user as any)?.services || null)
+
+  // Fetch latest partner data to ensure services are up to date
+  useEffect(() => {
+    if (!isStaff) {
+      const fetchPartnerData = async () => {
+        try {
+          const token = getAuthToken()
+          if (!token) return
+
+          const response = await fetch('/api/partner/account', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success && data.partner && data.partner.services) {
+              setPartnerServices(data.partner.services)
+              // Optionally update local storage here if needed, but state is safer
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching partner data:', error)
+        }
+      }
+      fetchPartnerData()
+    }
+  }, [isStaff])
+
+  if (!isStaff && partnerServices) {
+    const serviceKeyMap: Record<string, string> = {
+      "Housekeeping": "housekeeping",
+      "Bookings interns": "bookingInterns",
+      "Customized services": "customizedServices",
+      "Activity alerts": "activityAlerts",
+      "Laundry": "laundry",
+      "In-room delivery": "roomDelivery"
+    }
+
+    allowedServices = allServices.filter(service => {
+      const key = serviceKeyMap[service]
+      const serviceData = partnerServices[key]
+      return serviceData && serviceData.assigned === true && serviceData.isActive === true
+    })
+  }
+
   // Set default selected service based on role
   const getDefaultService = () => {
     if (isStaff && allowedServices.length > 0) {
@@ -42,9 +92,9 @@ export default function DashboardPage() {
       }
       return roleToService[userRole?.toLowerCase()] || allowedServices[0]
     }
-    return "Housekeeping"
+    return allowedServices.length > 0 ? allowedServices[0] : "Housekeeping"
   }
-  
+
   const [selectedService, setSelectedService] = useState(getDefaultService())
   const [serviceTimePeriod, setServiceTimePeriod] = useState<"week" | "month" | "day" | "custom">("week")
   const [generalPeriod, setGeneralPeriod] = useState<"week" | "month" | "day">("week")
@@ -67,6 +117,15 @@ export default function DashboardPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStaff, userRole])
+
+  // Update selectedService if it's not in the allowed list (for partners)
+  useEffect(() => {
+    if (!isStaff && allowedServices.length > 0 && !allowedServices.includes(selectedService)) {
+      setSelectedService(allowedServices[0])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStaff, selectedService, allowedServices])
+
   const [serviceStats, setServiceStats] = useState({
     metrics: {
       "Total requests": "0",
@@ -245,12 +304,12 @@ export default function DashboardPage() {
             fullRoomsPercentage: result.data.fullRooms.percentage,
             fullRoomsIsIncrease: result.data.fullRooms.isIncrease
           })
-          
+
           // Set member stats with percentage
           setMemberCount(result.data.members.current)
           setMemberPercentage(result.data.members.percentage)
           setMemberIsIncrease(result.data.members.isIncrease)
-          
+
           // Set staff stats with percentage
           setStaffCount(result.data.staff.current)
           setStaffPercentage(result.data.staff.percentage)
@@ -271,7 +330,7 @@ export default function DashboardPage() {
   // Fetch last requests based on staff role
   const fetchLastRequests = async () => {
     if (!isStaff) return
-    
+
     try {
       setIsLoadingLastRequests(true)
       const token = getAuthToken()
@@ -290,9 +349,9 @@ export default function DashboardPage() {
         'laundary attendant': '/api/partner/laundry-requests',
         'delivery staff': '/api/partner/in-room-delivery-request'
       }
-      
+
       apiEndpoint = roleToEndpoint[userRole?.toLowerCase()] || ''
-      
+
       if (!apiEndpoint) {
         setIsLoadingLastRequests(false)
         return
@@ -309,7 +368,7 @@ export default function DashboardPage() {
           'Authorization': `Bearer ${token}`
         }
       })
-      
+
       const data = await response.json()
 
       if (data.success && data.data?.requests) {
@@ -534,38 +593,35 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center border border-[#CED4DA]" style={{ borderRadius: '6px' }}>
-          <button 
+          <button
             onClick={() => setGeneralPeriod("week")}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-r border-[#CED4DA] ${
-              generalPeriod === "week" 
-                ? "bg-primary text-white hover:bg-primary/90" 
-                : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
-            }`}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-r border-[#CED4DA] ${generalPeriod === "week"
+              ? "bg-primary text-white hover:bg-primary/90"
+              : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
+              }`}
             style={{ borderTopLeftRadius: '6px', borderBottomLeftRadius: '6px' }}
           >
             Week
           </button>
-          <button 
+          <button
             onClick={() => setGeneralPeriod("month")}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-r border-[#CED4DA] ${
-              generalPeriod === "month" 
-                ? "bg-primary text-white hover:bg-primary/90" 
-                : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
-            }`}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-r border-[#CED4DA] ${generalPeriod === "month"
+              ? "bg-primary text-white hover:bg-primary/90"
+              : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
+              }`}
           >
             Month
           </button>
-          <button 
+          <button
             onClick={() => setGeneralPeriod("day")}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-r border-[#CED4DA] ${
-              generalPeriod === "day" 
-                ? "bg-primary text-white hover:bg-primary/90" 
-                : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
-            }`}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-r border-[#CED4DA] ${generalPeriod === "day"
+              ? "bg-primary text-white hover:bg-primary/90"
+              : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
+              }`}
           >
             Day
           </button>
-          <button 
+          <button
             className="px-4 py-2 bg-white text-[rgba(33,33,33,0.60)] text-sm font-medium hover:bg-muted/80 transition-colors flex items-center gap-2"
             style={{ borderTopRightRadius: '6px', borderBottomRightRadius: '6px' }}
           >
@@ -581,250 +637,250 @@ export default function DashboardPage() {
 
       {/* Stats Grid - Hide for staff */}
       {!isStaff && (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 px-6">
-        <StatCard
-          icon={
-            <div className="flex items-center justify-center rounded-full w-9 h-9 bg-[#E9EAEC]">
-              <PublicIcon src="/assets/icons/bed-bunk.svg" alt="Total Room" width={20} height={20} />
-            </div>
-          }
-          label="Total Room" 
-          value={roomStats.totalRooms.toString()} 
-          change={`${roomStats.totalRoomsIsIncrease ? '+' : '-'}${roomStats.totalRoomsPercentage}%`}
-          changeType={roomStats.totalRoomsIsIncrease ? "positive" : "negative"}
-          changeLabel={`vs last ${generalPeriod}`} 
-          isLoading={isLoadingRooms}
-        />
-        <StatCard
-          icon={
-            <div className="flex items-center justify-center rounded-full w-9 h-9 bg-[rgba(23,178,106,0.05)]">
-              <PublicIcon src="/assets/icons/close.svg" alt="Empty rooms" width={20} height={20} />
-            </div>
-          }
-          label="Empty rooms" 
-          value={roomStats.emptyRooms.toString()}
-          change={`${roomStats.emptyRoomsIsIncrease ? '+' : '-'}${roomStats.emptyRoomsPercentage}%`}
-          changeType={roomStats.emptyRoomsIsIncrease ? "positive" : "negative"}
-          changeLabel={`vs last ${generalPeriod}`} 
-          isLoading={isLoadingRooms}
-        />
-        <StatCard
-          icon={
-            <div className="flex items-center justify-center rounded-full w-9 h-9 bg-[#EEF2FB]">
-              <PublicIcon src="/assets/icons/users-01.svg" alt="Full rooms" width={20} height={20} />
-            </div>
-          }
-          label="Full rooms" 
-          value={roomStats.fullRooms.toString()} 
-          change={`${roomStats.fullRoomsIsIncrease ? '+' : '-'}${roomStats.fullRoomsPercentage}%`}
-          changeType={roomStats.fullRoomsIsIncrease ? "positive" : "negative"}
-          changeLabel={`vs last ${generalPeriod}`} 
-          isLoading={isLoadingRooms}
-        />
-        <StatCard
-          icon={
-            <div className="flex items-center justify-center rounded-full w-9 h-9 bg-[rgba(12,151,161,0.05)]">
-              <PublicIcon src="/assets/icons/user-group.svg" alt="Members" width={20} height={20} className="brightness-0 saturate-100 invert-[27%] sepia-[51%] saturate-[2878%] hue-rotate-[145deg] brightness-[96%] contrast-[87%]" />
-            </div>
-          }
-          label="Members" 
-          value={memberCount.toString()}
-          change={`${memberIsIncrease ? '+' : '-'}${memberPercentage}%`}
-          changeType={memberIsIncrease ? "positive" : "negative"}
-          changeLabel={`vs last ${generalPeriod}`} 
-          isLoading={isLoadingMembers}
-        />
-        <StatCard
-          icon={
-            <div className="flex items-center justify-center rounded-full w-9 h-9 bg-[rgba(212,122,18,0.05)]">
-              <PublicIcon src="/assets/icons/briefcase-06.svg" alt="Staffs" width={20} height={20} />
-            </div>
-          }
-          label="Staffs" 
-          value={staffCount.toString()} 
-          change={`${staffIsIncrease ? '+' : '-'}${staffPercentage}%`}
-          changeType={staffIsIncrease ? "positive" : "negative"}
-          changeLabel={`vs last ${generalPeriod}`} 
-          isLoading={isLoadingStaff}
-        />
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 px-6">
+          <StatCard
+            icon={
+              <div className="flex items-center justify-center rounded-full w-9 h-9 bg-[#E9EAEC]">
+                <PublicIcon src="/assets/icons/bed-bunk.svg" alt="Total Room" width={20} height={20} />
+              </div>
+            }
+            label="Total Room"
+            value={roomStats.totalRooms.toString()}
+            change={`${roomStats.totalRoomsIsIncrease ? '+' : '-'}${roomStats.totalRoomsPercentage}%`}
+            changeType={roomStats.totalRoomsIsIncrease ? "positive" : "negative"}
+            changeLabel={`vs last ${generalPeriod}`}
+            isLoading={isLoadingRooms}
+          />
+          <StatCard
+            icon={
+              <div className="flex items-center justify-center rounded-full w-9 h-9 bg-[rgba(23,178,106,0.05)]">
+                <PublicIcon src="/assets/icons/close.svg" alt="Empty rooms" width={20} height={20} />
+              </div>
+            }
+            label="Empty rooms"
+            value={roomStats.emptyRooms.toString()}
+            change={`${roomStats.emptyRoomsIsIncrease ? '+' : '-'}${roomStats.emptyRoomsPercentage}%`}
+            changeType={roomStats.emptyRoomsIsIncrease ? "positive" : "negative"}
+            changeLabel={`vs last ${generalPeriod}`}
+            isLoading={isLoadingRooms}
+          />
+          <StatCard
+            icon={
+              <div className="flex items-center justify-center rounded-full w-9 h-9 bg-[#EEF2FB]">
+                <PublicIcon src="/assets/icons/users-01.svg" alt="Full rooms" width={20} height={20} />
+              </div>
+            }
+            label="Full rooms"
+            value={roomStats.fullRooms.toString()}
+            change={`${roomStats.fullRoomsIsIncrease ? '+' : '-'}${roomStats.fullRoomsPercentage}%`}
+            changeType={roomStats.fullRoomsIsIncrease ? "positive" : "negative"}
+            changeLabel={`vs last ${generalPeriod}`}
+            isLoading={isLoadingRooms}
+          />
+          <StatCard
+            icon={
+              <div className="flex items-center justify-center rounded-full w-9 h-9 bg-[rgba(12,151,161,0.05)]">
+                <PublicIcon src="/assets/icons/user-group.svg" alt="Members" width={20} height={20} className="brightness-0 saturate-100 invert-[27%] sepia-[51%] saturate-[2878%] hue-rotate-[145deg] brightness-[96%] contrast-[87%]" />
+              </div>
+            }
+            label="Members"
+            value={memberCount.toString()}
+            change={`${memberIsIncrease ? '+' : '-'}${memberPercentage}%`}
+            changeType={memberIsIncrease ? "positive" : "negative"}
+            changeLabel={`vs last ${generalPeriod}`}
+            isLoading={isLoadingMembers}
+          />
+          <StatCard
+            icon={
+              <div className="flex items-center justify-center rounded-full w-9 h-9 bg-[rgba(212,122,18,0.05)]">
+                <PublicIcon src="/assets/icons/briefcase-06.svg" alt="Staffs" width={20} height={20} />
+              </div>
+            }
+            label="Staffs"
+            value={staffCount.toString()}
+            change={`${staffIsIncrease ? '+' : '-'}${staffPercentage}%`}
+            changeType={staffIsIncrease ? "positive" : "negative"}
+            changeLabel={`vs last ${generalPeriod}`}
+            isLoading={isLoadingStaff}
+          />
+        </div>
       )}
 
       {/* Charts - Hide for staff */}
       {!isStaff && (
-      <div className="space-y-6 px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Revenue Chart - Takes 2 columns */}
-        <div className="lg:col-span-2">
-          <RoomChart period={generalPeriod} />
-        </div>
-
-        {/* Requests Card */}
-        <div className="flex flex-col w-full max-w-[450px] justify-between">
-          {/* Header */}
-          <div className="h-16 flex items-center py-3 px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0" }}>
-            <h3 className="text-sm font-semibold text-[#212121]">Requests</h3>
-          </div>
-          {/* Content */}
-          <div className="h-[280px] flex flex-col p-6 pt-12 bg-white border border-[#E9EAEB] -mt-4" style={{ borderRadius: "14px" }}>
-            <div className="text-center items-center mb-8">
-              {isLoadingRequestStats ? (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-sm text-gray-500">Loading...</p>
-                </div>
-              ) : (
-                <>
-                  <p className="text-4xl font-bold text-[#212121] mb-3">
-                    {requestStats.totalAll} <span className="text-[18px]">Requests</span>
-                  </p>
-                  <p className={`text-sm font-medium ${requestStats.isIncrease ? 'text-[#10B981]' : 'text-[#FF0D0D]'}`}>
-                    {requestStats.isIncrease ? '+' : '-'}{requestStats.percentageChange}% vs last {generalPeriod}
-                  </p>
-                </>
-              )}
+        <div className="space-y-6 px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Revenue Chart - Takes 2 columns */}
+            <div className="lg:col-span-2">
+              <RoomChart period={generalPeriod} />
             </div>
 
-            {/* Half Circle Progress Chart with Legend Inside */}
-            <div className="w-full h-40 flex items-center justify-center mt-auto relative">
-              {isLoadingRequestStats || (requestStats.accepted === 0 && requestStats.canceled === 0) ? (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-sm text-gray-500">
-                    {isLoadingRequestStats ? 'Loading...' : 'No requests data'}
-                  </p>
-                </div>
-              ) : (
-                <>
-              <svg className="w-4/5 h-full" viewBox="0 0 400 180">
-                {/* Background semicircle */}
-                <path
-                  d="M 50 160 A 150 150 0 0 1 350 160"
-                  fill="none"
-                  stroke="#E5E7EB"
-                  strokeWidth="20"
-                />
-                    {(() => {
-                      const totalCircumference = 471.2 // Full semicircle circumference
-                      const acceptedPercentage = requestStats.total > 0 ? requestStats.accepted / requestStats.total : 0
-                      const canceledPercentage = requestStats.total > 0 ? requestStats.canceled / requestStats.total : 0
-                      const acceptedLength = totalCircumference * acceptedPercentage
-                      const canceledLength = totalCircumference * canceledPercentage
-                      
-                      return (
-                        <>
-                          {/* Accepted segment - from left to right */}
-                          {requestStats.accepted > 0 && (
-                            <path
-                              d="M 50 160 A 150 150 0 0 1 350 160"
-                              fill="none"
-                              stroke="#10B981"
-                              strokeWidth="20"
-                              strokeDasharray={`${acceptedLength} 10000`}
-                              strokeDashoffset="0"
-                              strokeLinecap="round"
-                              className="cursor-pointer hover:opacity-80 transition-opacity"
-                              style={{ pointerEvents: 'stroke' }}
-                              onMouseEnter={(e) => {
-                                const tooltip = document.getElementById('chart-tooltip');
-                                const tooltipText = document.getElementById('tooltip-text');
-                                if (tooltip && tooltipText) {
-                                  tooltipText.textContent = requestStats.accepted.toString();
-                                  tooltip.style.display = 'block';
-                                  const chartContainer = e.currentTarget.closest('.relative');
-                                  if (chartContainer) {
-                                    const rect = chartContainer.getBoundingClientRect();
-                                    const x = e.clientX - rect.left - 17.5;
-                                    const y = e.clientY - rect.top - 17.5;
-                                    tooltip.style.left = x + 'px';
-                                    tooltip.style.top = y + 'px';
-                                  }
-                                }
-                              }}
-                              onMouseLeave={() => {
-                                const tooltip = document.getElementById('chart-tooltip');
-                                if (tooltip) {
-                                  tooltip.style.display = 'none';
-                                }
-                              }}
-                            />
-                          )}
-                          {/* Canceled segment - starts right after accepted segment ends */}
-                          {requestStats.canceled > 0 && (
-                            <path
-                              d="M 50 160 A 150 150 0 0 1 350 160"
-                              fill="none"
-                              stroke="rgba(255, 13, 13, 0.5)"
-                              strokeWidth="20"
-                              strokeDasharray={`${canceledLength} 10000`}
-                              strokeDashoffset={-acceptedLength}
-                              strokeLinecap="round"
-                              className="cursor-pointer hover:opacity-80 transition-opacity"
-                              style={{ pointerEvents: 'stroke' }}
-                              onMouseEnter={(e) => {
-                                const tooltip = document.getElementById('chart-tooltip');
-                                const tooltipText = document.getElementById('tooltip-text');
-                                if (tooltip && tooltipText) {
-                                  tooltipText.textContent = requestStats.canceled.toString();
-                                  tooltip.style.display = 'block';
-                                  const chartContainer = e.currentTarget.closest('.relative');
-                                  if (chartContainer) {
-                                    const rect = chartContainer.getBoundingClientRect();
-                                    const x = e.clientX - rect.left - 17.5;
-                                    const y = e.clientY - rect.top - 17.5;
-                                    tooltip.style.left = x + 'px';
-                                    tooltip.style.top = y + 'px';
-                                  }
-                                }
-                              }}
-                              onMouseLeave={() => {
-                                const tooltip = document.getElementById('chart-tooltip');
-                                if (tooltip) {
-                                  tooltip.style.display = 'none';
-                                }
-                              }}
-                            />
-                          )}
-                        </>
-                      )
-                    })()}
-                
-                {/* Legend with colored circles */}
-                <circle cx="90" cy="130" r="5" fill="#10B981" />
-                <text
-                  x="100"
-                  y="135"
-                  textAnchor="start"
-                  className="text-medium font-medium fill-[#000000]"
-                >
-                  Accepted
-                </text>
-
-                    <circle cx="230" cy="130" r="5" fill="rgba(255, 13, 13, 0.5)" />
-                <text
-                  x="240"
-                  y="135"
-                  textAnchor="start"
-                  className="text-medium font-medium fill-[#000000]"
-                >
-                  Canceled
-                </text>
-              </svg>
-              
-              {/* Hover Tooltip */}
-              <div
-                id="chart-tooltip"
-                    className="absolute hidden pointer-events-none z-10 w-[35px] h-[35px] bg-white rounded-full shadow-md border border-[#E5E7EB] flex items-center justify-center text-center"
-                  >
-                    <span id="tooltip-text" className="text-sm font-semibold text-black leading-none flex items-center justify-center w-full h-full">
-                      {requestStats.accepted}
-                </span>
+            {/* Requests Card */}
+            <div className="flex flex-col w-full max-w-[450px] justify-between">
+              {/* Header */}
+              <div className="h-16 flex items-center py-3 px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0" }}>
+                <h3 className="text-sm font-semibold text-[#212121]">Requests</h3>
               </div>
-                </>
-              )}
+              {/* Content */}
+              <div className="h-[280px] flex flex-col p-6 pt-12 bg-white border border-[#E9EAEB] -mt-4" style={{ borderRadius: "14px" }}>
+                <div className="text-center items-center mb-8">
+                  {isLoadingRequestStats ? (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-sm text-gray-500">Loading...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-4xl font-bold text-[#212121] mb-3">
+                        {requestStats.totalAll} <span className="text-[18px]">Requests</span>
+                      </p>
+                      <p className={`text-sm font-medium ${requestStats.isIncrease ? 'text-[#10B981]' : 'text-[#FF0D0D]'}`}>
+                        {requestStats.isIncrease ? '+' : '-'}{requestStats.percentageChange}% vs last {generalPeriod}
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                {/* Half Circle Progress Chart with Legend Inside */}
+                <div className="w-full h-40 flex items-center justify-center mt-auto relative">
+                  {isLoadingRequestStats || (requestStats.accepted === 0 && requestStats.canceled === 0) ? (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-sm text-gray-500">
+                        {isLoadingRequestStats ? 'Loading...' : 'No requests data'}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <svg className="w-4/5 h-full" viewBox="0 0 400 180">
+                        {/* Background semicircle */}
+                        <path
+                          d="M 50 160 A 150 150 0 0 1 350 160"
+                          fill="none"
+                          stroke="#E5E7EB"
+                          strokeWidth="20"
+                        />
+                        {(() => {
+                          const totalCircumference = 471.2 // Full semicircle circumference
+                          const acceptedPercentage = requestStats.total > 0 ? requestStats.accepted / requestStats.total : 0
+                          const canceledPercentage = requestStats.total > 0 ? requestStats.canceled / requestStats.total : 0
+                          const acceptedLength = totalCircumference * acceptedPercentage
+                          const canceledLength = totalCircumference * canceledPercentage
+
+                          return (
+                            <>
+                              {/* Accepted segment - from left to right */}
+                              {requestStats.accepted > 0 && (
+                                <path
+                                  d="M 50 160 A 150 150 0 0 1 350 160"
+                                  fill="none"
+                                  stroke="#10B981"
+                                  strokeWidth="20"
+                                  strokeDasharray={`${acceptedLength} 10000`}
+                                  strokeDashoffset="0"
+                                  strokeLinecap="round"
+                                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                                  style={{ pointerEvents: 'stroke' }}
+                                  onMouseEnter={(e) => {
+                                    const tooltip = document.getElementById('chart-tooltip');
+                                    const tooltipText = document.getElementById('tooltip-text');
+                                    if (tooltip && tooltipText) {
+                                      tooltipText.textContent = requestStats.accepted.toString();
+                                      tooltip.style.display = 'block';
+                                      const chartContainer = e.currentTarget.closest('.relative');
+                                      if (chartContainer) {
+                                        const rect = chartContainer.getBoundingClientRect();
+                                        const x = e.clientX - rect.left - 17.5;
+                                        const y = e.clientY - rect.top - 17.5;
+                                        tooltip.style.left = x + 'px';
+                                        tooltip.style.top = y + 'px';
+                                      }
+                                    }
+                                  }}
+                                  onMouseLeave={() => {
+                                    const tooltip = document.getElementById('chart-tooltip');
+                                    if (tooltip) {
+                                      tooltip.style.display = 'none';
+                                    }
+                                  }}
+                                />
+                              )}
+                              {/* Canceled segment - starts right after accepted segment ends */}
+                              {requestStats.canceled > 0 && (
+                                <path
+                                  d="M 50 160 A 150 150 0 0 1 350 160"
+                                  fill="none"
+                                  stroke="rgba(255, 13, 13, 0.5)"
+                                  strokeWidth="20"
+                                  strokeDasharray={`${canceledLength} 10000`}
+                                  strokeDashoffset={-acceptedLength}
+                                  strokeLinecap="round"
+                                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                                  style={{ pointerEvents: 'stroke' }}
+                                  onMouseEnter={(e) => {
+                                    const tooltip = document.getElementById('chart-tooltip');
+                                    const tooltipText = document.getElementById('tooltip-text');
+                                    if (tooltip && tooltipText) {
+                                      tooltipText.textContent = requestStats.canceled.toString();
+                                      tooltip.style.display = 'block';
+                                      const chartContainer = e.currentTarget.closest('.relative');
+                                      if (chartContainer) {
+                                        const rect = chartContainer.getBoundingClientRect();
+                                        const x = e.clientX - rect.left - 17.5;
+                                        const y = e.clientY - rect.top - 17.5;
+                                        tooltip.style.left = x + 'px';
+                                        tooltip.style.top = y + 'px';
+                                      }
+                                    }
+                                  }}
+                                  onMouseLeave={() => {
+                                    const tooltip = document.getElementById('chart-tooltip');
+                                    if (tooltip) {
+                                      tooltip.style.display = 'none';
+                                    }
+                                  }}
+                                />
+                              )}
+                            </>
+                          )
+                        })()}
+
+                        {/* Legend with colored circles */}
+                        <circle cx="90" cy="130" r="5" fill="#10B981" />
+                        <text
+                          x="100"
+                          y="135"
+                          textAnchor="start"
+                          className="text-medium font-medium fill-[#000000]"
+                        >
+                          Accepted
+                        </text>
+
+                        <circle cx="230" cy="130" r="5" fill="rgba(255, 13, 13, 0.5)" />
+                        <text
+                          x="240"
+                          y="135"
+                          textAnchor="start"
+                          className="text-medium font-medium fill-[#000000]"
+                        >
+                          Canceled
+                        </text>
+                      </svg>
+
+                      {/* Hover Tooltip */}
+                      <div
+                        id="chart-tooltip"
+                        className="absolute hidden pointer-events-none z-10 w-[35px] h-[35px] bg-white rounded-full shadow-md border border-[#E5E7EB] flex items-center justify-center text-center"
+                      >
+                        <span id="tooltip-text" className="text-sm font-semibold text-black leading-none flex items-center justify-center w-full h-full">
+                          {requestStats.accepted}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-          </div>
         </div>
-      </div>
       )}
     </div>
   )
@@ -837,7 +893,7 @@ export default function DashboardPage() {
           <div className="h-px flex-shrink-0 self-stretch w-full">
             <div className="w-full h-px bg-black/[0.08]"></div>
           </div>
-          
+
           {/* Header */}
           <div className="flex items-center justify-between px-6">
             <div>
@@ -846,19 +902,18 @@ export default function DashboardPage() {
                 Track and analyze all service activities
               </p>
             </div>
-            
+
             {/* Service Navigation Row */}
             {allowedServices.length > 1 && (
               <div className="flex items-center gap-2 p-2 rounded-xl border border-[#DDDFE3] bg-white max-w-fit">
                 {allowedServices.map((service) => (
-                  <button 
+                  <button
                     key={service}
                     onClick={() => setSelectedService(service)}
-                    className={`px-3 py-2 rounded-xl text-sm font-normal transition-colors ${
-                      service === selectedService 
-                          ? "bg-[#E9EAEC] text-[#1F2A44] border  border-[#DDDFE3] " 
-                          : " text-[#00000099]"
-                    }`}
+                    className={`px-3 py-2 rounded-xl text-sm font-normal transition-colors ${service === selectedService
+                      ? "bg-[#E9EAEC] text-[#1F2A44] border  border-[#DDDFE3] "
+                      : " text-[#00000099]"
+                      }`}
                   >
                     {service}
                   </button>
@@ -874,7 +929,7 @@ export default function DashboardPage() {
       )}
 
       {/* Service-specific content */}
-    <div className="space-y-4">
+      <div className="space-y-4">
         {/* Header with filters - Hide entire filters row for staff */}
         {!isStaff && (
           <>
@@ -884,51 +939,47 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-center gap-2">
                 <div className="flex items-center border border-[#CED4DA]" style={{ borderRadius: '6px' }}>
-                  <button 
+                  <button
                     onClick={() => setServiceTimePeriod("week")}
-                    className={`px-4 py-2 text-sm font-medium transition-colors border-r border-[#CED4DA] ${
-                      serviceTimePeriod === "week" 
-                        ? "bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90" 
-                        : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium transition-colors border-r border-[#CED4DA] ${serviceTimePeriod === "week"
+                      ? "bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90"
+                      : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
+                      }`}
                     style={{ borderTopLeftRadius: '6px', borderBottomLeftRadius: '6px' }}
                   >
                     Week
                   </button>
-                  <button 
+                  <button
                     onClick={() => setServiceTimePeriod("month")}
-                    className={`px-4 py-2 text-sm font-medium transition-colors border-r border-[#CED4DA] ${
-                      serviceTimePeriod === "month" 
-                        ? "bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90" 
-                        : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium transition-colors border-r border-[#CED4DA] ${serviceTimePeriod === "month"
+                      ? "bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90"
+                      : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
+                      }`}
                   >
                     Month
                   </button>
-                  <button 
+                  <button
                     onClick={() => setServiceTimePeriod("day")}
-                    className={`px-4 py-2 text-sm font-medium transition-colors border-r border-[#CED4DA] ${
-                      serviceTimePeriod === "day" 
-                        ? "bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90" 
-                        : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium transition-colors border-r border-[#CED4DA] ${serviceTimePeriod === "day"
+                      ? "bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90"
+                      : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
+                      }`}
                   >
                     Day
                   </button>
-                  <button 
+                  <button
                     onClick={() => setServiceTimePeriod("custom")}
-                    className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 ${
-                      serviceTimePeriod === "custom" 
-                        ? "bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90" 
-                        : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 ${serviceTimePeriod === "custom"
+                      ? "bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90"
+                      : "bg-white text-[rgba(33,33,33,0.60)] hover:bg-muted/80"
+                      }`}
                     style={{ borderTopRightRadius: '6px', borderBottomRightRadius: '6px' }}
                   >
                     <PublicIcon src="/assets/icons/calendar.svg" alt="Calendar" width={16} height={16} />
                     Dates range
                   </button>
                 </div>
-                
+
                 {/* Priority dropdown - Show only for Housekeeping and Laundry */}
                 {(selectedService === "Housekeeping" || selectedService === "Laundry") && (
                   <div className="relative inline-block">
@@ -956,7 +1007,7 @@ export default function DashboardPage() {
                         <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
                       </div>
                     </div>
-                    
+
                     {/* Pick up dropdown */}
                     <div className="relative inline-block">
                       <select className="appearance-none focus:outline-none focus:ring-2 focus:ring-primary/30 py-[7.52px] px-3 pr-8 rounded border border-[#CED4DA] bg-white text-[rgba(33,33,33,0.60)] text-[13px] font-normal leading-[19.5px]">
@@ -978,13 +1029,13 @@ export default function DashboardPage() {
         )}
 
         {/* Metrics Cards - Display in specific order */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 px-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 px-6">
           {isLoadingServiceStats ? (
             Array.from({ length: 6 }).map((_, index) => (
-              <StatCard 
+              <StatCard
                 key={index}
-                label="Loading..." 
-                value="0" 
+                label="Loading..."
+                value="0"
                 showHeadingBorder={true}
               />
             ))
@@ -1003,241 +1054,241 @@ export default function DashboardPage() {
               const isPositive = percentage >= 0
               const changeValue = `${isPositive ? '+' : ''}${Math.abs(percentage).toFixed(0)}%`
               const periodLabel = serviceStats.periodLabel || "last week"
-              
+
               return (
-                <StatCard 
+                <StatCard
                   key={label}
-                  label={label} 
-                  value={value} 
+                  label={label}
+                  value={value}
                   change={changeValue}
-                  changeType={isPositive ? "positive" : "negative"} 
+                  changeType={isPositive ? "positive" : "negative"}
                   changeLabel={`vs ${periodLabel}`}
                   showHeadingBorder={true}
                 />
               )
             })
           )}
-      </div>
+        </div>
 
         {/* Bottom Row - Line Graph and Optional Vertical Card */}
         <div className={`grid gap-6 px-6 ${servicesData[selectedService as keyof typeof servicesData].hasVerticalCard ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1'}`}>
           {/* Requests Activity Line Graph */}
           <div className={servicesData[selectedService as keyof typeof servicesData].hasVerticalCard ? "lg:col-span-2" : ""}>
-          <div className="flex flex-col w-full">
-            {/* Header */}
-            <div className="h-16 flex items-center py-3 px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0" }}>
-              <h3 className="text-sm font-semibold text-[#212121]">Requests Activity</h3>
-            </div>
-            {/* Content */}
+            <div className="flex flex-col w-full">
+              {/* Header */}
+              <div className="h-16 flex items-center py-3 px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0" }}>
+                <h3 className="text-sm font-semibold text-[#212121]">Requests Activity</h3>
+              </div>
+              {/* Content */}
               <div className="h-[280px] p-3 bg-white border border-[#E9EAEB] -mt-4 relative" style={{ borderRadius: "14px" }}>
-              {/* Chart container */}
-              <div className="w-full h-full relative">
-                {/* Y-axis label */}
-              
-                
-                {/* Chart area */}
+                {/* Chart container */}
+                <div className="w-full h-full relative">
+                  {/* Y-axis label */}
+
+
+                  {/* Chart area */}
                   <div className="w-full h-full ">
-                  
-                  {/* Line chart - same structure as revenue chart */}
-                  <div className="w-full h-[calc(100%-0.1rem)] relative mt-auto" style={{ outline: 'none' }} onFocus={(e) => e.target.blur()}>
-                    {isLoadingServiceStats ? (
-                      <div className="flex items-center justify-center h-full">
-                        <p className="text-sm text-gray-500">Loading...</p>
-                      </div>
-                    ) : serviceTimeSeries.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%" style={{ outline: 'none' }}>
-                        <LineChart data={serviceTimeSeries.map(item => ({
-                          month: item.date,
-                          requests: item.requests,
-                          change: "+0%"
-                        }))}>
-                        <CartesianGrid strokeDasharray="0" stroke="#E5E7EB" horizontal={true} vertical={false} />
-                        <XAxis 
-                          dataKey="month" 
-                          stroke="transparent" 
-                          fontSize={12}
-                          tick={{ fill: '#535862', fontSize: '12px', fontWeight: '500' }}
-                          label={{ 
-                            value: serviceTimePeriod === 'day' ? 'Hours' : serviceTimePeriod === 'week' ? 'Week days' : serviceTimePeriod === 'month' ? 'Weeks' : 'Days', 
-                            position: 'insideBottom', 
-                            offset: -5, 
-                            style: { textAnchor: 'middle', fontSize: '12px', fill: '#535862', fontWeight: '500', lineHeight: '18px' } 
-                          }}
-                        />
-                        <YAxis 
-                          stroke="transparent" 
-                          fontSize={12} 
-                          domain={[0, 'auto']}
-                          tick={{ fill: '#535862', fontSize: '12px', fontWeight: '500' }}
-                          label={{ value: 'Nbr', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '12px', fill: '#535862', fontWeight: '500', lineHeight: '18px' } }}
-                        />
-                        <Tooltip 
-                          content={({ active, payload, label }) => {
-                            if (active && payload && payload.length) {
-                              const data = payload[0].payload;
-                              const changeValue = data.change;
-                              const isPositive = changeValue.startsWith('+');
-                              const changeColor = isPositive ? '#1DBF73' : '#FF0D0D';
-                              
-                              return (
-                                <div style={{
-                                  width: '170px',
-                                  height: '50px',
-                                  borderWidth: '1px',
-                                  paddingTop: '10px',
-                                  paddingRight: '15px',
-                                  paddingBottom: '10px',
-                                  paddingLeft: '10px',
-                                  borderRadius: '10px',
-                                  background: '#FFFFFF',
-                                  border: '1px solid #EFEFEF',
-                                  boxShadow: '0px 1px 3px 0px #00000005, 0px 6px 10px 0px #B1B1B114',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '4px'
-                                }}>
-                                  {/* Logo */}
-                                  <div style={{
-                                    width: '28px',
-                                    height: '28px',
-                                    gap: '1.5px',
-                                    borderWidth: '0.5px',
-                                    borderRadius: '50px',
-                                    padding: '4px',
-                                    background: '#1F2A44',
-                                    border: '0.5px solid #E9E9E9',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                  }}>
-                                    <svg width="12" height="12" viewBox="0 0 8 8" fill="none">
-                                      <path d="M1 2h6v4H1V2z" fill="white"/>
-                                      <path d="M2 3h4v2H2V3z" fill="#1F2A44"/>
-                                      <path d="M3 4h2v1H3V4z" fill="white"/>
-                    </svg>
-                                  </div>
-                                  
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                    {/* Y-axis value */}
+
+                    {/* Line chart - same structure as revenue chart */}
+                    <div className="w-full h-[calc(100%-0.1rem)] relative mt-auto" style={{ outline: 'none' }} onFocus={(e) => e.target.blur()}>
+                      {isLoadingServiceStats ? (
+                        <div className="flex items-center justify-center h-full">
+                          <p className="text-sm text-gray-500">Loading...</p>
+                        </div>
+                      ) : serviceTimeSeries.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%" style={{ outline: 'none' }}>
+                          <LineChart data={serviceTimeSeries.map(item => ({
+                            month: item.date,
+                            requests: item.requests,
+                            change: "+0%"
+                          }))}>
+                            <CartesianGrid strokeDasharray="0" stroke="#E5E7EB" horizontal={true} vertical={false} />
+                            <XAxis
+                              dataKey="month"
+                              stroke="transparent"
+                              fontSize={12}
+                              tick={{ fill: '#535862', fontSize: '12px', fontWeight: '500' }}
+                              label={{
+                                value: serviceTimePeriod === 'day' ? 'Hours' : serviceTimePeriod === 'week' ? 'Week days' : serviceTimePeriod === 'month' ? 'Weeks' : 'Days',
+                                position: 'insideBottom',
+                                offset: -5,
+                                style: { textAnchor: 'middle', fontSize: '12px', fill: '#535862', fontWeight: '500', lineHeight: '18px' }
+                              }}
+                            />
+                            <YAxis
+                              stroke="transparent"
+                              fontSize={12}
+                              domain={[0, 'auto']}
+                              tick={{ fill: '#535862', fontSize: '12px', fontWeight: '500' }}
+                              label={{ value: 'Nbr', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '12px', fill: '#535862', fontWeight: '500', lineHeight: '18px' } }}
+                            />
+                            <Tooltip
+                              content={({ active, payload, label }) => {
+                                if (active && payload && payload.length) {
+                                  const data = payload[0].payload;
+                                  const changeValue = data.change;
+                                  const isPositive = changeValue.startsWith('+');
+                                  const changeColor = isPositive ? '#1DBF73' : '#FF0D0D';
+
+                                  return (
                                     <div style={{
-                                      width: '80px',
-                                      height: '15px',
-                                      fontWeight: '600',
-                                      fontSize: '11px',
-                                      lineHeight: '15px',
-                                      letterSpacing: '0%',
-                                      textAlign: 'left',
-                                      color: '#080808'
+                                      width: '170px',
+                                      height: '50px',
+                                      borderWidth: '1px',
+                                      paddingTop: '10px',
+                                      paddingRight: '15px',
+                                      paddingBottom: '10px',
+                                      paddingLeft: '10px',
+                                      borderRadius: '10px',
+                                      background: '#FFFFFF',
+                                      border: '1px solid #EFEFEF',
+                                      boxShadow: '0px 1px 3px 0px #00000005, 0px 6px 10px 0px #B1B1B114',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
                                     }}>
-                                      {data.requests} request
+                                      {/* Logo */}
+                                      <div style={{
+                                        width: '28px',
+                                        height: '28px',
+                                        gap: '1.5px',
+                                        borderWidth: '0.5px',
+                                        borderRadius: '50px',
+                                        padding: '4px',
+                                        background: '#1F2A44',
+                                        border: '0.5px solid #E9E9E9',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                      }}>
+                                        <svg width="12" height="12" viewBox="0 0 8 8" fill="none">
+                                          <path d="M1 2h6v4H1V2z" fill="white" />
+                                          <path d="M2 3h4v2H2V3z" fill="#1F2A44" />
+                                          <path d="M3 4h2v1H3V4z" fill="white" />
+                                        </svg>
+                                      </div>
+
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                        {/* Y-axis value */}
+                                        <div style={{
+                                          width: '80px',
+                                          height: '15px',
+                                          fontWeight: '600',
+                                          fontSize: '11px',
+                                          lineHeight: '15px',
+                                          letterSpacing: '0%',
+                                          textAlign: 'left',
+                                          color: '#080808'
+                                        }}>
+                                          {data.requests} request
+                                        </div>
+
+                                        {/* Change percentage */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                          <span style={{
+                                            color: changeColor,
+                                            fontWeight: '600',
+                                            fontSize: '9px',
+                                            lineHeight: '15px',
+                                            letterSpacing: '0%',
+                                            textAlign: 'center'
+                                          }}>
+                                            {changeValue}
+                                          </span>
+                                          <span style={{
+                                            color: '#878787',
+                                            fontWeight: '600',
+                                            fontSize: '9px',
+                                            lineHeight: '15px',
+                                            letterSpacing: '0%',
+                                            textAlign: 'center'
+                                          }}>
+                                            from last week
+                                          </span>
+                                        </div>
+                                      </div>
                                     </div>
-                                    
-                                    {/* Change percentage */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                      <span style={{
-                                        color: changeColor,
-                                        fontWeight: '600',
-                                        fontSize: '9px',
-                                        lineHeight: '15px',
-                                        letterSpacing: '0%',
-                                        textAlign: 'center'
-                                      }}>
-                                        {changeValue}
-                                      </span>
-                                      <span style={{
-                                        color: '#878787',
-                                        fontWeight: '600',
-                                        fontSize: '9px',
-                                        lineHeight: '15px',
-                                        letterSpacing: '0%',
-                                        textAlign: 'center'
-                                      }}>
-                                        from last week
-                                      </span>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Line
+                              type="linear"
+                              dataKey="requests"
+                              stroke="#4195BF"
+                              strokeWidth={2.5}
+                              dot={{
+                                fill: '#56C6FF',
+                                stroke: '#FFFFFF',
+                                strokeWidth: 1.2,
+                                r: 4.8,
+                                style: {
+                                  boxShadow: '0px 0px 44px 0px #0000001A'
+                                }
+                              }}
+                              connectNulls={false}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <p className="text-sm text-gray-500">No data available</p>
+                        </div>
+                      )}
                     </div>
                   </div>
+
+
+                  {/* Legend - positioned at top right */}
+                  {!isLoadingServiceStats && serviceTimeSeries.length > 0 && (
+                    <div className="absolute top-4 right-4 flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-[#2563EB]"></div>
+                      <span className="text-sm text-[#6B7280]">Requests</span>
+                    </div>
+                  )}
                 </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Line 
-                          type="linear" 
-                          dataKey="requests" 
-                          stroke="#4195BF" 
-                          strokeWidth={2.5} 
-                          dot={{ 
-                            fill: '#56C6FF', 
-                            stroke: '#FFFFFF', 
-                            strokeWidth: 1.2, 
-                            r: 4.8,
-                            style: { 
-                              boxShadow: '0px 0px 44px 0px #0000001A'
-                            }
-                          }}
-                          connectNulls={false}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <p className="text-sm text-gray-500">No data available</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                
-                {/* Legend - positioned at top right */}
-                {!isLoadingServiceStats && serviceTimeSeries.length > 0 && (
-                <div className="absolute top-4 right-4 flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#2563EB]"></div>
-                  <span className="text-sm text-[#6B7280]">Requests</span>
-                </div>
-                )}
               </div>
             </div>
           </div>
-        </div>
 
           {/* Most Requested Items/Services/Activities Card - Only show if hasVerticalCard is true */}
           {servicesData[selectedService as keyof typeof servicesData].hasVerticalCard && (
-        <div className="flex flex-col w-full">
-          {/* Header */}
-          <div className="h-16 flex items-center py-3 px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0" }}>
+            <div className="flex flex-col w-full">
+              {/* Header */}
+              <div className="h-16 flex items-center py-3 px-4 bg-[#FCFCFC] border border-[#E9EAEB]" style={{ borderRadius: "12px 12px 0 0" }}>
                 <h3 className="text-sm font-semibold text-[#212121]">{servicesData[selectedService as keyof typeof servicesData].verticalCardTitle}</h3>
-          </div>
-          {/* Content */}
+              </div>
+              {/* Content */}
               <div className="h-[280px] p-4 bg-white border border-[#E9EAEB] -mt-4 overflow-y-auto" style={{ borderRadius: "14px" }}>
-            <div className="space-y-0">
+                <div className="space-y-0">
                   {servicesData[selectedService as keyof typeof servicesData].verticalCardItems.map((item, index) => (
-                <div key={index}>
-                  <div className="flex items-center gap-3 py-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#212121] truncate">
+                    <div key={index}>
+                      <div className="flex items-center gap-3 py-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#212121] truncate">
                             {item.name}
-                      </p>
-                      <p className="text-xs text-[#6B7280]">
+                          </p>
+                          <p className="text-xs text-[#6B7280]">
                             Requests: <span className="font-semibold">{item.requests}</span> | Completed:{" "}
                             <span className="font-semibold">{item.completed}</span>
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex-shrink-0 overflow-hidden">
-                      <img
+                          </p>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex-shrink-0 overflow-hidden">
+                          <img
                             src={item.image}
                             alt={item.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </div>
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
                       {index < servicesData[selectedService as keyof typeof servicesData].verticalCardItems.length - 1 && (
-                    <div className="h-px bg-[#E9ECF1] w-full" />
-                  )}
+                        <div className="h-px bg-[#E9ECF1] w-full" />
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
             </div>
           )}
         </div>
@@ -1249,54 +1300,54 @@ export default function DashboardPage() {
     <div className="">
       {/* Actions Rapide Header - Hide for staff */}
       {!isStaff && (
-      <div className="flex items-center justify-between border-b w-full h-[77px] px-5 py-2.5">
-        {/* Left side - Actions rapide text */}
-        <p className="text-[#00000099] font-medium text-sm leading-normal">
-          Actions rapide
-        </p>
+        <div className="flex items-center justify-between border-b w-full h-[77px] px-5 py-2.5">
+          {/* Left side - Actions rapide text */}
+          <p className="text-[#00000099] font-medium text-sm leading-normal">
+            Actions rapide
+          </p>
 
-        {/* Right side - Action buttons */}
-        <div className="flex items-center gap-3">
-          {/* Add new ticket button */}
-          <button 
-            onClick={() => router.push('/partner/pages/support')}
-            className="flex items-center gap-1.5 border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors hover:bg-gray-100"
-            style={{ borderRadius: '6px' }}
-          >
-            <PublicIcon src="/assets/icons/status error.svg" alt="Add new ticket" width={16} height={16} />
-            <span className="text-sm font-medium text-[#212121]">Add new ticket</span>
-          </button>
+          {/* Right side - Action buttons */}
+          <div className="flex items-center gap-3">
+            {/* Add new ticket button */}
+            <button
+              onClick={() => router.push('/partner/pages/support')}
+              className="flex items-center gap-1.5 border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors hover:bg-gray-100"
+              style={{ borderRadius: '6px' }}
+            >
+              <PublicIcon src="/assets/icons/status error.svg" alt="Add new ticket" width={16} height={16} />
+              <span className="text-sm font-medium text-[#212121]">Add new ticket</span>
+            </button>
 
-          {/* Add Member button */}
-          <button 
-            onClick={() => router.push('/partner/pages/team')}
-            className="flex items-center gap-1.5 border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors hover:bg-gray-100"
-            style={{ borderRadius: '6px' }}
-          >
-            <PublicIcon src="/assets/icons/user-group.svg" alt="Add Member" width={16} height={16} />
-            <span className="text-sm font-medium text-[#212121]">Add Member</span>
-          </button>
+            {/* Add Member button */}
+            <button
+              onClick={() => router.push('/partner/pages/team')}
+              className="flex items-center gap-1.5 border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors hover:bg-gray-100"
+              style={{ borderRadius: '6px' }}
+            >
+              <PublicIcon src="/assets/icons/user-group.svg" alt="Add Member" width={16} height={16} />
+              <span className="text-sm font-medium text-[#212121]">Add Member</span>
+            </button>
 
-          {/* Add Staff button */}
-          <button 
-            onClick={() => router.push('/partner/pages/team')}
-            className="flex items-center gap-1.5 border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors hover:bg-gray-100"
-            style={{ borderRadius: '6px' }}
-          >
-            <PublicIcon src="/assets/icons/briefcase-06.svg" alt="Add Staff" width={16} height={16} className="brightness-0 saturate-100" />
-            <span className="text-sm font-medium text-[#212121]">Add Staff</span>
-          </button>
+            {/* Add Staff button */}
+            <button
+              onClick={() => router.push('/partner/pages/team')}
+              className="flex items-center gap-1.5 border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors hover:bg-gray-100"
+              style={{ borderRadius: '6px' }}
+            >
+              <PublicIcon src="/assets/icons/briefcase-06.svg" alt="Add Staff" width={16} height={16} className="brightness-0 saturate-100" />
+              <span className="text-sm font-medium text-[#212121]">Add Staff</span>
+            </button>
 
-          {/* More button */}
-          <button 
-            className="flex items-center gap-1.5 border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors"
-            style={{ borderRadius: '6px' }}
-          >
-            <PublicIcon src="/assets/icons/menu-01.svg" alt="More" width={16} height={16} />
-            <span className="text-sm font-medium text-[#212121]">More</span>
-          </button>
+            {/* More button */}
+            <button
+              className="flex items-center gap-1.5 border border-[#DDDFE3] bg-[#E9EAEC] px-5 py-2 transition-colors"
+              style={{ borderRadius: '6px' }}
+            >
+              <PublicIcon src="/assets/icons/menu-01.svg" alt="More" width={16} height={16} />
+              <span className="text-sm font-medium text-[#212121]">More</span>
+            </button>
+          </div>
         </div>
-      </div>
       )}
 
       {/* All Sections in Vertical Layout */}
@@ -1307,7 +1358,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Services Section - Only show if staff has allowed services or if partner */}
-        {(!isStaff || allowedServices.length > 0) && (
+        {allowedServices.length > 0 && (
           <div id="services">
             {servicesContent}
           </div>
@@ -1451,8 +1502,8 @@ export default function DashboardPage() {
                               fontWeight: "400",
                               lineHeight: "19.5px"
                             }}>
-                              {userRole?.toLowerCase() === 'housekeeper' 
-                                ? `#${row.id.substring(0, 8)}` 
+                              {userRole?.toLowerCase() === 'housekeeper'
+                                ? `#${row.id.substring(0, 8)}`
                                 : row.id}
                             </td>
                             <td className="px-4 py-4" style={{
@@ -1509,7 +1560,7 @@ export default function DashboardPage() {
                               lineHeight: "19.5px"
                             }}>{row.created}</td>
                             <td className="px-4 py-4">
-                              <span 
+                              <span
                                 className="inline-flex items-center justify-center text-xs font-medium capitalize"
                                 style={{
                                   width: "80px",
@@ -1527,7 +1578,7 @@ export default function DashboardPage() {
                               </span>
                             </td>
                             <td className="px-4 py-4">
-                              <span 
+                              <span
                                 className="inline-flex items-center justify-center text-xs font-medium capitalize"
                                 style={{
                                   width: "80px",
@@ -1593,14 +1644,14 @@ export default function DashboardPage() {
                                     label: "Change status",
                                     icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 16 17">
                                       <g clipPath="url(#clip0_1_12740)">
-                                        <path d="M2.66699 12.4827C2.66699 12.8364 2.80747 13.1755 3.05752 13.4256C3.30756 13.6756 3.6467 13.8161 4.00033 13.8161C4.35395 13.8161 4.69309 13.6756 4.94313 13.4256C5.19318 13.1755 5.33366 12.8364 5.33366 12.4827C5.33366 12.1291 5.19318 11.79 4.94313 11.5399C4.69309 11.2899 4.35395 11.1494 4.00033 11.1494C3.6467 11.1494 3.30756 11.2899 3.05752 11.5399C2.80747 11.79 2.66699 12.1291 2.66699 12.4827Z" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-                                        <path d="M10.667 12.4827C10.667 12.8364 10.8075 13.1755 11.0575 13.4256C11.3076 13.6756 11.6467 13.8161 12.0003 13.8161C12.3539 13.8161 12.6931 13.6756 12.9431 13.4256C13.1932 13.1755 13.3337 12.8364 13.3337 12.4827C13.3337 12.1291 13.1932 11.79 12.9431 11.5399C12.6931 11.2899 12.3539 11.1494 12.0003 11.1494C11.6467 11.1494 11.3076 11.2899 11.0575 11.5399C10.8075 11.79 10.667 12.1291 10.667 12.4827Z" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-                                        <path d="M4 8.48275V7.14941C4 6.08855 4.42143 5.07113 5.17157 4.32099C5.92172 3.57084 6.93913 3.14941 8 3.14941C9.06087 3.14941 10.0783 3.57084 10.8284 4.32099C11.5786 5.07113 12 6.08855 12 7.14941V8.48275" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-                                        <path d="M10 6.47998L12 8.47998L14 6.47998" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path d="M2.66699 12.4827C2.66699 12.8364 2.80747 13.1755 3.05752 13.4256C3.30756 13.6756 3.6467 13.8161 4.00033 13.8161C4.35395 13.8161 4.69309 13.6756 4.94313 13.4256C5.19318 13.1755 5.33366 12.8364 5.33366 12.4827C5.33366 12.1291 5.19318 11.79 4.94313 11.5399C4.69309 11.2899 4.35395 11.1494 4.00033 11.1494C3.6467 11.1494 3.30756 11.2899 3.05752 11.5399C2.80747 11.79 2.66699 12.1291 2.66699 12.4827Z" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d="M10.667 12.4827C10.667 12.8364 10.8075 13.1755 11.0575 13.4256C11.3076 13.6756 11.6467 13.8161 12.0003 13.8161C12.3539 13.8161 12.6931 13.6756 12.9431 13.4256C13.1932 13.1755 13.3337 12.8364 13.3337 12.4827C13.3337 12.1291 13.1932 11.79 12.9431 11.5399C12.6931 11.2899 12.3539 11.1494 12.0003 11.1494C11.6467 11.1494 11.3076 11.2899 11.0575 11.5399C10.8075 11.79 10.667 12.1291 10.667 12.4827Z" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d="M4 8.48275V7.14941C4 6.08855 4.42143 5.07113 5.17157 4.32099C5.92172 3.57084 6.93913 3.14941 8 3.14941C9.06087 3.14941 10.0783 3.57084 10.8284 4.32099C11.5786 5.07113 12 6.08855 12 7.14941V8.48275" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
+                                        <path d="M10 6.47998L12 8.47998L14 6.47998" stroke="#2B2829" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
                                       </g>
                                       <defs>
                                         <clipPath id="clip0_1_12740">
-                                          <rect width="16" height="16" fill="white" transform="translate(0 0.47998)"/>
+                                          <rect width="16" height="16" fill="white" transform="translate(0 0.47998)" />
                                         </clipPath>
                                       </defs>
                                     </svg>,
