@@ -89,9 +89,31 @@ export class PartnerController {
         );
       }
 
+      // Get stats for this partner
+      const partnerIdStr = partnerId.toString();
+      
+      // Count total rooms for this partner
+      const totalRooms = await Room.countDocuments({ partnerId: partnerIdStr });
+      
+      // Count total staff for this partner
+      const totalStaff = await Staff.countDocuments({ partnerId: partnerIdStr });
+      
+      // Count active clients (guests) for this partner
+      const activeClients = await Guest.countDocuments({ 
+        partnerId: partnerIdStr,
+        isActive: true 
+      });
+
       return NextResponse.json({
         success: true,
-        partner
+        partner: {
+          ...partner,
+          stats: {
+            totalRooms,
+            totalStaff,
+            activeClients
+          }
+        }
       });
     } catch (error) {
       return handleApiError(error, 'Failed to get partner');

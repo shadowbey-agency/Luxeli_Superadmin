@@ -1,6 +1,8 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import SuccessCard from "@/app/superadmin/components/success-card"
+import ErrorCard from "@/app/superadmin/components/error-card"
 import { RiCloseLine, RiArrowDownSLine, RiArrowUpSLine } from "react-icons/ri"
 import PublicIcon from "./public-icon"
 import PermissionDetailModal from "./permission-detail-modal"
@@ -109,6 +111,10 @@ const permissionOptions = [
 export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }: UserPermissionsModalProps) {
   const [permissions, setPermissions] = useState<PermissionData | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showSuccessCard, setShowSuccessCard] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
+  const [showErrorCard, setShowErrorCard] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
   const [expandedPermissions, setExpandedPermissions] = useState<{ [key: string]: boolean }>({})
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedPermissionKey, setSelectedPermissionKey] = useState<string>("")
@@ -126,7 +132,7 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to view permissions')
+        showCard('error', 'Please log in to view permissions')
         setLoading(false)
         return
       }
@@ -153,6 +159,17 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
     }
   }
 
+  const showCard = (variant: 'success' | 'error', message: string) => {
+    if (variant === 'success') {
+      setSuccessMessage(message)
+      setShowSuccessCard(true)
+      // auto hide handled by SuccessCard internal effect
+    } else {
+      setErrorMessage(message)
+      setShowErrorCard(true)
+    }
+  }
+
   const toggleExpand = (key: string) => {
     setExpandedPermissions(prev => ({
       ...prev,
@@ -173,7 +190,7 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to delete permissions')
+        showCard('error', 'Please log in to delete permissions')
         return
       }
 
@@ -215,17 +232,17 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
         const result = await response.json()
         if (result.success) {
           setPermissions(updatedPermissions)
-          alert('✅ Permission removed successfully')
+          showCard('success', 'Permission removed successfully')
         } else {
-          alert(`❌ Error: ${result.error || 'Failed to remove permission'}`)
+          showCard('error', result.error || 'Failed to remove permission')
         }
       } else {
         const errorResult = await response.json().catch(() => ({}))
-        alert(`❌ Error: ${errorResult.error || 'Failed to remove permission'}`)
+        showCard('error', errorResult.error || 'Failed to remove permission')
       }
     } catch (error) {
       console.error('Error deleting permission:', error)
-      alert('Failed to remove permission. Please try again.')
+      showCard('error', 'Failed to remove permission. Please try again.')
     }
   }
 
@@ -297,7 +314,7 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
       try {
         const token = getAuthToken()
         if (!token) {
-          alert('Please log in to update permissions')
+          showCard('error', 'Please log in to update permissions')
           return
         }
 
@@ -316,17 +333,17 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
             setPermissions(updatedPermissions)
             setShowPermissionDetailModal(false)
             setSelectedPermissionKey("")
-            alert('✅ Permissions updated successfully')
+            showCard('success', 'Permissions updated successfully')
           } else {
-            alert(`❌ Error: ${result.error || 'Failed to update permissions'}`)
+            showCard('error', result.error || 'Failed to update permissions')
           }
         } else {
           const errorResult = await response.json().catch(() => ({}))
-          alert(`❌ Error: ${errorResult.error || 'Failed to update permissions'}`)
+          showCard('error', errorResult.error || 'Failed to update permissions')
         }
       } catch (error) {
         console.error('Error updating permissions:', error)
-        alert('Failed to update permissions. Please try again.')
+        showCard('error', 'Failed to update permissions. Please try again.')
       }
     }
 
@@ -706,6 +723,18 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
           initialCheckedItems={getInitialCheckedItems(selectedPermissionKey)}
         />
       )}
+
+      {/* Success and Error Pop Cards */}
+      <SuccessCard
+        isOpen={showSuccessCard}
+        message={successMessage}
+        onClose={() => setShowSuccessCard(false)}
+      />
+      <ErrorCard
+        isOpen={showErrorCard}
+        message={errorMessage}
+        onClose={() => setShowErrorCard(false)}
+      />
     </>
   )
 }

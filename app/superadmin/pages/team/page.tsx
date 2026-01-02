@@ -29,6 +29,7 @@ interface TeamMember {
   dateAdded: string
   status: string
   avatar: string
+  permissions: string[]
 }
 
 const mockTeamMembers: TeamMember[] = [
@@ -85,12 +86,13 @@ export default function TeamPage() {
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
   const [memberIdForReset, setMemberIdForReset] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', permissions: [] as string[] })
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', username: '', password: '', permissions: [] as string[] })
   const [showAddModal, setShowAddModal] = useState(false)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
   const [memberForPermissions, setMemberForPermissions] = useState<TeamMember | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingMembers, setIsLoadingMembers] = useState(true)
+  const [showPassword, setShowPassword] = useState(false)
   const [showPermissionsDropdown, setShowPermissionsDropdown] = useState(false)
   const permissionsDropdownRef = React.useRef<HTMLDivElement | null>(null)
   const [showSuccessCard, setShowSuccessCard] = useState(false)
@@ -126,7 +128,6 @@ export default function TeamPage() {
     { id: "subscription", name: "Subscription" },
     { id: "support", name: "Support" },
     { id: "billingFinance", name: "Billing Finance" },
-    { id: "team", name: "Team" },
   ]
 
   // Fetch members from API
@@ -161,6 +162,7 @@ export default function TeamPage() {
             name: member.name,
             email: member.email,
             phone: member.phone,
+            username: member.username,
             role: member.role || 'member',
             dateAdded: new Date(member.createdAt).toLocaleDateString('fr-FR', {
               day: 'numeric',
@@ -168,7 +170,8 @@ export default function TeamPage() {
               year: 'numeric'
             }),
             status: member.status || 'active',
-            avatar: member.name ? member.name.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'M'
+            avatar: member.name ? member.name.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'M',
+            permissions: member.permissions || []
           }))
           
           console.log('Transformed members:', transformedMembers)
@@ -293,7 +296,7 @@ export default function TeamPage() {
   const handleEditMember = (member: TeamMember) => {
     setSelectedMember(member)
     setShowEditModal(true)
-    setEditForm({ name: member.name, email: member.email, phone: member.phone, permissions: [] })
+    setEditForm({ name: member.name, email: member.email, phone: member.phone, username: member.username || '', password: '', permissions: member.permissions || [] })
     setShowPermissionsDropdown(false)
   }
 
@@ -378,6 +381,7 @@ export default function TeamPage() {
           name: memberData.name,
           email: memberData.email,
           phone: memberData.phone,
+          username: memberData.username,
           role: memberData.role || 'member',
           dateAdded: new Date(memberData.createdAt).toLocaleDateString('fr-FR', {
             day: 'numeric',
@@ -385,7 +389,8 @@ export default function TeamPage() {
             year: 'numeric'
           }),
           status: memberData.status || "active",
-          avatar: memberData.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+          avatar: memberData.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+          permissions: memberData.permissions || []
         }
         
         setTeamMembers(prev => [newMember, ...prev])
@@ -452,7 +457,9 @@ export default function TeamPage() {
         body: JSON.stringify({
           name: editForm.name,
           email: editForm.email,
-          phone: editForm.phone
+          phone: editForm.phone,
+          username: editForm.username,
+          ...(editForm.password ? { password: editForm.password } : {}),
         })
       })
       if (response.ok) {
@@ -460,7 +467,7 @@ export default function TeamPage() {
         if ((result as any).success === false) {
           showAlert('Error', `${(result as any).error || 'Failed to update member'}`, 'error')
         } else {
-          setTeamMembers(prev => prev.map(m => m.id === selectedMember.id ? { ...m, name: editForm.name, email: editForm.email, phone: editForm.phone } : m))
+          setTeamMembers(prev => prev.map(m => m.id === selectedMember.id ? { ...m, name: editForm.name, email: editForm.email, phone: editForm.phone, username: editForm.username } : m))
           showAlert('Success', 'Member updated successfully', 'success')
           setShowEditModal(false)
           setShowPermissionsDropdown(false)
@@ -794,6 +801,14 @@ export default function TeamPage() {
                         value={editForm.name}
                         onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
                         placeholder="Write Here..."
+                      value={editForm.username ?? formData.username ?? ''}
+                      onChange={(e) => {
+                        if (showEditModal) {
+                          setEditForm(prev => ({ ...prev, username: e.target.value }))
+                        } else {
+                          handleInputChange('username', e.target.value)
+                        }
+                      }}
                         className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
                           padding: "7.52px 12px",
@@ -810,6 +825,14 @@ export default function TeamPage() {
                         value={editForm.phone}
                         onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
                         placeholder="Write Here..."
+                      value={editForm.username ?? formData.username ?? ''}
+                      onChange={(e) => {
+                        if (showEditModal) {
+                          setEditForm(prev => ({ ...prev, username: e.target.value }))
+                        } else {
+                          handleInputChange('username', e.target.value)
+                        }
+                      }}
                         className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
                           padding: "7.52px 12px",
@@ -830,6 +853,14 @@ export default function TeamPage() {
                         value={editForm.email}
                         onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
                         placeholder="Write Here..."
+                      value={editForm.username ?? formData.username ?? ''}
+                      onChange={(e) => {
+                        if (showEditModal) {
+                          setEditForm(prev => ({ ...prev, username: e.target.value }))
+                        } else {
+                          handleInputChange('username', e.target.value)
+                        }
+                      }}
                         className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
                           padding: "7.52px 12px",
@@ -948,6 +979,14 @@ export default function TeamPage() {
                     <input
                       type="text"
                       placeholder="Write Here..."
+                      value={editForm.username ?? formData.username ?? ''}
+                      onChange={(e) => {
+                        if (showEditModal) {
+                          setEditForm(prev => ({ ...prev, username: e.target.value }))
+                        } else {
+                          handleInputChange('username', e.target.value)
+                        }
+                      }}
                       className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       style={{
                         padding: "7.52px 12px",
@@ -963,8 +1002,16 @@ export default function TeamPage() {
                     <label className="text-sm font-medium text-[#212121]">Password</label>
                     <div className="relative">
                       <input
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         placeholder="Enter password"
+                        value={showEditModal ? editForm.password : formData.password}
+                        onChange={(e) => {
+                          if (showEditModal) {
+                            setEditForm(prev => ({ ...prev, password: e.target.value }))
+                          } else {
+                            handleInputChange('password', e.target.value)
+                          }
+                        }}
                         className="w-full px-3 py-2 pr-10 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
                           padding: "7.52px 12px",
@@ -973,7 +1020,7 @@ export default function TeamPage() {
                           background: "#FFF"
                         }}
                       />
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div onClick={() => setShowPassword(prev => !prev)} className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path d="M14.3623 5.21847C14.565 5.50268 14.6663 5.64479 14.6663 5.85514C14.6663 6.0655 14.565 6.20761 14.3623 6.49182C13.4516 7.76885 11.1258 10.5218 7.99968 10.5218C4.87353 10.5218 2.54774 7.76885 1.63704 6.49182C1.43435 6.20761 1.33301 6.0655 1.33301 5.85514C1.33301 5.64479 1.43435 5.50268 1.63703 5.21847C2.54774 3.94144 4.87353 1.18848 7.99968 1.18848C11.1258 1.18848 13.4516 3.94144 14.3623 5.21847Z" stroke="#141B34"/>
                           <path d="M10 5.85547C10 4.7509 9.10457 3.85547 8 3.85547C6.89543 3.85547 6 4.7509 6 5.85547C6 6.96004 6.89543 7.85547 8 7.85547C9.10457 7.85547 10 6.96004 10 5.85547Z" stroke="#121212"/>
@@ -1083,6 +1130,14 @@ export default function TeamPage() {
                       <input
                         type="text"
                         placeholder="Write Here..."
+                      value={editForm.username ?? formData.username ?? ''}
+                      onChange={(e) => {
+                        if (showEditModal) {
+                          setEditForm(prev => ({ ...prev, username: e.target.value }))
+                        } else {
+                          handleInputChange('username', e.target.value)
+                        }
+                      }}
                         className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
                           padding: "7.52px 12px",
@@ -1099,6 +1154,14 @@ export default function TeamPage() {
                       <input
                         type="text"
                         placeholder="Write Here..."
+                      value={editForm.username ?? formData.username ?? ''}
+                      onChange={(e) => {
+                        if (showEditModal) {
+                          setEditForm(prev => ({ ...prev, username: e.target.value }))
+                        } else {
+                          handleInputChange('username', e.target.value)
+                        }
+                      }}
                         className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
                           padding: "7.52px 12px",
@@ -1119,6 +1182,14 @@ export default function TeamPage() {
                       <input
                         type="email"
                         placeholder="Write Here..."
+                      value={editForm.username ?? formData.username ?? ''}
+                      onChange={(e) => {
+                        if (showEditModal) {
+                          setEditForm(prev => ({ ...prev, username: e.target.value }))
+                        } else {
+                          handleInputChange('username', e.target.value)
+                        }
+                      }}
                         className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
                           padding: "7.52px 12px",
@@ -1238,6 +1309,14 @@ export default function TeamPage() {
                     <input
                       type="text"
                       placeholder="Write Here..."
+                      value={editForm.username ?? formData.username ?? ''}
+                      onChange={(e) => {
+                        if (showEditModal) {
+                          setEditForm(prev => ({ ...prev, username: e.target.value }))
+                        } else {
+                          handleInputChange('username', e.target.value)
+                        }
+                      }}
                       className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       style={{
                         padding: "7.52px 12px",
@@ -1245,8 +1324,6 @@ export default function TeamPage() {
                         borderRadius: "4px",
                         background: "#FFF"
                       }}
-                      value={formData.username}
-                      onChange={(e) => handleInputChange('username', e.target.value)}
                     />
                   </div>
 
@@ -1255,8 +1332,16 @@ export default function TeamPage() {
                     <label className="text-sm font-medium text-[#212121]">Password</label>
                     <div className="relative">
                       <input
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         placeholder="Enter password"
+                        value={showEditModal ? editForm.password : formData.password}
+                        onChange={(e) => {
+                          if (showEditModal) {
+                            setEditForm(prev => ({ ...prev, password: e.target.value }))
+                          } else {
+                            handleInputChange('password', e.target.value)
+                          }
+                        }}
                         className="w-full px-3 py-2 pr-10 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
                           padding: "7.52px 12px",
@@ -1267,7 +1352,7 @@ export default function TeamPage() {
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
                       />
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div onClick={() => setShowPassword(prev => !prev)} className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path d="M14.3623 5.21847C14.565 5.50268 14.6663 5.64479 14.6663 5.85514C14.6663 6.0655 14.565 6.20761 14.3623 6.49182C13.4516 7.76885 11.1258 10.5218 7.99968 10.5218C4.87353 10.5218 2.54774 7.76885 1.63704 6.49182C1.43435 6.20761 1.33301 6.0655 1.33301 5.85514C1.33301 5.64479 1.43435 5.50268 1.63703 5.21847C2.54774 3.94144 4.87353 1.18848 7.99968 1.18848C11.1258 1.18848 13.4516 3.94144 14.3623 5.21847Z" stroke="#141B34"/>
                           <path d="M10 5.85547C10 4.7509 9.10457 3.85547 8 3.85547C6.89543 3.85547 6 4.7509 6 5.85547C6 6.96004 6.89543 7.85547 8 7.85547C9.10457 7.85547 10 6.96004 10 5.85547Z" stroke="#121212"/>

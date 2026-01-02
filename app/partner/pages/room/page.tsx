@@ -903,9 +903,15 @@ export default function RoomPage() {
   const [isDeletingRoom, setIsDeletingRoom] = useState(false)
 
   const handleSaveAddRoom = async () => {
-    if (!newRoomName.trim()) {
-      showAlert('Validation Error', 'Please enter a room name', 'warning')
-      return
+    // Validate required fields: Room Name, Check-in, Check-out
+    if (!newRoomName.trim() || !newCheckInDate.trim() || !newCheckOutDate.trim()) {
+      let missingFields = [] as string[];
+      if (!newRoomName.trim()) missingFields.push('room name');
+      if (!newCheckInDate.trim()) missingFields.push('check-in date');
+      if (!newCheckOutDate.trim()) missingFields.push('check-out date');
+      const fieldsStr = missingFields.join(', ');
+      showAlert('Validation Error', `Please enter ${fieldsStr}`, 'warning');
+      return;
     }
     try {
       setIsSavingRoom(true)

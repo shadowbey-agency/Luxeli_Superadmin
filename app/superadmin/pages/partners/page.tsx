@@ -33,6 +33,7 @@ import { FaTrash } from "react-icons/fa"
 import ResetPasswordModal from "@/app/superadmin/components/reset-password-modal"
 import { uploadImageToCloudinary } from "@/lib/cloudinary"
 import SuccessCard from "@/app/superadmin/components/success-card"
+import ErrorCard from "@/app/superadmin/components/error-card"
 
 interface Partner {
   id: string
@@ -62,6 +63,11 @@ interface Partner {
   hotelImage?: string
   hotelCity?: string
   phoneNumber?: string
+  stats?: {
+    totalRooms: number
+    totalStaff: number
+    activeClients: number
+  }
 }
 
 interface SubscriptionHistory {
@@ -319,6 +325,8 @@ export default function PartnersPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [showSuccessCard, setShowSuccessCard] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
+  const [showErrorCard, setShowErrorCard] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
   const [lastCreatedHotelName, setLastCreatedHotelName] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(8)
@@ -440,6 +448,7 @@ export default function PartnersPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showViewDetail, setShowViewDetail] = useState(false)
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null)
+  const [partnerDetailsLoading, setPartnerDetailsLoading] = useState(false)
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
   const [partnerIdForReset, setPartnerIdForReset] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'partner-info' | 'subscription' | 'room-api'>('partner-info')
@@ -472,13 +481,21 @@ export default function PartnersPage() {
   })
 
   const showAlert = (title: string, message: string, variant: "success" | "error" | "warning" | "info" = "info") => {
-    // Use success card for success messages, alert dialog for others
+    // Use success card for success messages, error card for errors, alert dialog for others
     if (variant === "success") {
       setSuccessMessage(message)
       setShowSuccessCard(true)
+    } else if (variant === "error") {
+      setErrorMessage(message)
+      setShowErrorCard(true)
     } else {
       setAlertDialog({ isOpen: true, title, message, variant })
     }
+  }
+
+  const showError = (message: string) => {
+    setErrorMessage(message)
+    setShowErrorCard(true)
   }
   const calendarIconRef = useRef<HTMLDivElement | null>(null)
   const datePickerRef = useRef<HTMLDivElement | null>(null)
@@ -928,13 +945,13 @@ export default function PartnersPage() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file')
+      showError('Please select a valid image file')
       return
     }
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('Image size must be less than 10MB')
+      showError('Image size must be less than 10MB')
       return
     }
 
@@ -968,7 +985,7 @@ export default function PartnersPage() {
       })
     } catch (error: any) {
       console.error('Image upload error:', error)
-      alert(error.message || 'Failed to upload image. Please try again.')
+      showError(error.message || 'Failed to upload image. Please try again.')
       setImagePreview(null)
     } finally {
       setIsUploadingImage(false)
@@ -1061,7 +1078,7 @@ export default function PartnersPage() {
     const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData])
 
     if (missingFields.length > 0) {
-      alert(`Please fill in all required fields: ${missingFields.join(', ')}`)
+      showError(`Please fill in all required fields: ${missingFields.join(', ')}`)
       return
     }
 
@@ -1078,7 +1095,7 @@ export default function PartnersPage() {
       const finalToken = token || fallbackToken
 
       if (!finalToken) {
-        alert('Please log in to create a partner')
+        showError('Please log in to create a partner')
         setIsLoading(false)
         return
       }
@@ -1184,18 +1201,18 @@ export default function PartnersPage() {
 
         // Handle specific error types
         if (result.error && result.error.includes('already registered')) {
-          alert(`❌ Email Error: ${result.error}`)
+          showError(`Email Error: ${result.error}`)
         } else if (result.error && result.error.includes('already taken')) {
-          alert(`❌ Username Error: ${result.error}`)
+          showError(`Username Error: ${result.error}`)
         } else if (result.error && result.error.includes('required fields')) {
-          alert(`❌ Validation Error: ${result.error}`)
+          showError(`Validation Error: ${result.error}`)
         } else {
-          alert(`❌ Error: ${result.error}`)
+          showError(result.error || 'Failed to save partner')
         }
       }
     } catch (error) {
       console.error('Error saving partner:', error)
-      alert('Failed to save partner. Please try again.')
+      showError('Failed to save partner. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -1233,13 +1250,17 @@ export default function PartnersPage() {
           showAlert('Success', `Partner status updated to ${newStatus}`, 'success')
         } else {
           console.error('API Error:', result.error)
+          showError(result.error || 'Failed to update partner status')
         }
       } else {
         const errorResult = await response.json().catch(() => ({}))
-        console.error('API Error:', errorResult.error || 'Failed to update partner status')
+        const errorMsg = errorResult.error || 'Failed to update partner status'
+        console.error('API Error:', errorMsg)
+        showError(errorMsg)
       }
     } catch (error) {
       console.error('Error updating partner status:', error)
+      showError('Failed to update partner status. Please try again.')
     }
   }
 
@@ -1379,10 +1400,44 @@ export default function PartnersPage() {
     setShowResetPasswordModal(true)
   }
 
-  const handleViewDetails = (partner: Partner) => {
+  const handleViewDetails = async (partner: Partner) => {
     setSelectedPartner(partner)
     setShowViewDetail(true)
     setActiveTab('partner-info')
+    setPartnerDetailsLoading(true)
+    
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        setPartnerDetailsLoading(false)
+        return
+      }
+
+      const response = await fetch(`/api/superadmin/partners/${partner.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.partner) {
+          // Update selected partner with full details including stats
+          setSelectedPartner({
+            ...partner,
+            ...result.partner,
+            id: partner.id // Ensure ID is preserved
+          })
+        }
+      } else {
+        console.error('Failed to fetch partner details')
+      }
+    } catch (error) {
+      console.error('Error fetching partner details:', error)
+    } finally {
+      setPartnerDetailsLoading(false)
+    }
   }
 
   const closeViewDetail = () => {
@@ -1833,7 +1888,7 @@ export default function PartnersPage() {
                   }))
 
                   if (!exportData || exportData.length === 0) {
-                    alert("No data to export!")
+                    showError("No data to export!")
                     return
                   }
 
@@ -2440,7 +2495,9 @@ export default function PartnersPage() {
                       <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
-                      <span className="text-sm font-medium text-gray-700">Plan: Gold</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        Plan: {selectedPartner?.plan === 'gold pack' ? 'Gold' : selectedPartner?.plan === 'starter pack' ? 'Starter' : selectedPartner?.plan || 'Not set'}
+                      </span>
                     </div>
                   </div>
 
@@ -2455,7 +2512,9 @@ export default function PartnersPage() {
                       }}
                     >
                       <p className="text-sm text-gray-600">Total Rooms</p>
-                      <p className="text-2xl font-bold text-black">120</p>
+                      <p className="text-2xl font-bold text-black">
+                        {partnerDetailsLoading ? '...' : (selectedPartner?.stats?.totalRooms ?? 0)}
+                      </p>
                     </div>
                     <div
                       className="flex flex-col gap-2.5 p-4 rounded-xl border-dashed border flex-1"
@@ -2466,7 +2525,9 @@ export default function PartnersPage() {
                       }}
                     >
                       <p className="text-sm text-gray-600">Total Staff</p>
-                      <p className="text-2xl font-bold text-black">24</p>
+                      <p className="text-2xl font-bold text-black">
+                        {partnerDetailsLoading ? '...' : (selectedPartner?.stats?.totalStaff ?? 0)}
+                      </p>
                     </div>
                     <div
                       className="flex flex-col gap-2.5 p-4 rounded-xl border-dashed border flex-1"
@@ -2477,7 +2538,9 @@ export default function PartnersPage() {
                       }}
                     >
                       <p className="text-sm text-gray-600">Active Clients</p>
-                      <p className="text-2xl font-bold text-black">169</p>
+                      <p className="text-2xl font-bold text-black">
+                        {partnerDetailsLoading ? '...' : (selectedPartner?.stats?.activeClients ?? 0)}
+                      </p>
                     </div>
                   </div>
 
@@ -2698,12 +2761,14 @@ export default function PartnersPage() {
                     </div>
                     <div>
                       <h3 className="text-2xl font-bold text-black">
-                        {formData.plan === 'gold pack' ? 'Gold' : formData.plan === 'starter pack' ? 'Starter' : formData.plan || 'Gold'}
+                        {selectedPartner?.plan === 'gold pack' ? 'Gold' : selectedPartner?.plan === 'starter pack' ? 'Starter' : selectedPartner?.plan || 'Not set'}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        {formData.plan === 'gold pack' 
+                        {selectedPartner?.plan === 'gold pack' 
                           ? 'Full access to premium hotel management features and priority support.'
-                          : 'Access to essential hotel management features and standard support.'}
+                          : selectedPartner?.plan === 'starter pack'
+                          ? 'Access to essential hotel management features and standard support.'
+                          : 'No subscription plan set.'}
                       </p>
                     </div>
                   </div>
@@ -2730,12 +2795,12 @@ export default function PartnersPage() {
                         <span className="text-sm text-black">Start date</span>
                       </div>
                       <span className="text-sm text-gray-600">
-                        {formData.startDate 
+                        {selectedPartner?.startDate 
                           ? (() => {
                               try {
                                 // Handle YYYY-MM-DD format (from date input)
-                                if (typeof formData.startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(formData.startDate)) {
-                                  const [year, month, day] = formData.startDate.split('-')
+                                if (typeof selectedPartner.startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(selectedPartner.startDate)) {
+                                  const [year, month, day] = selectedPartner.startDate.split('-')
                                   const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
                                   if (!isNaN(date.getTime())) {
                                     return date.toLocaleDateString('fr-FR', { 
@@ -2746,7 +2811,7 @@ export default function PartnersPage() {
                                   }
                                 }
                                 // Handle Date objects or ISO strings
-                                const date = new Date(formData.startDate)
+                                const date = new Date(selectedPartner.startDate)
                                 if (!isNaN(date.getTime())) {
                                   return date.toLocaleDateString('fr-FR', { 
                                     day: 'numeric', 
@@ -2755,9 +2820,9 @@ export default function PartnersPage() {
                                   })
                                 }
                                 // If it's already a formatted string, return as is
-                                return formData.startDate
+                                return String(selectedPartner.startDate)
                               } catch {
-                                return formData.startDate || 'Not set'
+                                return 'Not set'
                               }
                             })()
                           : 'Not set'}
@@ -2776,12 +2841,12 @@ export default function PartnersPage() {
                         <span className="text-sm text-black">End date</span>
                       </div>
                       <span className="text-sm text-gray-600">
-                        {formData.endDate 
+                        {selectedPartner?.endDate 
                           ? (() => {
                               try {
                                 // Handle YYYY-MM-DD format (from date input)
-                                if (typeof formData.endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(formData.endDate)) {
-                                  const [year, month, day] = formData.endDate.split('-')
+                                if (typeof selectedPartner.endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(selectedPartner.endDate)) {
+                                  const [year, month, day] = selectedPartner.endDate.split('-')
                                   const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
                                   if (!isNaN(date.getTime())) {
                                     return date.toLocaleDateString('fr-FR', { 
@@ -2792,7 +2857,7 @@ export default function PartnersPage() {
                                   }
                                 }
                                 // Handle Date objects or ISO strings
-                                const date = new Date(formData.endDate)
+                                const date = new Date(selectedPartner.endDate)
                                 if (!isNaN(date.getTime())) {
                                   return date.toLocaleDateString('fr-FR', { 
                                     day: 'numeric', 
@@ -2801,9 +2866,9 @@ export default function PartnersPage() {
                                   })
                                 }
                                 // If it's already a formatted string, return as is
-                                return formData.endDate
+                                return String(selectedPartner.endDate)
                               } catch {
-                                return formData.endDate || 'Not set'
+                                return 'Not set'
                               }
                             })()
                           : 'Not set'}
@@ -4295,30 +4360,23 @@ export default function PartnersPage() {
               }}
             >
               {/* Tick Icon */}
-              {/* <div
+              <div
                 style={{
-                  width: "15px",
-                  height: "15px",
-                  aspectRatio: "1/1"
+                  width: "20px",
+                  height: "20px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0
                 }}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="16" viewBox="0 0 15 16" fill="none">
-                  <path d="M7.5 0.5C6.01664 0.5 4.56659 0.939867 3.33323 1.76398C2.09986 2.58809 1.13856 3.75943 0.570907 5.12987C0.00324974 6.50032 -0.145275 8.00832 0.144114 9.46318C0.433503 10.918 1.14781 12.2544 2.1967 13.3033C3.2456 14.3522 4.58197 15.0665 6.03682 15.3559C7.49168 15.6453 8.99968 15.4968 10.3701 14.9291C11.7406 14.3614 12.9119 13.4001 13.736 12.1668C14.5601 10.9334 15 9.48336 15 8C15 6.01088 14.2098 4.10322 12.8033 2.6967C11.3968 1.29018 9.48913 0.5 7.5 0.5Z" fill="url(#paint0_linear_1_14241)" />
-                  <path d="M11.7796 6.75737L7.26942 11.4921C7.1466 11.621 6.999 11.7239 6.83549 11.7945C6.67197 11.865 6.4959 11.9019 6.3178 11.9028H6.31207C6.13501 11.9028 5.95975 11.8673 5.79667 11.7983C5.63359 11.7293 5.48601 11.6284 5.36266 11.5013L2.97016 9.03648C2.84004 8.91391 2.73611 8.76624 2.66463 8.6024C2.59315 8.43856 2.55559 8.26193 2.55424 8.08318C2.55288 7.90442 2.58775 7.72725 2.65674 7.56234C2.72573 7.39743 2.82741 7.24821 2.95564 7.12367C3.08388 6.99913 3.23601 6.90186 3.40287 6.83772C3.56973 6.77359 3.74785 6.74392 3.92648 6.7505C4.10512 6.75709 4.28057 6.79979 4.44225 6.87604C4.60393 6.95228 4.74849 7.06049 4.86721 7.19413L6.30104 8.67163L9.86089 4.9331C9.98067 4.80712 10.1241 4.70596 10.283 4.63541C10.4418 4.56486 10.6131 4.52629 10.7868 4.52191C10.9606 4.51752 11.1336 4.54741 11.2958 4.60986C11.458 4.67232 11.6064 4.76611 11.7324 4.8859C11.8583 5.00568 11.9595 5.1491 12.0301 5.30798C12.1006 5.46686 12.1392 5.63807 12.1436 5.81185C12.1479 5.98564 12.1181 6.15858 12.0556 6.32081C11.9931 6.48304 11.8993 6.63138 11.7796 6.75737Z" fill="url(#paint1_linear_1_14241)" />
-                  <defs>
-                    <linearGradient id="paint0_linear_1_14241" x1="12.8043" y1="13.3043" x2="2.19574" y2="2.69573" gradientUnits="userSpaceOnUse">
-                      <stop stopColor="#13B601" />
-                      <stop offset="0.52" stopColor="#13B601" />
-                      <stop offset="1" stopColor="#CBF4B4" />
-                    </linearGradient>
-                    <linearGradient id="paint1_linear_1_14241" x1="9.5578" y1="9.20457" x2="5.25898" y2="4.90531" gradientUnits="userSpaceOnUse">
-                      <stop stopColor="#CBF4B4" />
-                      <stop offset="0.57" stopColor="white" />
-                      <stop offset="1" stopColor="white" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-              </div> */}
+                <Image
+                  src="/assets/icons/tick check.svg"
+                  alt="Success"
+                  width={20}
+                  height={20}
+                />
+              </div>
               <span className="text-sm font-medium text-gray-800">Partner added successfully.</span>
             </div>
 
@@ -4335,26 +4393,38 @@ export default function PartnersPage() {
                 background: "#0B0F18"
               }}
             >
-              {/* Home Icon */}
+              {/* House Icon */}
               <div
                 style={{
                   width: "24px",
-                  height: "24px"
+                  height: "24px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0
                 }}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34" fill="none">
-                  <g filter="url(#filter0_d_1_14247)">
-                    <rect x="5" y="2" width="24" height="24" rx="12" fill="white" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <g filter="url(#filter0_d_house)">
+                    <rect x="5" y="2" width="14" height="14" rx="7" fill="white" />
                   </g>
+                  <path
+                    d="M8 10H16M8 13H16M12 5L6 9V17H18V9L12 5Z"
+                    stroke="#0B0F18"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                  />
                   <defs>
-                    <filter id="filter0_d_1_14247" x="0.470589" y="0.352942" width="33.0588" height="33.0588" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+                    <filter id="filter0_d_house" x="0.470589" y="0.352942" width="23.0588" height="23.0588" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
                       <feFlood floodOpacity="0" result="BackgroundImageFix" />
                       <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
                       <feOffset dy="2.88235" />
                       <feGaussianBlur stdDeviation="2.26471" />
                       <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.02 0" />
-                      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_14247" />
-                      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_14247" result="shape" />
+                      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_house" />
+                      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_house" result="shape" />
                     </filter>
                   </defs>
                 </svg>
@@ -4362,16 +4432,6 @@ export default function PartnersPage() {
               <span className="text-sm font-medium text-white">
                 {lastCreatedHotelName || 'Hotel Name'}
               </span>
-              <div
-                className="flex items-center justify-center rounded-full bg-red-500"
-                style={{
-                  width: "20px",
-                  height: "20px",
-                  borderRadius: "10px"
-                }}
-              >
-                <span className="text-xs text-white font-medium">151</span>
-              </div>
             </div>
           </div>
         </div>
@@ -4397,6 +4457,16 @@ export default function PartnersPage() {
           }}
         />
       )}
+
+      {/* Error Card - For all error messages */}
+      <ErrorCard
+        isOpen={showErrorCard}
+        message={errorMessage}
+        onClose={() => {
+          setShowErrorCard(false)
+          setErrorMessage("")
+        }}
+      />
 
       {/* Reset Password Modal */}
       <ResetPasswordModal

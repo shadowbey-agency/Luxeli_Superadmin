@@ -273,7 +273,7 @@ export default function DashboardPage() {
       const token = getAuthToken()
       if (!token) {
         console.error('No auth token found')
-        setIsLoadingRooms(false)
+        setIsLoadingRooms(false) 
         setIsLoadingMembers(false)
         setIsLoadingStaff(false)
         return
