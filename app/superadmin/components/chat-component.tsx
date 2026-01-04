@@ -86,7 +86,7 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
         console.log('✅ Socket connected, creating/fetching chat room...')
 
         // STEP 1: Create or get chat room FIRST
-        const chatUrl = process.env.NEXT_PUBLIC_CHAT_URL || 'http://localhost:5000'
+        const chatUrl =  'https://lexuli-chat.vercel.app'
         
         // Determine partnerId: if user is partner, use their own ID; otherwise use provided partnerId
         let roomPartnerId = partnerId
