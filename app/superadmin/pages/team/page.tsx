@@ -309,6 +309,16 @@ export default function TeamPage() {
     setSelectedMember(null)
     setShowAddModal(true)
     setShowPermissionsDropdown(false)
+    // Reset form data when opening add modal
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      username: '',
+      password: '',
+      permissions: []
+    })
+    setEditForm({ name: '', email: '', phone: '', username: '', password: '', permissions: [] as string[] })
   }
 
   const handleUserPermissions = (member: TeamMember) => {
@@ -801,14 +811,6 @@ export default function TeamPage() {
                         value={editForm.name}
                         onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
                         placeholder="Write Here..."
-                      value={editForm.username ?? formData.username ?? ''}
-                      onChange={(e) => {
-                        if (showEditModal) {
-                          setEditForm(prev => ({ ...prev, username: e.target.value }))
-                        } else {
-                          handleInputChange('username', e.target.value)
-                        }
-                      }}
                         className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
                           padding: "7.52px 12px",
@@ -825,14 +827,6 @@ export default function TeamPage() {
                         value={editForm.phone}
                         onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
                         placeholder="Write Here..."
-                      value={editForm.username ?? formData.username ?? ''}
-                      onChange={(e) => {
-                        if (showEditModal) {
-                          setEditForm(prev => ({ ...prev, username: e.target.value }))
-                        } else {
-                          handleInputChange('username', e.target.value)
-                        }
-                      }}
                         className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
                           padding: "7.52px 12px",
@@ -853,14 +847,6 @@ export default function TeamPage() {
                         value={editForm.email}
                         onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
                         placeholder="Write Here..."
-                      value={editForm.username ?? formData.username ?? ''}
-                      onChange={(e) => {
-                        if (showEditModal) {
-                          setEditForm(prev => ({ ...prev, username: e.target.value }))
-                        } else {
-                          handleInputChange('username', e.target.value)
-                        }
-                      }}
                         className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
                           padding: "7.52px 12px",
@@ -979,7 +965,7 @@ export default function TeamPage() {
                     <input
                       type="text"
                       placeholder="Write Here..."
-                      value={editForm.username ?? formData.username ?? ''}
+                      value={showEditModal ? (editForm.username || '') : (formData.username || '')}
                       onChange={(e) => {
                         if (showEditModal) {
                           setEditForm(prev => ({ ...prev, username: e.target.value }))
@@ -987,6 +973,7 @@ export default function TeamPage() {
                           handleInputChange('username', e.target.value)
                         }
                       }}
+                      autoComplete="off"
                       className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       style={{
                         padding: "7.52px 12px",
@@ -1004,7 +991,7 @@ export default function TeamPage() {
                       <input
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter password"
-                        value={showEditModal ? editForm.password : formData.password}
+                        value={showEditModal ? (editForm.password || '') : (formData.password || '')}
                         onChange={(e) => {
                           if (showEditModal) {
                             setEditForm(prev => ({ ...prev, password: e.target.value }))
@@ -1012,6 +999,7 @@ export default function TeamPage() {
                             handleInputChange('password', e.target.value)
                           }
                         }}
+                        autoComplete="new-password"
                         className="w-full px-3 py-2 pr-10 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
                           padding: "7.52px 12px",
@@ -1309,7 +1297,7 @@ export default function TeamPage() {
                     <input
                       type="text"
                       placeholder="Write Here..."
-                      value={editForm.username ?? formData.username ?? ''}
+                      value={showEditModal ? (editForm.username || '') : (formData.username || '')}
                       onChange={(e) => {
                         if (showEditModal) {
                           setEditForm(prev => ({ ...prev, username: e.target.value }))
@@ -1317,6 +1305,7 @@ export default function TeamPage() {
                           handleInputChange('username', e.target.value)
                         }
                       }}
+                      autoComplete="off"
                       className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       style={{
                         padding: "7.52px 12px",
@@ -1334,7 +1323,7 @@ export default function TeamPage() {
                       <input
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter password"
-                        value={showEditModal ? editForm.password : formData.password}
+                        value={showEditModal ? (editForm.password || '') : (formData.password || '')}
                         onChange={(e) => {
                           if (showEditModal) {
                             setEditForm(prev => ({ ...prev, password: e.target.value }))
@@ -1342,6 +1331,7 @@ export default function TeamPage() {
                             handleInputChange('password', e.target.value)
                           }
                         }}
+                        autoComplete="new-password"
                         className="w-full px-3 py-2 pr-10 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         style={{
                           padding: "7.52px 12px",
@@ -1349,8 +1339,6 @@ export default function TeamPage() {
                           borderRadius: "4px",
                           background: "#FFF"
                         }}
-                        value={formData.password}
-                        onChange={(e) => handleInputChange('password', e.target.value)}
                       />
                       <div onClick={() => setShowPassword(prev => !prev)} className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -1516,6 +1504,10 @@ export default function TeamPage() {
         isOpen={showPermissionsModal}
         onClose={closePermissionsModal}
         onEdit={handleEditFromPermissions}
+        onSuccess={(message) => {
+          setShowSuccessCard(true)
+          setSuccessMessage(message)
+        }}
       />
 
       {/* Reset Password Modal */}

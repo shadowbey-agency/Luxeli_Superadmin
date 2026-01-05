@@ -73,14 +73,6 @@ export default function AddMemberModal({ isOpen, onClose, onSuccess }: AddMember
       return
     }
 
-    // Validate Moroccan phone number format
-    const phoneRegex = /^(\+212\s?[56]\d{2}[- ]?\d{6}|0[56]\d{2}[- ]?\d{6})$/
-    const cleanedPhone = phoneNumber.replace(/\s|-/g, '')
-    if (!phoneRegex.test(cleanedPhone)) {
-      showAlert('Validation Error', 'Please enter a valid Moroccan phone number (Format: +212 6XX-XXXXXX or 06XX-XXXXXX)', 'warning')
-      return
-    }
-
     // Validate password strength
     if (password.length < 6) {
       showAlert('Validation Error', 'Password must be at least 6 characters long', 'warning')
@@ -394,70 +386,15 @@ export default function AddMemberModal({ isOpen, onClose, onSuccess }: AddMember
                   type="tel"
                   value={phoneNumber}
                   onChange={(e) => {
+                    // Only allow numbers, +, spaces, and dashes
                     const value = e.target.value
-                    // Remove all non-digit characters except + and spaces
-                    let cleaned = value.replace(/[^\d+\s-]/g, '')
-                    
-                    // If starts with +212, allow max 12 digits (country code + 9 digits)
-                    if (cleaned.startsWith('+212')) {
-                      const digits = cleaned.replace(/\D/g, '')
-                      if (digits.length <= 12) {
-                        // Format: +212 6XX-XXXXXX
-                        if (digits.length > 5) {
-                          cleaned = `+212 ${digits.slice(3, 5)}-${digits.slice(5)}`
-                        } else if (digits.length > 3) {
-                          cleaned = `+212 ${digits.slice(3)}`
-                        }
-                      } else {
-                        return // Don't update if exceeds max length
-                      }
-                    }
-                    // If starts with 0, allow max 10 digits (0 + 9 digits)
-                    else if (cleaned.startsWith('0')) {
-                      const digits = cleaned.replace(/\D/g, '')
-                      if (digits.length <= 10) {
-                        // Format: 0XXX-XXXXXX
-                        if (digits.length > 3) {
-                          cleaned = `${digits.slice(0, 3)}-${digits.slice(3)}`
-                        }
-                      } else {
-                        return // Don't update if exceeds max length
-                      }
-                    }
-                    // If starts with +, keep as is (for +212)
-                    else if (cleaned.startsWith('+')) {
-                      if (cleaned.length <= 4) {
-                        // Allow +212
-                        cleaned = cleaned.slice(0, 4)
-                      } else {
-                        return
-                      }
-                    }
-                    // If starts with digit, allow max 10 digits
-                    else if (/^\d/.test(cleaned)) {
-                      const digits = cleaned.replace(/\D/g, '')
-                      if (digits.length <= 10) {
-                        // Format: 0XXX-XXXXXX
-                        if (digits.length > 3) {
-                          cleaned = `0${digits.slice(0, 2)}-${digits.slice(2)}`
-                        } else if (digits.length > 0) {
-                          cleaned = `0${digits}`
-                        }
-                      } else {
-                        return
-                      }
-                    }
-                    
+                    const cleaned = value.replace(/[^\d+\s-]/g, '')
                     setPhoneNumber(cleaned)
                   }}
-                  placeholder="+212 6XX-XXXXXX or 06XX-XXXXXX"
-                  maxLength={15}
+                  placeholder="Enter phone number"
                   className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   style={{ borderRadius: "4px" }}
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Format: +212 6XX-XXXXXX or 06XX-XXXXXX
-                </p>
               </div>
 
               {/* Permission */}

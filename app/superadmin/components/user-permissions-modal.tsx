@@ -20,6 +20,7 @@ interface UserPermissionsModalProps {
   isOpen: boolean
   onClose: () => void
   onEdit: () => void
+  onSuccess?: (message: string) => void
 }
 
 const availablePermissions = [
@@ -31,7 +32,7 @@ const availablePermissions = [
   { id: "team", name: "Team", icon: <SupportIcon /> },
 ]
 
-export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }: UserPermissionsModalProps) {
+export default function UserPermissionsModal({ member, isOpen, onClose, onEdit, onSuccess }: UserPermissionsModalProps) {
   const [currentView, setCurrentView] = useState<'permissions' | 'edit'>('permissions')
   const [memberPermissions, setMemberPermissions] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -107,7 +108,12 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
         return
       }
       setMemberPermissions(permissions)
-      alert('✅ Permissions updated successfully')
+      // Use success callback if provided, otherwise fallback to alert
+      if (onSuccess) {
+        onSuccess('Permissions updated successfully')
+      } else {
+        alert('✅ Permissions updated successfully')
+      }
       setCurrentView('permissions')
     } catch (e) {
       alert('Failed to update permissions. Please try again.')

@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { RiCloseLine, RiImageLine } from "react-icons/ri"
 import { getAuthToken } from "@/lib/auth-utils"
+import SuccessCard from "@/app/superadmin/components/success-card"
+import ErrorCard from "@/app/superadmin/components/error-card"
 
 interface AddStaffModalProps {
   isOpen: boolean
@@ -19,6 +21,9 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showSuccessCard, setShowSuccessCard] = useState(false)
+  const [showErrorCard, setShowErrorCard] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
 
   const resetForm = () => {
     setStaffName("")
@@ -36,28 +41,23 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
 
   const handleSubmit = async () => {
     if (!staffName || !email || !phoneNumber || !role || !username || !password) {
-      alert('Please fill in all required fields')
+      setErrorMessage('Please fill in all required fields')
+      setShowErrorCard(true)
       return
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      alert('Please enter a valid email address')
-      return
-    }
-
-    // Validate Moroccan phone number format
-    const phoneRegex = /^(\+212\s?[56]\d{2}[- ]?\d{6}|0[56]\d{2}[- ]?\d{6})$/
-    const cleanedPhone = phoneNumber.replace(/\s|-/g, '')
-    if (!phoneRegex.test(cleanedPhone)) {
-      alert('Please enter a valid Moroccan phone number (Format: +212 6XX-XXXXXX or 06XX-XXXXXX)')
+      setErrorMessage('Please enter a valid email address')
+      setShowErrorCard(true)
       return
     }
 
     // Validate password strength
     if (password.length < 6) {
-      alert('Password must be at least 6 characters long')
+      setErrorMessage('Password must be at least 6 characters long')
+      setShowErrorCard(true)
       return
     }
 
@@ -65,7 +65,8 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
     try {
       const token = getAuthToken()
       if (!token) {
-        alert('Please log in to add staff')
+        setErrorMessage('Please log in to add staff')
+        setShowErrorCard(true)
         setIsLoading(false)
         return
       }
@@ -97,13 +98,16 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
         if (onSuccess) {
           onSuccess()
         }
-        alert('✅ Staff added successfully')
+        // Show success card instead of alert
+        setShowSuccessCard(true)
       } else {
-        alert(result.error || 'Failed to add staff')
+        setErrorMessage(result.error || 'Failed to add staff')
+        setShowErrorCard(true)
       }
     } catch (error) {
       console.error('Error adding staff:', error)
-      alert('Failed to add staff. Please try again.')
+      setErrorMessage('Failed to add staff. Please try again.')
+      setShowErrorCard(true)
     } finally {
       setIsLoading(false)
     }
@@ -170,70 +174,15 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
                   type="tel"
                   value={phoneNumber}
                   onChange={(e) => {
+                    // Only allow numbers, +, spaces, and dashes
                     const value = e.target.value
-                    // Remove all non-digit characters except + and spaces
-                    let cleaned = value.replace(/[^\d+\s-]/g, '')
-                    
-                    // If starts with +212, allow max 12 digits (country code + 9 digits)
-                    if (cleaned.startsWith('+212')) {
-                      const digits = cleaned.replace(/\D/g, '')
-                      if (digits.length <= 12) {
-                        // Format: +212 6XX-XXXXXX
-                        if (digits.length > 5) {
-                          cleaned = `+212 ${digits.slice(3, 5)}-${digits.slice(5)}`
-                        } else if (digits.length > 3) {
-                          cleaned = `+212 ${digits.slice(3)}`
-                        }
-                      } else {
-                        return // Don't update if exceeds max length
-                      }
-                    }
-                    // If starts with 0, allow max 10 digits (0 + 9 digits)
-                    else if (cleaned.startsWith('0')) {
-                      const digits = cleaned.replace(/\D/g, '')
-                      if (digits.length <= 10) {
-                        // Format: 0XXX-XXXXXX
-                        if (digits.length > 3) {
-                          cleaned = `${digits.slice(0, 3)}-${digits.slice(3)}`
-                        }
-                      } else {
-                        return // Don't update if exceeds max length
-                      }
-                    }
-                    // If starts with +, keep as is (for +212)
-                    else if (cleaned.startsWith('+')) {
-                      if (cleaned.length <= 4) {
-                        // Allow +212
-                        cleaned = cleaned.slice(0, 4)
-                      } else {
-                        return
-                      }
-                    }
-                    // If starts with digit, allow max 10 digits
-                    else if (/^\d/.test(cleaned)) {
-                      const digits = cleaned.replace(/\D/g, '')
-                      if (digits.length <= 10) {
-                        // Format: 0XXX-XXXXXX
-                        if (digits.length > 3) {
-                          cleaned = `0${digits.slice(0, 2)}-${digits.slice(2)}`
-                        } else if (digits.length > 0) {
-                          cleaned = `0${digits}`
-                        }
-                      } else {
-                        return
-                      }
-                    }
-                    
+                    const cleaned = value.replace(/[^\d+\s-]/g, '')
                     setPhoneNumber(cleaned)
                   }}
-                  placeholder="+212 6XX-XXXXXX or 06XX-XXXXXX"
-                  maxLength={15}
+                  placeholder="Enter phone number"
                   className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   style={{ borderRadius: "4px" }}
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Format: +212 6XX-XXXXXX or 06XX-XXXXXX
-                </p>
               </div>
 
               {/* Role */}
@@ -382,6 +331,20 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
            </button>
         </div>
       </div>
+
+      {/* Success Card */}
+      <SuccessCard
+        isOpen={showSuccessCard}
+        message="Staff added successfully"
+        onClose={() => setShowSuccessCard(false)}
+      />
+
+      {/* Error Card */}
+      <ErrorCard
+        isOpen={showErrorCard}
+        message={errorMessage}
+        onClose={() => setShowErrorCard(false)}
+      />
     </div>
   )
 }

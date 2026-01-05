@@ -98,7 +98,8 @@ export class AuthController {
               userId: partnerByEmail._id.toString(),
               email: partnerByEmail.hotelAddressEmail,
               role: 'partner',
-              userType: 'partner'
+              userType: 'partner',
+              hotelName: partnerByEmail.hotelName
             });
 
             const res = NextResponse.json({
@@ -132,7 +133,8 @@ export class AuthController {
               userId: partner._id.toString(),
               email: partner.hotelAddressEmail,
               role: 'partner',
-              userType: 'partner'
+              userType: 'partner',
+              hotelName: partner.hotelName
             });
 
             const res = NextResponse.json({

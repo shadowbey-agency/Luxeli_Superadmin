@@ -1,11 +1,8 @@
-// app/superadmin/components/chat-component.tsx
-// Fixed version - creates room before joining
-
 "use client"
 
 import { useState, useEffect, useRef } from "react"
 import { getAuthToken, getUserData } from "@/lib/auth-utils"
-import { initChatSocket, getChatSocket, getUserRole } from "@/lib/chat-socket"
+import { initChatSocket, getChatSocket } from "@/lib/chat-socket"
 
 interface Message {
   _id: string
@@ -36,9 +33,11 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const requestHistoryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const roomCreatedRef = useRef<boolean>(false)
 
   const userData = getUserData()
-  const userRole = getUserRole()
+  
+  // senderName: superadmin/member → fullName || name || "Admin", partner → hotelName || "Partner"
   const senderName = userData?.role === 'superadmin' || userData?.role === 'member' 
     ? (userData as any).fullName || (userData as any).name || 'Admin'
     : (userData as any).hotelName || 'Partner'
@@ -47,9 +46,9 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
   useEffect(() => {
     const initializeChat = async () => {
       try {
-        console.log('🚀 Initializing chat for ticket:', ticketId)
         setIsLoading(true)
         setError(null)
+        roomCreatedRef.current = false
 
         const token = getAuthToken()
         if (!token) {
@@ -70,10 +69,9 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
 
         // Wait for socket to connect
         if (!chatSocket.connected) {
-          console.log('⏳ Waiting for socket connection...')
           await new Promise((resolve) => {
             chatSocket.once('connect', resolve)
-            setTimeout(resolve, 5000) // Timeout after 5 seconds
+            setTimeout(resolve, 5000)
           })
         }
 
@@ -83,20 +81,15 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
           return
         }
 
-        console.log('✅ Socket connected, creating/fetching chat room...')
-
-        // STEP 1: Create or get chat room FIRST
         const chatUrl = process.env.NEXT_PUBLIC_CHAT_URL || 'http://localhost:5000'
         
-        // Determine partnerId: if user is partner, use their own ID; otherwise use provided partnerId
+        // Determine partnerId for room creation
         let roomPartnerId = partnerId
-        if (userRole === 'partner' && !roomPartnerId) {
-          // Partner viewing their own ticket - use their ID from token
+        if (userData?.role === 'partner' && !roomPartnerId) {
           roomPartnerId = userData?._id || (userData as any)?.id
-          console.log('🔑 Partner using their own ID for room:', roomPartnerId)
         }
         
-        let roomCreated = false
+        // STEP 1: Create or get chat room FIRST
         try {
           const roomResponse = await fetch(`${chatUrl}/api/chat/rooms`, {
             method: 'POST',
@@ -115,103 +108,59 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
           const roomData = await roomResponse.json()
           
           if (roomResponse.ok && roomData.success) {
-            roomCreated = true
-            console.log('✅ Chat room ready:', roomData.room?._id)
+            roomCreatedRef.current = true
           } else {
-            // Room creation failed, but continue anyway - room might already exist
-            console.warn('⚠️ Room creation returned error, but continuing:', roomData)
-            // Don't set error here - try to fetch messages anyway
+            // Room might already exist, allow messaging anyway
+            roomCreatedRef.current = true
           }
         } catch (err) {
-          // Network error or other issue - but continue to try fetching messages
-          console.warn('⚠️ Error creating room (continuing anyway):', err)
-          // Don't return - continue to fetch messages
+          // Room might already exist, allow messaging anyway
+          roomCreatedRef.current = true
         }
 
-        // STEP 2: Fetch existing messages (even if room creation failed)
+        // STEP 2: Fetch existing messages
         try {
-          console.log('📥 Fetching messages for ticketId:', ticketId)
-          console.log('📥 Chat URL:', chatUrl)
-          console.log('📥 Full URL:', `${chatUrl}/api/chat/messages/${ticketId}`)
-          
           const messagesResponse = await fetch(`${chatUrl}/api/chat/messages/${ticketId}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           })
 
-          console.log('📥 Messages response status:', messagesResponse.status)
-          console.log('📥 Messages response ok:', messagesResponse.ok)
-
           if (messagesResponse.ok) {
             const data = await messagesResponse.json()
-            console.log('📥 Messages response data:', data)
             
-            if (data.success && data.messages) {
-              console.log('📨 Loaded', data.messages.length, 'messages')
-              // Ensure messages are in correct format and sorted by date
-              const sortedMessages = Array.isArray(data.messages) 
-                ? data.messages.sort((a: Message, b: Message) => 
-                    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-                  )
-                : []
-              setMessages(sortedMessages)
-              console.log('✅ Messages set in state:', sortedMessages.length)
-            } else if (data.messages && Array.isArray(data.messages)) {
-              // Handle case where messages exist but success flag might be missing
-              console.log('📨 Loaded', data.messages.length, 'messages (without success flag)')
+            if (data.success && data.messages && Array.isArray(data.messages)) {
               const sortedMessages = data.messages.sort((a: Message, b: Message) => 
                 new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
               )
               setMessages(sortedMessages)
-              console.log('✅ Messages set in state:', sortedMessages.length)
-            } else if (data.error && data.error.includes('not found')) {
-              // Room doesn't exist yet - that's okay, messages will appear when sent
-              console.log('ℹ️ No room found yet - will create when first message is sent')
-              setMessages([]) // Ensure empty array is set
-            } else {
-              console.warn('⚠️ Unexpected response format:', data)
-              setMessages([]) // Set empty array if format is unexpected
+            } else if (data.messages && Array.isArray(data.messages)) {
+              const sortedMessages = data.messages.sort((a: Message, b: Message) => 
+                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              )
+              setMessages(sortedMessages)
             }
-          } else {
-            const errorData = await messagesResponse.json().catch(() => ({}))
-            console.error('❌ Could not fetch messages. Status:', messagesResponse.status)
-            console.error('❌ Error data:', errorData)
-            // Set empty messages array but don't fail completely
-            setMessages([])
-            // Don't fail completely - messages might still come via socket
           }
         } catch (err) {
-          console.error('❌ Error fetching message history:', err)
-          console.error('❌ Error details:', err instanceof Error ? err.message : String(err))
-          // Set empty array on error
-          setMessages([])
-          // Continue anyway - real-time messages will still work
+          // Continue with empty messages
         }
 
         // STEP 3: Join ticket room (AFTER creating it)
-        console.log('🔗 Joining ticket room...')
         chatSocket.emit('ticket:join', { ticketId })
 
-        // Listen for join confirmation and message history
+        // Listen for join confirmation
         chatSocket.once('ticket:joined', (data: any) => {
-          if (data.success) {
-            console.log('✅ Successfully joined ticket room')
-            // If server sends message history on join, use it
-            if (data.messages && Array.isArray(data.messages)) {
-              console.log('📨 Received', data.messages.length, 'messages from socket on join')
-              const sortedMessages = data.messages.sort((a: Message, b: Message) => 
-                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-              )
-              setMessages(sortedMessages)
-            }
+          if (data.success && data.messages && Array.isArray(data.messages)) {
+            const sortedMessages = data.messages.sort((a: Message, b: Message) => 
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            )
+            setMessages(sortedMessages)
           }
         })
 
-        // Also listen for message history event (if server sends it separately)
+        // Listen for message history
         const handleMessageHistory = (data: { ticketId: string; messages: Message[] }) => {
-          if (data.ticketId === ticketId && data.messages) {
-            console.log('📨 Received message history from socket:', data.messages.length, 'messages')
+          if (data.ticketId === ticketId && data.messages && Array.isArray(data.messages)) {
             const sortedMessages = data.messages.sort((a: Message, b: Message) => 
               new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
             )
@@ -222,10 +171,8 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
 
         // STEP 4: Setup event listeners
         const handleMessageReceive = (data: { ticketId: string; message: Message }) => {
-          console.log('📩 New message received:', data)
           if (data.ticketId === ticketId) {
             setMessages(prev => {
-              // Avoid duplicates
               const exists = prev.some(m => m._id === data.message._id)
               if (exists) return prev
               return [...prev, data.message]
@@ -234,32 +181,29 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
           }
         }
 
-        const handleTypingDisplay = (data: { ticketId: string; userId: string; userRole: string }) => {
-          const currentUserId = userData?._id || (userData as any)?.id
-          if (data.ticketId === ticketId && data.userId !== currentUserId) {
-            setIsTyping(true)
-            if (typingTimeoutRef.current) {
-              clearTimeout(typingTimeoutRef.current)
+        const handleTypingDisplay = (data: { ticketId: string; userId: string }) => {
+          if (data.ticketId === ticketId) {
+            const currentUserId = userData?._id || (userData as any)?.id
+            if (data.userId !== currentUserId) {
+              setIsTyping(true)
+              if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current)
+              }
+              typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000)
             }
-            typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000)
           }
         }
 
         const handleTypingHide = (data: { ticketId: string; userId: string }) => {
-          const currentUserId = userData?._id || (userData as any)?.id
-          if (data.ticketId === ticketId && data.userId !== currentUserId) {
-            setIsTyping(false)
-          }
-        }
-
-        const handleMessagesRead = (data: { ticketId: string; readBy: string }) => {
           if (data.ticketId === ticketId) {
-            console.log('✓ Messages marked as read by:', data.readBy)
+            const currentUserId = userData?._id || (userData as any)?.id
+            if (data.userId !== currentUserId) {
+              setIsTyping(false)
+            }
           }
         }
 
         const handleError = (error: { message: string }) => {
-          console.error('❌ Socket error:', error)
           if (error.message) {
             setError(error.message)
           }
@@ -268,32 +212,19 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
         chatSocket.on('message:receive', handleMessageReceive)
         chatSocket.on('typing:display', handleTypingDisplay)
         chatSocket.on('typing:hide', handleTypingHide)
-        chatSocket.on('messages:read', handleMessagesRead)
         chatSocket.on('error', handleError)
-        
-        // Request message history via socket as backup (after a delay to allow API fetch to complete)
-        requestHistoryTimeoutRef.current = setTimeout(() => {
-          console.log('📥 Requesting message history via socket as backup...')
-          chatSocket.emit('ticket:get-messages', { ticketId })
-        }, 2000)
 
         setIsLoading(false)
-        console.log('✅ Chat initialized successfully')
 
         // Cleanup
         return () => {
-          console.log('🧹 Cleaning up chat listeners...')
           if (chatSocket) {
             chatSocket.emit('ticket:leave', { ticketId })
             chatSocket.off('message:receive', handleMessageReceive)
             chatSocket.off('typing:display', handleTypingDisplay)
             chatSocket.off('typing:hide', handleTypingHide)
-            chatSocket.off('messages:read', handleMessagesRead)
             chatSocket.off('error', handleError)
             chatSocket.off('ticket:messages', handleMessageHistory)
-          }
-          if (requestHistoryTimeout) {
-            clearTimeout(requestHistoryTimeout)
           }
           if (typingTimeoutRef.current) {
             clearTimeout(typingTimeoutRef.current)
@@ -303,7 +234,7 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
           }
         }
       } catch (error) {
-        console.error('❌ Error initializing chat:', error)
+        console.error('Error initializing chat:', error)
         setError('Failed to initialize chat')
         setIsLoading(false)
       }
@@ -322,64 +253,60 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || isSending || !socket || !socket.connected) {
-      if (!socket?.connected) {
-        alert('Not connected to chat server. Please refresh.')
-      }
+      return
+    }
+
+    if (!roomCreatedRef.current) {
+      alert('Chat room not ready. Please wait.')
       return
     }
 
     try {
-      // Validate token role before sending
-      const token = getAuthToken()
-      if (token) {
-        try {
-          const tokenParts = token.split('.')
-          if (tokenParts.length === 3) {
-            const payload = JSON.parse(atob(tokenParts[1]))
-            const tokenRole = payload.role
-            const expectedRole = userRole === 'partner' ? 'partner' : 'superadmin'
-            
-            if (tokenRole !== 'partner' && expectedRole === 'partner') {
-              console.error('❌ Token role mismatch!', {
-                tokenRole,
-                expectedRole,
-                userRole,
-                tokenUserId: payload.userId || payload.id,
-                userDataId: userData?._id
-              })
-              alert('Authentication error: Your session token does not match your user role. Please logout and login again.')
-              return
-            }
-            
-            console.log('✅ Token validation passed:', {
-              tokenRole,
-              expectedRole,
-              tokenUserId: payload.userId || payload.id
-            })
-          }
-        } catch (e) {
-          console.warn('⚠️ Could not validate token:', e)
-        }
-      }
-      
       setIsSending(true)
+
+      // senderId: Always use userData._id (contract requirement)
+      const senderId = userData?._id || (userData as any)?.id
       
-      const messageData = {
+      if (!senderId) {
+        alert('Cannot determine user ID. Please refresh and try again.')
+        setIsSending(false)
+        return
+      }
+
+      // senderType: Derived ONLY from userData.role (contract requirement)
+      let senderType: 'partner' | 'superadmin' = 'partner'
+      if (userData?.role === 'superadmin' || userData?.role === 'member') {
+        senderType = 'superadmin'
+      } else if (userData?.role === 'partner') {
+        senderType = 'partner'
+      }
+
+      // Build message payload exactly as backend expects
+      const messageData: {
+        ticketId: string
+        message: string
+        messageType: 'text'
+        senderId: string
+        senderType: 'superadmin' | 'partner'
+        senderName: string
+        partnerId?: string
+      } = {
         ticketId,
         message: newMessage.trim(),
         messageType: 'text',
-        senderName,
-        partnerId: partnerId || undefined // Pass partnerId so socket handler can use it
+        senderId,
+        senderType,
+        senderName
       }
-      
-      console.log('📤 Sending message:', messageData)
-      console.log('📤 User role:', userRole, 'Expected senderType:', userRole === 'partner' ? 'partner' : 'superadmin')
-      
-      socket.emit('message:send', messageData)
 
+      // partnerId: Only send when senderType === "superadmin" (contract requirement)
+      if (senderType === 'superadmin' && partnerId) {
+        messageData.partnerId = partnerId
+      }
+
+      socket.emit('message:send', messageData)
       setNewMessage("")
-      
-      // Stop typing indicator
+
       if (socket.connected) {
         socket.emit('typing:stop', { ticketId })
       }
@@ -400,7 +327,9 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
       clearTimeout(typingTimeoutRef.current)
     }
     typingTimeoutRef.current = setTimeout(() => {
-      socket.emit('typing:stop', { ticketId })
+      if (socket.connected) {
+        socket.emit('typing:stop', { ticketId })
+      }
     }, 3000)
   }
 
@@ -451,14 +380,12 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
 
   return (
     <div className="flex flex-col h-full">
-      {/* Connection Status Banner */}
       {socket && !socket.connected && (
         <div className="bg-yellow-100 border-b border-yellow-200 px-4 py-2 text-sm text-yellow-800">
           ⚠️ Reconnecting to chat server...
         </div>
       )}
 
-      {/* Chat Area */}
       <div 
         className="flex-1 p-5 overflow-y-auto"
         style={{
@@ -467,7 +394,6 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
           backgroundColor: "#FFF"
         }}
       >
-        {/* Today Heading */}
         <div className="text-center mb-3">
           <span 
             className="text-gray-500 text-sm"
@@ -481,7 +407,6 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
           </span>
         </div>
 
-        {/* Messages */}
         <div className="space-y-4">
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
@@ -489,35 +414,46 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
             </div>
           ) : (
             messages.map((message) => {
-              // Superadmin messages should be on LEFT, Partner messages on RIGHT
-              // isSuperadminMessage: true = LEFT side, false = RIGHT side
-              const isSuperadminMessage = message.senderType === 'superadmin'
+              let currentUserId: string | null = null
+              const token = getAuthToken()
+              if (token) {
+                try {
+                  const tokenParts = token.split('.')
+                  if (tokenParts.length === 3) {
+                    const payload = JSON.parse(atob(tokenParts[1]))
+                    currentUserId = payload.userId || payload.id || null
+                  }
+                } catch (e) {
+                  currentUserId = userData?._id || (userData as any)?.id || null
+                }
+              } else {
+                currentUserId = userData?._id || (userData as any)?.id || null
+              }
+              const isMyMessage = currentUserId && message.senderId === currentUserId
               
               return (
                 <div
                   key={message._id}
-                  className={`flex items-end gap-3 ${isSuperadminMessage ? "" : "flex-row-reverse"}`}
+                  className={`flex items-end gap-3 ${isMyMessage ? "flex-row-reverse" : ""}`}
                 >
-                  {/* Avatar */}
                   <div 
                     className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
                     style={{
-                      backgroundColor: isSuperadminMessage ? "#56C6FF" : "#1F2A44",
+                      backgroundColor: isMyMessage ? "#1F2A44" : "#56C6FF",
                       width: "40px",
                       height: "40px"
                     }}
                   >
-                    {isSuperadminMessage ? (
-                      <span>{message.senderName?.substring(0, 2).toUpperCase() || 'AD'}</span>
-                    ) : (
+                    {isMyMessage ? (
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
                       </svg>
+                    ) : (
+                      <span>{message.senderName?.substring(0, 2).toUpperCase() || 'AD'}</span>
                     )}
                   </div>
 
-                  {/* Message Content */}
-                  <div className={`flex flex-col ${isSuperadminMessage ? "items-start" : "items-end"} flex-1`}>
+                  <div className={`flex flex-col ${isMyMessage ? "items-end" : "items-start"} flex-1`}>
                     {message.messageType === "text" ? (
                       <div
                         style={{
@@ -526,15 +462,15 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
                           alignItems: "flex-start",
                           gap: "11.49px",
                           borderRadius: "18.384px",
-                          background: isSuperadminMessage ? "#E9EAEC" : "#FBFABA",
+                          background: isMyMessage ? "#DCF8C6" : "#E9EAEC",
                           color: "#121212",
                           fontSize: "13px",
                           fontStyle: "normal",
                           fontWeight: 400,
                           lineHeight: "27.576px",
                           padding: "16px",
-                          marginLeft: isSuperadminMessage ? "0" : "auto",
-                          marginRight: isSuperadminMessage ? "auto" : "0",
+                          marginLeft: isMyMessage ? "auto" : "0",
+                          marginRight: isMyMessage ? "0" : "auto",
                           width: "fit-content",
                           maxWidth: "571.162px",
                           minHeight: "auto"
@@ -548,8 +484,8 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
                         style={{
                           borderRadius: "12px",
                           maxWidth: "300px",
-                          marginLeft: isSuperadminMessage ? "0" : "auto",
-                          marginRight: isSuperadminMessage ? "auto" : "0"
+                          marginLeft: isMyMessage ? "auto" : "0",
+                          marginRight: isMyMessage ? "0" : "auto"
                         }}
                       >
                         <img
@@ -560,14 +496,13 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
                       </div>
                     )}
                     
-                    {/* Timestamp */}
                     <span 
                       className="text-xs mt-1"
                       style={{
                         color: "rgba(0, 0, 0, 0.50)",
                         fontSize: "12px",
                         fontWeight: 400,
-                        alignSelf: isSuperadminMessage ? "flex-start" : "flex-end"
+                        alignSelf: isMyMessage ? "flex-end" : "flex-start"
                       }}
                     >
                       {formatTime(message.createdAt)}
@@ -578,25 +513,22 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
             })
           )}
           
-          {/* Typing Indicator - Partner is typing (right side) */}
           {isTyping && (
-            <div className="flex items-end gap-3 flex-row-reverse">
+            <div className="flex items-end gap-3">
               <div 
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
                 style={{
-                  backgroundColor: "#1F2A44",
+                  backgroundColor: "#56C6FF",
                   width: "40px",
                   height: "40px"
                 }}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-                </svg>
+                <span>AD</span>
               </div>
               <div 
                 className="flex gap-1 px-4 py-3 rounded-lg"
                 style={{
-                  background: "#FBFABA",
+                  background: "#E9EAEC",
                   borderRadius: "18.384px"
                 }}
               >
@@ -611,7 +543,6 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
         </div>
       </div>
 
-      {/* Footer - Message Input */}
       <div 
         className="border-t border-black/8"
         style={{
@@ -627,7 +558,6 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
         }}
       >
         <div className="flex items-center gap-3 w-full">
-          {/* Message Input */}
           <div 
             className="relative flex-1"
             style={{
@@ -678,7 +608,6 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
                 }}
               />
               
-              {/* Attachment Icon */}
               <button className="text-gray-500 hover:text-gray-700 transition-colors">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
@@ -699,7 +628,6 @@ export default function ChatComponent({ ticketId, partnerId, partnerName, onClos
             </div>
           </div>
 
-          {/* Send Button */}
           <button
             onClick={handleSendMessage}
             disabled={isSending || !newMessage.trim() || !socket?.connected}

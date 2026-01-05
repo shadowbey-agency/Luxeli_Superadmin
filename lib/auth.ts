@@ -15,6 +15,12 @@ export interface TokenPayload {
   partnerId?: string;
   roomId?: string;
   roomName?: string;
+  // Partner-specific fields
+  hotelName?: string;
+  // Name fields (for superadmin/member)
+  name?: string;
+  fullName?: string;
+  userName?: string;
 }
 
 /**

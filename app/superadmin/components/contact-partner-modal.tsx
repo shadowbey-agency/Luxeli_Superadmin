@@ -20,6 +20,7 @@ interface Ticket {
   hotelEmail: string
   description: string
   isMarkedAsTicket: boolean
+  partnerId?: string
 }
 
 interface ContactPartnerModalProps {
@@ -149,7 +150,7 @@ export default function ContactPartnerModal({ ticket, isOpen, onClose }: Contact
         <div className="flex-1 flex flex-col" style={{ minHeight: 0 }}>
           <ChatComponent 
             ticketId={ticket.id}
-            partnerId={(ticket as any).partnerId}
+            partnerId={ticket.partnerId}
             partnerName={ticket.hotelName}
           />
         </div>

@@ -41,22 +41,6 @@ interface Room {
   qrCodeImage?: string // base64 QR code image from API (contains JWT token)
 }
 
-const mockRooms: Room[] = Array.from({ length: 15 }, (_, i) => ({
-  id: `${i + 1}`,
-  roomNumber: `${100 + i}`,
-  roomName: `Room ${100 + i}`,
-  hotelName: "Hotel Name",
-  roomType: i % 3 === 0 ? "Deluxe" : i % 3 === 1 ? "Suite" : "Standard",
-  capacity: `${2 + (i % 3)}`,
-  status: i % 2 === 0 ? "Available" : "Occupied",
-  price: `${500 + i * 50} MAD`,
-  dateAdded: "15 juin 2025",
-  avatar: `R${i + 1}`,
-  resident: i % 2 === 0 ? undefined : (i % 3 === 0 ? "Lindsey Stroud" : i % 3 === 1 ? "John Smith" : "Sarah Johnson"),
-  checkIn: i % 2 === 0 ? undefined : `Jan ${15 + (i % 10)}, ${10 + (i % 12)}:${30 + (i % 30)} AM`,
-  checkOut: i % 2 === 0 ? undefined : `Jan ${15 + (i % 10)}, ${10 + (i % 12)}:${30 + (i % 30)} AM`,
-}))
-
 interface RoomHistoryEntry {
   id: string
   name: string
@@ -64,12 +48,81 @@ interface RoomHistoryEntry {
   checkOut: string
 }
 
-const mockRoomHistory: RoomHistoryEntry[] = Array.from({ length: 105 }, (_, i) => ({
-  id: `${i + 1}`,
-  name: i % 3 === 0 ? "Lindsey Stroud" : i % 3 === 1 ? "John Smith" : "Sarah Johnson",
-  checkIn: `Jan ${15 + (i % 10)}, ${10 + (i % 12)}:${30 + (i % 30)} AM`,
-  checkOut: `Jan ${15 + (i % 10)}, ${10 + (i % 12)}:${30 + (i % 30)} AM`,
-}))
+// Reusable modal component - moved outside to prevent remounting on every render
+const RoomModal = ({ 
+  isOpen, 
+  title, 
+  onClose, 
+  onSave, 
+  children,
+  width = "50vw",
+  isLoading = false
+}: { 
+  isOpen: boolean
+  title: string
+  onClose: () => void
+  onSave: () => void
+  children: React.ReactNode
+  width?: string
+  isLoading?: boolean
+}) => {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+      <div className="bg-white rounded-xl mx-4 max-h-[90vh] overflow-y-auto" style={{ width }}>
+        {/* Header */}
+        <div className="flex justify-between items-center border-b p-5 rounded-t-xl bg-white">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-lg font-semibold text-black">{title}</h2>
+            <p className="text-sm text-gray-500">
+              {title === "Add Room" ? "Add a new room to the system" : "Borem ipsum dolor sit amet, consectetur adipiscing elit."}
+            </p>
+          </div>
+          <button 
+            onClick={onClose} 
+            disabled={isLoading}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
+              <path d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244" stroke="#525866" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4">
+          <div className="grid grid-cols-2 gap-4">{children}</div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end items-center border-t p-5 gap-4">
+          <button
+            onClick={onClose}
+            disabled={isLoading}
+            className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onSave}
+            disabled={isLoading}
+            className="px-5 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors bg-primary disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Saving...</span>
+              </>
+            ) : (
+              'Save'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function RoomPage() {
   const [rooms, setRooms] = useState<Room[]>([])
@@ -903,16 +956,28 @@ export default function RoomPage() {
   const [isDeletingRoom, setIsDeletingRoom] = useState(false)
 
   const handleSaveAddRoom = async () => {
-    // Validate required fields: Room Name, Check-in, Check-out
-    if (!newRoomName.trim() || !newCheckInDate.trim() || !newCheckOutDate.trim()) {
-      let missingFields = [] as string[];
-      if (!newRoomName.trim()) missingFields.push('room name');
-      if (!newCheckInDate.trim()) missingFields.push('check-in date');
-      if (!newCheckOutDate.trim()) missingFields.push('check-out date');
-      const fieldsStr = missingFields.join(', ');
-      showAlert('Validation Error', `Please enter ${fieldsStr}`, 'warning');
+    // Validate required fields: Room Name
+    if (!newRoomName.trim()) {
+      showAlert('Validation Error', 'Please enter room name', 'warning');
       return;
     }
+
+    // If status is Full, validate resident fields
+    if (newRoomStatus === 'Full') {
+      if (!newResident.trim()) {
+        showAlert('Validation Error', 'Please enter resident name', 'warning');
+        return;
+      }
+      if (!newCheckInDate.trim()) {
+        showAlert('Validation Error', 'Please enter check-in date', 'warning');
+        return;
+      }
+      if (!newCheckOutDate.trim()) {
+        showAlert('Validation Error', 'Please enter check-out date', 'warning');
+        return;
+      }
+    }
+
     try {
       setIsSavingRoom(true)
       const token = getAuthToken()
@@ -921,7 +986,9 @@ export default function RoomPage() {
         setIsSavingRoom(false)
         return
       }
-      const response = await fetch('/api/partner/rooms', {
+
+      // Step 1: Create the room (always create with empty status, we'll update it when assigning)
+      const createResponse = await fetch('/api/partner/rooms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -929,26 +996,71 @@ export default function RoomPage() {
         },
         body: JSON.stringify({
           roomName: newRoomName.trim(),
-          roomStatus: newRoomStatus.toLowerCase() === 'full' ? 'full' : 'empty',
+          roomStatus: newRoomStatus.toLowerCase() === 'full' ? 'empty' : 'empty', // Create as empty first
         })
       })
-      const result = await response.json()
-      if (response.ok && result.success) {
-        await fetchRooms()
-        closeAddModal()
-        setNewRoomName("")
-        setNewRoomStatus("Full")
-        setNewResident("")
-        setNewResidentEmail("")
-        setNewResidentPhoneNo("")
-        setNewCheckInDate("")
-        setNewCheckInTime("")
-        setNewCheckOutDate("")
-        setNewCheckOutTime("")
-        showAlert('Success', 'Room added successfully', 'success')
-      } else {
-        showAlert('Error', result.error || 'Failed to add room', 'error')
+      const createResult = await createResponse.json()
+      
+      if (!createResponse.ok || !createResult.success) {
+        showAlert('Error', createResult.error || 'Failed to create room', 'error')
+        setIsSavingRoom(false)
+        return
       }
+
+      const createdRoom = createResult.room
+
+      // Step 2: If status is Full, assign the resident to the room
+      if (newRoomStatus === 'Full') {
+        // Combine date and time for check-in and check-out
+        const checkInDateTime = newCheckInDate && newCheckInTime 
+          ? `${newCheckInDate}T${newCheckInTime}:00`
+          : newCheckInDate || undefined
+        
+        const checkOutDateTime = newCheckOutDate && newCheckOutTime
+          ? `${newCheckOutDate}T${newCheckOutTime}:00`
+          : newCheckOutDate || undefined
+
+        const assignResponse = await fetch('/api/partner/assign-room', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            guestName: newResident.trim(),
+            guestEmail: newResidentEmail.trim() || undefined,
+            guestPhone: newResidentPhoneNo.trim() || undefined,
+            roomId: createdRoom._id,
+            roomName: newRoomName.trim(),
+            checkInDate: checkInDateTime || undefined,
+            checkOutDate: checkOutDateTime || undefined,
+          })
+        })
+
+        const assignResult = await assignResponse.json()
+
+        if (!assignResponse.ok || !assignResult.success) {
+          // Room was created but assignment failed - still show error
+          showAlert('Error', assignResult.error || 'Room created but failed to assign resident', 'error')
+          await fetchRooms() // Refresh to show the room
+          setIsSavingRoom(false)
+          return
+        }
+      }
+
+      // Success - refresh rooms and close modal
+      await fetchRooms()
+      closeAddModal()
+      setNewRoomName("")
+      setNewRoomStatus("Empty")
+      setNewResident("")
+      setNewResidentEmail("")
+      setNewResidentPhoneNo("")
+      setNewCheckInDate("")
+      setNewCheckInTime("")
+      setNewCheckOutDate("")
+      setNewCheckOutTime("")
+      showAlert('Success', newRoomStatus === 'Full' ? 'Room added and resident assigned successfully' : 'Room added successfully', 'success')
     } catch (error) {
       console.error('Error adding room:', error)
       showAlert('Error', 'Failed to add room. Please try again.', 'error')
@@ -1005,82 +1117,6 @@ export default function RoomPage() {
       border: "0.5px solid rgba(206, 148, 29, 0.25)",
       color: "#CE941D",
     }
-  }
-
-  // Reusable modal component
-  const RoomModal = ({ 
-    isOpen, 
-    title, 
-    onClose, 
-    onSave, 
-    children,
-    width = "50vw",
-    isLoading = false
-  }: { 
-    isOpen: boolean
-    title: string
-    onClose: () => void
-    onSave: () => void
-    children: React.ReactNode
-    width?: string
-    isLoading?: boolean
-  }) => {
-    if (!isOpen) return null
-
-    return (
-      <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
-        <div className="bg-white rounded-xl mx-4 max-h-[90vh] overflow-y-auto" style={{ width }}>
-          {/* Header */}
-          <div className="flex justify-between items-center border-b p-5 rounded-t-xl bg-white">
-            <div className="flex flex-col gap-2">
-              <h2 className="text-lg font-semibold text-black">{title}</h2>
-              <p className="text-sm text-gray-500">
-                {title === "Add Room" ? "Add a new room to the system" : "Borem ipsum dolor sit amet, consectetur adipiscing elit."}
-              </p>
-            </div>
-            <button 
-              onClick={onClose} 
-              disabled={isLoading}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="25" viewBox="0 0 24 25" fill="none">
-                <path d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244" stroke="#525866" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="p-4">
-            <div className="grid grid-cols-2 gap-4">{children}</div>
-          </div>
-
-          {/* Footer */}
-          <div className="flex justify-end items-center border-t p-5 gap-4">
-            <button
-              onClick={onClose}
-              disabled={isLoading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onSave}
-              disabled={isLoading}
-              className="px-5 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors bg-primary disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Saving...</span>
-                </>
-              ) : (
-                'Save'
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (
