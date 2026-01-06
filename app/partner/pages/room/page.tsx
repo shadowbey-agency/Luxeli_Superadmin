@@ -515,12 +515,6 @@ export default function RoomPage() {
   }
 
   const handleRoomQRCode = async (room: Room) => {
-    // Check if room has a resident (guest assigned)
-    if (!room.resident) {
-      showAlert('No Guest Assigned', 'No guest assigned to this room. Please assign a guest first to generate a QR code.', 'warning')
-      return
-    }
-
     // If room already has QR code cached, show it
     if (room.qrCodeImage) {
       setRoomForQR(room)

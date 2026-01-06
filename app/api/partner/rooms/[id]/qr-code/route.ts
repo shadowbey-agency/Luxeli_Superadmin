@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 import connectDB from '@/lib/db';
-import Guest from '@/models/Guest';
 import Room from '@/models/Room';
-import { generateGuestToken } from '@/lib/auth';
 import QRCode from 'qrcode';
 
 /**
  * GET /api/partner/rooms/[id]/qr-code
- * Get QR code for an existing guest assigned to a room
+ * Get QR code for a room (contains room name and room ID)
  * Auth: Partner JWT
  */
 export const GET = withAuth(async (req: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
@@ -58,32 +56,14 @@ export const GET = withAuth(async (req: AuthenticatedRequest, context?: { params
       );
     }
 
-    // Find active guest for this room
-    const guest = await Guest.findOne({
-      roomId: roomId,
-      partnerId: partnerId,
-      isActive: true,
-    });
-
-    if (!guest) {
-      return NextResponse.json(
-        { success: false, error: 'No active guest found in this room' },
-        { status: 404 }
-      );
-    }
-
-    // Generate JWT token for guest
-    const token = generateGuestToken({
-      userId: guest._id.toString(),
-      guestName: guest.guestName,
-      guestEmail: guest.guestEmail,
-      partnerId: partnerId,
-      roomId: roomId,
+    // Generate QR code with only room name and room ID
+    const qrCodeData = JSON.stringify({
       roomName: room.roomName,
+      roomId: roomId,
     });
 
-    // Generate QR code from token
-    const qrCodeDataURL = await QRCode.toDataURL(token, {
+    // Generate QR code from room data
+    const qrCodeDataURL = await QRCode.toDataURL(qrCodeData, {
       errorCorrectionLevel: 'H',
       type: 'image/png',
       width: 300,
@@ -94,12 +74,8 @@ export const GET = withAuth(async (req: AuthenticatedRequest, context?: { params
       success: true,
       data: {
         qrCode: qrCodeDataURL,
-        guestName: guest.guestName,
-        guestEmail: guest.guestEmail,
-        guestPhone: guest.guestPhone,
         roomName: room.roomName,
-        checkInDate: guest.checkInDate,
-        checkOutDate: guest.checkOutDate,
+        roomId: roomId,
       },
     });
   } catch (error: any) {

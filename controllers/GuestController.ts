@@ -3,7 +3,7 @@ import connectDB from '@/lib/db';
 import Guest from '@/models/Guest';
 import Room from '@/models/Room';
 import RoomHistory from '@/models/RoomHistory';
-import { generateGuestToken, verifyToken } from '@/lib/auth';
+import { verifyToken } from '@/lib/auth';
 import { handleApiError } from '@/lib/middleware';
 import QRCode from 'qrcode';
 
@@ -87,18 +87,14 @@ export class GuestController {
       room.roomStatus = 'full';
       await room.save();
 
-      // Generate JWT token for guest
-      const token = generateGuestToken({
-        userId: guest._id.toString(),
-        guestName: data.guestName,
-        guestEmail: data.guestEmail,
-        partnerId,
-        roomId: data.roomId,
+      // Generate QR code with only room name and room ID
+      const qrCodeData = JSON.stringify({
         roomName: data.roomName,
+        roomId: data.roomId,
       });
 
-      // Generate QR code from token
-      const qrCodeDataURL = await QRCode.toDataURL(token, {
+      // Generate QR code from room data
+      const qrCodeDataURL = await QRCode.toDataURL(qrCodeData, {
         errorCorrectionLevel: 'H',
         type: 'image/png',
         width: 300,
@@ -114,7 +110,6 @@ export class GuestController {
             guestEmail: data.guestEmail,
             roomId: data.roomId,
             roomName: data.roomName,
-            token,
             qrCode: qrCodeDataURL, // base64 QR code
           },
         },
