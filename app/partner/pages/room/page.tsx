@@ -125,6 +125,7 @@ const RoomModal = ({
 }
 
 export default function RoomPage() {
+  const [activeTab, setActiveTab] = useState<'rooms' | 'room-requests'>('rooms')
   const [rooms, setRooms] = useState<Room[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
@@ -1115,11 +1116,37 @@ export default function RoomPage() {
 
   return (
     <div className="p-4">
+      {/* Tab Navigation */}
+      <div className="mb-6">
+        <div className="flex">
+          <button
+            onClick={() => setActiveTab('rooms')}
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${activeTab === 'rooms'
+                ? 'text-foreground border-b-2 border-primary -mb-[2px]'
+                : 'text-muted-foreground hover:text-foreground border-b-2 border-[#EDEDED] -mb-[2px]'
+              }`}
+            style={{ width: "270px" }}
+          >
+            Rooms
+          </button>
+          <button
+            onClick={() => setActiveTab('room-requests')}
+            className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${activeTab === 'room-requests'
+                ? 'text-foreground border-b-2 border-primary -mb-[2px]'
+                : 'text-muted-foreground hover:text-foreground border-b-2 border-[#EDEDED] -mb-[2px]'
+              }`}
+            style={{ width: "270px" }}
+          >
+            Room Requests
+          </button>
+        </div>
+      </div>
+
       {/* Page Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Rooms</h1>
+            <h1 className="text-2xl font-bold text-foreground">{activeTab === 'rooms' ? 'Rooms' : 'Room Requests'}</h1>
             <p className="text-sm text-muted-foreground">Last updated on 09/15/2025, 12AM</p>
           </div>
           <div className="flex items-center" style={{ border: "0.925px solid #CED4DA", borderTopLeftRadius: "6px", borderBottomLeftRadius: "6px",  borderTopRightRadius: "6px", borderBottomRightRadius: "6px"}}>
@@ -1149,11 +1176,13 @@ export default function RoomPage() {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatCard
-          icon={
-            <div 
+      {activeTab === 'rooms' && (
+        <>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <StatCard
+              icon={
+                <div 
               className="flex items-center justify-center rounded-full"
               style={{
                 width: "36px",
@@ -1207,18 +1236,18 @@ export default function RoomPage() {
           change={isLoadingStats ? "..." : `${roomStats.emptyRoomsIsIncrease ? '+' : '-'}${roomStats.emptyRoomsPercentage}%`}
           changeType={roomStats.emptyRoomsIsIncrease ? "positive" : "negative"}
           subtitle={`vs last ${selectedPeriod === "week" ? "week" : selectedPeriod === "month" ? "month" : "day"}`}
-        />
-      </div>
+          />
+        </div>
 
-       {/* Rooms Section */}
-       <div className="bg-card rounded-[4px] p-4">
-         {/* Table Header */}
-         <div className="flex items-center justify-between pb-4">
-           <h3 className="text-base font-semibold text-foreground">Rooms list</h3>
-           {selectedRooms.size > 0 ? (
-             // Selection controls
-             <div className="flex items-center gap-4">
-               <button 
+        {/* Rooms Section */}
+        <div className="bg-card rounded-[4px] p-4">
+          {/* Table Header */}
+          <div className="flex items-center justify-between pb-4">
+            <h3 className="text-base font-semibold text-foreground">Rooms list</h3>
+            {selectedRooms.size > 0 ? (
+              // Selection controls
+              <div className="flex items-center gap-4">
+                <button 
                  onClick={() => setSelectedRooms(new Set())}
                  className="flex items-center justify-center w-6 h-6 rounded text-white"
                  style={{ backgroundColor: "#1F2A44" }}
@@ -2534,6 +2563,8 @@ export default function RoomPage() {
           </div>
         </div>
       )}
+        </>
+      )}
 
       {/* Room History Modal - Right Slide Popup */}
       {showHistoryModal && roomForHistory && (
@@ -2745,11 +2776,88 @@ export default function RoomPage() {
                 </div>
               </div>
             )}
-           </div>
-         </div>
-       )}
+          </div>
+        </div>
+      )}
 
-       {/* Add Room Step One Modal - Simple (Room name + Status only) */}
+      {/* Room Requests Section */}
+      {activeTab === 'room-requests' && (
+        <div className="bg-card rounded-[4px] p-4">
+          <div className="flex items-center justify-between pb-4">
+            <h3 className="text-base font-semibold text-foreground">Room Requests list</h3>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <select
+                  className="appearance-none"
+                  style={{
+                    padding: "7.52px 12px",
+                    paddingRight: "32px",
+                    borderRadius: "4px",
+                    border: "1px solid #CED4DA",
+                    background: "#FFF",
+                    color: "rgba(33, 33, 33, 0.60)",
+                    fontSize: "13px",
+                    fontWeight: "400",
+                    lineHeight: "19.5px"
+                  }}
+                >
+                  <option value={10}>Display 10</option>
+                  <option value={20}>Display 20</option>
+                  <option value={50}>Display 50</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                    <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+
+              <input
+                type="text"
+                placeholder="Search..."
+                style={{
+                  padding: "7.52px 12px",
+                  borderRadius: "4px",
+                  border: "1px solid #CED4DA",
+                  background: "#FFF",
+                  fontSize: "13px",
+                  fontWeight: "400"
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Room Requests Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ borderBottom: "1px solid #EDEDED" }}>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Room</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Guest Name</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Phone</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Date</th>
+                  <th className="px-4 py-3 text-center font-medium text-muted-foreground">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: "1px solid #EDEDED" }}>
+                  <td colSpan={6} className="px-4 py-8 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" className="mb-3 opacity-50">
+                        <rect x="8" y="12" width="32" height="24" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+                        <path d="M16 20L24 28L32 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                      <p className="text-muted-foreground">No room requests available</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+             {/* Add Room Step One Modal - Simple (Room name + Status only) */}
        {showAddStepOne && (
          <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
            <div className="bg-white rounded-xl w-[40vw] mx-4 max-h-[90vh] overflow-y-auto">

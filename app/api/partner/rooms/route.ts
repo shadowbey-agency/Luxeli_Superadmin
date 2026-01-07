@@ -2,22 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware'
 import { RoomController } from '@/controllers/partner/RoomController'
 
-// GET /api/partner/rooms - list rooms (basic pagination)
-export const GET = withAuth(async (req: AuthenticatedRequest) => {
+// GET /api/partner/rooms - list rooms (basic pagination) - NO AUTH REQUIRED
+export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
+  const partnerId = searchParams.get('partnerId')
+  
+  if (!partnerId) {
+    return NextResponse.json(
+      { success: false, error: 'partnerId is required' },
+      { status: 400 }
+    )
+  }
+  
   const query = {
     page: searchParams.get('page') || undefined,
     limit: searchParams.get('limit') || undefined,
   }
-  const partnerId = getPartnerId(req)
-  if (!partnerId) {
-    return NextResponse.json(
-      { success: false, error: 'Partner ID not found in token' },
-      { status: 401 }
-    )
-  }
   return RoomController.getRooms(query, partnerId)
-})
+}
 
 // POST /api/partner/rooms - create room
 export const POST = withAuth(async (req: AuthenticatedRequest) => {
@@ -39,6 +41,6 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
       { status: 500 }
     );
   }
-})
+}
 
 

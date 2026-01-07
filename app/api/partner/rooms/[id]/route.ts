@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth, AuthenticatedRequest } from '@/lib/middleware'
 import { RoomController } from '@/controllers/partner/RoomController'
 
-// GET /api/partner/rooms/[id] - get room by ID
-export const GET = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
+// GET /api/partner/rooms/[id] - get room by ID - NO AUTH REQUIRED
+export async function GET(request: NextRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) {
   try {
     let id: string;
     if (context?.params) {
@@ -30,7 +30,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest, context?: { pa
       { status: 500 }
     );
   }
-});
+}
 
 // PATCH /api/partner/rooms/[id] - update room fields
 export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
