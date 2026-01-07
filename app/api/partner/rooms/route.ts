@@ -22,25 +22,25 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/partner/rooms - create room
-export const POST = withAuth(async (req: AuthenticatedRequest) => {
-  try {
-    const partnerId = getPartnerId(req);
-    if (!partnerId) {
+export async function POST(req: NextRequest) {
+  return withAuth(async (authReq: AuthenticatedRequest) => {
+    try {
+      const partnerId = getPartnerId(authReq);
+      if (!partnerId) {
+        return NextResponse.json(
+          { success: false, error: 'Partner ID not found in token' },
+          { status: 401 }
+        );
+      }
+
+      const body = await authReq.json();
+      return RoomController.createRoom(partnerId, body);
+    } catch (error: any) {
+      console.error('Create Room API Error:', error);
       return NextResponse.json(
-        { success: false, error: 'Partner ID not found in token' },
-        { status: 401 }
+        { success: false, error: error?.message || 'Failed to create room' },
+        { status: 500 }
       );
     }
-
-    const body = await req.json()
-    return RoomController.createRoom(partnerId, body)
-  } catch (error: any) {
-    console.error('Create Room API Error:', error);
-    return NextResponse.json(
-      { success: false, error: error?.message || 'Failed to create room' },
-      { status: 500 }
-    );
-  }
+  })(req);
 }
-
-

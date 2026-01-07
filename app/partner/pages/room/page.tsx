@@ -292,22 +292,22 @@ export default function RoomPage() {
     (roomNumber || "")
       .replace(/^#/, "")
       .replace(/^R-?/i, "");
-
   // Fetch rooms from API
   const fetchRooms = async () => {
     try {
       setIsLoadingRooms(true)
-      const token = getAuthToken()
-      if (!token) {
-        console.error('No auth token found')
+      
+      // Get user data to extract partnerId
+      const userData = JSON.parse(localStorage.getItem('user_data') || sessionStorage.getItem('user_data') || '{}')
+      const partnerId = userData._id
+      
+      if (!partnerId) {
+        console.error('No partner ID found')
         setIsLoadingRooms(false)
         return
       }
-      const response = await fetch(`/api/partner/rooms?page=${currentPage}&limit=${itemsPerPage}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      
+      const response = await fetch(`/api/partner/rooms?partnerId=${partnerId}&page=${currentPage}&limit=${itemsPerPage}`)
       if (response.ok) {
         const result = await response.json()
         const mappedRooms = (result.items || []).map(mapApiRoomToRoom)
