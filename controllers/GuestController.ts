@@ -387,5 +387,53 @@ export class GuestController {
       return handleApiError(error, 'Failed to get guest profile');
     }
   }
+
+  /**
+ * Get active guest by roomId + partnerId
+ * Used in QR scan flow when room is FULL
+ * Auth: NONE (public, scoped by partner + room)
+ *
+ * GET /api/public/room/guest
+ */
+static async getGuestByRoom(
+  partnerId: string,
+  roomId: string
+) {
+  try {
+    await connectDB();
+
+    const guest = await Guest.findOne({
+      partnerId,
+      roomId,
+      isActive: true,
+    }).lean();
+
+    if (!guest) {
+      return NextResponse.json({
+        success: true,
+        data: null, // room empty or no active guest
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        guestId: guest._id.toString(),
+        guestName: guest.guestName,
+        roomId: guest.roomId,
+        roomName: guest.roomName,
+        checkInDate: guest.checkInDate,
+        checkOutDate: guest.checkOutDate || null,
+        isActive: guest.isActive,
+      },
+    });
+  } catch (error) {
+    console.error('Get Guest By Room Error:', error);
+    return handleApiError(error, 'Failed to fetch guest by room');
+  }
+}
+
+
+  
 }
 
