@@ -50,6 +50,7 @@ export async function GET(req) {
         guestId: guest._id.toString(),
         guestName: guest.guestName,
         roomId: guest.roomId,
+        guestPhone:guest.guestPhone,
         roomName: guest.roomName,
         checkInDate: guest.checkInDate,
         checkOutDate: guest.checkOutDate || null,
