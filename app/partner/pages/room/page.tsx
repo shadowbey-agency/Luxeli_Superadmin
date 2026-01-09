@@ -182,6 +182,23 @@ export default function RoomPage() {
   const [roomRequestsItemsPerPage, setRoomRequestsItemsPerPage] = useState(10)
   const [roomRequestsTotal, setRoomRequestsTotal] = useState(0)
   const [roomRequestsSearch, setRoomRequestsSearch] = useState("")
+  
+  // Accept Client Modal State
+  const [showAcceptClientModal, setShowAcceptClientModal] = useState(false)
+  const [roomRequestToAccept, setRoomRequestToAccept] = useState<RoomRequest | null>(null)
+  const [acceptClientName, setAcceptClientName] = useState("")
+  const [acceptCheckInDate, setAcceptCheckInDate] = useState("")
+  const [acceptCheckInTime, setAcceptCheckInTime] = useState("")
+  const [acceptCheckOutDate, setAcceptCheckOutDate] = useState("")
+  const [acceptCheckOutTime, setAcceptCheckOutTime] = useState("")
+  const [isAcceptingClient, setIsAcceptingClient] = useState(false)
+  const [acceptClientError, setAcceptClientError] = useState<string | null>(null)
+
+  // Remove Room Request State
+  const [showRemoveRoomRequestModal, setShowRemoveRoomRequestModal] = useState(false)
+  const [roomRequestToRemove, setRoomRequestToRemove] = useState<RoomRequest | null>(null)
+  const [isRemovingRoomRequest, setIsRemovingRoomRequest] = useState(false)
+  
   // Selection state
   const [selectedRooms, setSelectedRooms] = useState<Set<string>>(new Set())
   // Form state for full room details
@@ -842,6 +859,190 @@ export default function RoomPage() {
       setAssignError(err.message || 'Failed to assign room. Please try again.')
     } finally {
       setIsAssigning(false)
+    }
+  }
+
+  // Accept Client Modal Handlers
+  const handleAcceptClient = (request: RoomRequest) => {
+    setRoomRequestToAccept(request)
+    setAcceptClientName(request.guestName)
+    setAcceptCheckInDate("")
+    setAcceptCheckInTime("")
+    setAcceptCheckOutDate("")
+    setAcceptCheckOutTime("")
+    setAcceptClientError(null)
+    setShowAcceptClientModal(true)
+  }
+
+  const closeAcceptClientModal = () => {
+    setShowAcceptClientModal(false)
+    setRoomRequestToAccept(null)
+    setAcceptClientName("")
+    setAcceptCheckInDate("")
+    setAcceptCheckInTime("")
+    setAcceptCheckOutDate("")
+    setAcceptCheckOutTime("")
+    setAcceptClientError(null)
+  }
+
+  const handleSaveAcceptClient = async () => {
+    if (!roomRequestToAccept) return
+
+    // Validate required fields
+    if (!acceptClientName.trim()) {
+      setAcceptClientError("Guest name is required")
+      return
+    }
+
+    if (!acceptCheckInDate) {
+      setAcceptClientError("Check-in date is required")
+      return
+    }
+
+    if (!acceptCheckOutDate) {
+      setAcceptClientError("Check-out date is required")
+      return
+    }
+
+    setIsAcceptingClient(true)
+    setAcceptClientError(null)
+
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        setAcceptClientError("Authentication token not found. Please log in again.")
+        setIsAcceptingClient(false)
+        return
+      }
+
+      // Check if the room is empty or full from the loaded rooms
+      const room = rooms.find(r => r.id === roomRequestToAccept.roomId)
+      
+      if (!room) {
+        setAcceptClientError('Room not found')
+        setIsAcceptingClient(false)
+        return
+      }
+
+      // Check if room is full
+      if (room.status === 'Occupied') {
+        setAcceptClientError('This room is already occupied and cannot accept new guests')
+        setIsAcceptingClient(false)
+        return
+      }
+
+      // Room is available, proceed with assignment using assign-room API
+      const response = await fetch(`/api/partner/assign-room`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          guestName: acceptClientName.trim(),
+          guestPhone: roomRequestToAccept.guestPhone,
+          roomId: roomRequestToAccept.roomId,
+          roomName: roomRequestToAccept.roomName,
+          checkInDate: acceptCheckInDate || undefined,
+          checkOutDate: acceptCheckOutDate || undefined,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to accept client')
+      }
+
+      // Delete the room request after successful assignment
+      console.log('Deleting room request with ID:', roomRequestToAccept._id);
+      console.log('Token being sent:', token ? 'Yes' : 'No');
+      
+      const deleteResponse = await fetch(`/api/partner/room-requests/${roomRequestToAccept._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+      })
+
+      const deleteResult = await deleteResponse.json()
+      console.log('Delete response status:', deleteResponse.status);
+      console.log('Delete response body:', deleteResult);
+
+      if (!deleteResponse.ok) {
+        console.error('Failed to delete room request:', deleteResult)
+        throw new Error(deleteResult.error || 'Failed to delete room request')
+      }
+
+      // Refresh rooms and requests list
+      await Promise.all([fetchRooms(), fetchRoomRequests()])
+
+      // Close modal
+      closeAcceptClientModal()
+
+      showAlert('Success', 'Client accepted successfully!', 'success')
+    } catch (err: any) {
+      console.error('Error accepting client:', err)
+      setAcceptClientError(err.message || 'Failed to accept client. Please try again.')
+    } finally {
+      setIsAcceptingClient(false)
+    }
+  }
+
+  // Remove Room Request Handlers
+  const handleRemoveRoomRequest = (request: RoomRequest) => {
+    setRoomRequestToRemove(request)
+    setShowRemoveRoomRequestModal(true)
+  }
+
+  const closeRemoveRoomRequestModal = () => {
+    setShowRemoveRoomRequestModal(false)
+    setRoomRequestToRemove(null)
+    setIsRemovingRoomRequest(false)
+  }
+
+  const confirmRemoveRoomRequest = async () => {
+    if (!roomRequestToRemove) return
+
+    setIsRemovingRoomRequest(true)
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        showAlert('Error', 'Authentication token not found', 'error')
+        setIsRemovingRoomRequest(false)
+        return
+      }
+
+      console.log('Deleting room request with ID:', roomRequestToRemove._id);
+      console.log('Token being sent:', token ? 'Yes' : 'No');
+
+      const response = await fetch(`/api/partner/room-requests/${roomRequestToRemove._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const result = await response.json()
+      console.log('Delete response status:', response.status);
+      console.log('Delete response body:', result);
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to remove room request')
+      }
+
+      // Refresh room requests list
+      await fetchRoomRequests()
+
+      // Close modal
+      closeRemoveRoomRequestModal()
+
+      showAlert('Success', 'Room request removed successfully', 'success')
+    } catch (err: any) {
+      console.error('Error removing room request:', err)
+      showAlert('Error', err.message || 'Failed to remove room request', 'error')
+    } finally {
+      setIsRemovingRoomRequest(false)
     }
   }
 
@@ -2634,7 +2835,611 @@ export default function RoomPage() {
               </div>
             </div>
           )}
+
         </>
+      )}
+
+      {/* Accept Client Modal */}
+      {showAcceptClientModal && roomRequestToAccept && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
+        >
+          <div
+            className="bg-white flex flex-col"
+            style={{
+              width: "704px",
+              height: "auto",
+              minHeight: "443px",
+              opacity: 1,
+              borderRadius: "10px",
+            }}
+          >
+            {/* Header Section */}
+            <div
+              className="flex justify-between"
+              style={{
+                width: "704px",
+                height: "94px",
+                justifyContent: "space-between",
+                opacity: 1,
+                borderTopLeftRadius: "10px",
+                borderTopRightRadius: "10px",
+                borderBottomWidth: "1px",
+                paddingTop: "20px",
+                paddingRight: "16px",
+                paddingBottom: "20px",
+                paddingLeft: "16px",
+              }}
+            >
+              <div className="flex flex-col">
+                <h2
+                  className="font-semibold text-black mb-1"
+                  style={{
+                    fontWeight: 600,
+                    fontSize: "20px",
+                    lineHeight: "100%",
+                  }}
+                >
+                  Accept client
+                </h2>
+                <p
+                  className="text-gray-500"
+                  style={{
+                    fontWeight: 400,
+                    fontSize: "14px",
+                    lineHeight: "150%",
+                  }}
+                >
+                  Borem ipsum dolor sit amet, consectetur adipiscing elit.
+                </p>
+              </div>
+              <button
+                onClick={closeAcceptClientModal}
+                disabled={isAcceptingClient}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="25"
+                  viewBox="0 0 24 25"
+                  fill="none"
+                >
+                  <path
+                    d="M18 6.52441L6 18.5244M6 6.52441L18 18.5244"
+                    stroke="#525866"
+                    strokeWidth="1.67"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Error Message */}
+            {acceptClientError && (
+              <div className="mx-4 mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {acceptClientError}
+              </div>
+            )}
+
+            {/* Input Section */}
+            <div
+              className="flex flex-col border-b"
+              style={{
+                width: "704px",
+                height: "auto",
+                paddingTop: "20px",
+                paddingRight: "16px",
+                paddingBottom: "20px",
+                paddingLeft: "16px",
+              }}
+            >
+              {/* First Row - Room Name and Guest Name */}
+              <div
+                className="flex justify-between"
+                style={{
+                  width: "672px",
+                  height: "64.02999877929688px",
+                  justifyContent: "space-between",
+                  opacity: 1,
+                }}
+              >
+                {/* Room name */}
+                <div
+                  className="flex flex-col"
+                  style={{
+                    width: "328px",
+                    height: "64.02999877929688px",
+                    opacity: 1,
+                  }}
+                >
+                  <label
+                    className="text-sm font-medium mb-1"
+                    style={{
+                      width: "72px",
+                      height: "20px",
+                      fontWeight: 500,
+                      fontSize: "13px",
+                      lineHeight: "19.5px",
+                      color: "#212121",
+                    }}
+                  >
+                    Room name
+                  </label>
+                  <input
+                    type="text"
+                    value={roomRequestToAccept?.roomName || ""}
+                    readOnly
+                    disabled
+                    className="w-full border rounded bg-gray-50 cursor-not-allowed"
+                    style={{
+                      width: "326px",
+                      height: "35.040000915527344px",
+                      paddingTop: "7.52px",
+                      paddingRight: "12px",
+                      paddingBottom: "7.52px",
+                      paddingLeft: "12px",
+                      borderRadius: "4px",
+                      borderWidth: "1px",
+                      border: "1px solid #CED4DA",
+                      opacity: 1,
+                    }}
+                  />
+                </div>
+
+                {/* Guest name */}
+                <div
+                  className="flex flex-col"
+                  style={{
+                    width: "328px",
+                    height: "64.02999877929688px",
+                    opacity: 1,
+                  }}
+                >
+                  <label
+                    className="text-sm font-medium mb-1"
+                    style={{
+                      height: "20px",
+                      fontWeight: 500,
+                      fontSize: "13px",
+                      lineHeight: "19.5px",
+                      color: "#212121",
+                    }}
+                  >
+                    The resident
+                  </label>
+                  <input
+                    type="text"
+                    value={acceptClientName}
+                    onChange={(e) => setAcceptClientName(e.target.value)}
+                    placeholder="Write Here..."
+                    className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                    style={{
+                      width: "326px",
+                      height: "35.040000915527344px",
+                      paddingTop: "7.52px",
+                      paddingRight: "12px",
+                      paddingBottom: "7.52px",
+                      paddingLeft: "12px",
+                      borderRadius: "4px",
+                      borderWidth: "1px",
+                      border: "1px solid #CED4DA",
+                      opacity: 1,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Second Row - Check in Date and Time */}
+              <div
+                className="flex justify-between mt-4"
+                style={{
+                  width: "672px",
+                  height: "64.02999877929688px",
+                  justifyContent: "space-between",
+                  opacity: 1,
+                }}
+              >
+                {/* Check in Date */}
+                <div
+                  className="flex flex-col"
+                  style={{
+                    width: "328px",
+                    height: "64.02999877929688px",
+                    opacity: 1,
+                  }}
+                >
+                  <label
+                    className="text-sm font-medium mb-1"
+                    style={{
+                      width: "72px",
+                      height: "20px",
+                      fontWeight: 500,
+                      fontSize: "13px",
+                      lineHeight: "19.5px",
+                      color: "#212121",
+                    }}
+                  >
+                    Check in <span style={{ color: 'red' }}>*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={acceptCheckInDate}
+                    onChange={(e) => setAcceptCheckInDate(e.target.value)}
+                    className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                    style={{
+                      width: "326px",
+                      height: "35.040000915527344px",
+                      paddingTop: "7.52px",
+                      paddingRight: "12px",
+                      paddingBottom: "7.52px",
+                      paddingLeft: "12px",
+                      borderRadius: "4px",
+                      borderWidth: "1px",
+                      border: "1px solid #CED4DA",
+                      opacity: 1,
+                    }}
+                  />
+                </div>
+
+                {/* Check in Time */}
+                <div
+                  className="flex flex-col"
+                  style={{
+                    width: "328px",
+                    height: "64.02999877929688px",
+                    opacity: 1,
+                  }}
+                >
+                  <label
+                    className="text-sm font-medium mb-1"
+                    style={{
+                      width: "72px",
+                      height: "20px",
+                      fontWeight: 500,
+                      fontSize: "13px",
+                      lineHeight: "19.5px",
+                      color: "#212121",
+                    }}
+                  >
+                    Check in
+                  </label>
+                  <input
+                    type="time"
+                    value={acceptCheckInTime}
+                    onChange={(e) => setAcceptCheckInTime(e.target.value)}
+                    className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                    style={{
+                      width: "326px",
+                      height: "35.040000915527344px",
+                      paddingTop: "7.52px",
+                      paddingRight: "12px",
+                      paddingBottom: "7.52px",
+                      paddingLeft: "12px",
+                      borderRadius: "4px",
+                      borderWidth: "1px",
+                      border: "1px solid #CED4DA",
+                      opacity: 1,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Third Row - Check out Date and Time */}
+              <div
+                className="flex justify-between mt-4"
+                style={{
+                  width: "672px",
+                  height: "64.02999877929688px",
+                  justifyContent: "space-between",
+                  opacity: 1,
+                }}
+              >
+                {/* Check out Date */}
+                <div
+                  className="flex flex-col"
+                  style={{
+                    width: "328px",
+                    height: "64.02999877929688px",
+                    opacity: 1,
+                  }}
+                >
+                  <label
+                    className="text-sm font-medium mb-1"
+                    style={{
+                      width: "72px",
+                      height: "20px",
+                      fontWeight: 500,
+                      fontSize: "13px",
+                      lineHeight: "19.5px",
+                      color: "#212121",
+                    }}
+                  >
+                    Check out <span style={{ color: 'red' }}>*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={acceptCheckOutDate}
+                    onChange={(e) => setAcceptCheckOutDate(e.target.value)}
+                    className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                    style={{
+                      width: "326px",
+                      height: "35.040000915527344px",
+                      paddingTop: "7.52px",
+                      paddingRight: "12px",
+                      paddingBottom: "7.52px",
+                      paddingLeft: "12px",
+                      borderRadius: "4px",
+                      borderWidth: "1px",
+                      border: "1px solid #CED4DA",
+                      opacity: 1,
+                    }}
+                  />
+                </div>
+
+                {/* Check out Time */}
+                <div
+                  className="flex flex-col"
+                  style={{
+                    width: "328px",
+                    height: "64.02999877929688px",
+                    opacity: 1,
+                  }}
+                >
+                  <label
+                    className="text-sm font-medium mb-1"
+                    style={{
+                      width: "72px",
+                      height: "20px",
+                      fontWeight: 500,
+                      fontSize: "13px",
+                      lineHeight: "19.5px",
+                      color: "#212121",
+                    }}
+                  >
+                    Check out
+                  </label>
+                  <input
+                    type="time"
+                    value={acceptCheckOutTime}
+                    onChange={(e) => setAcceptCheckOutTime(e.target.value)}
+                    className="w-full border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                    style={{
+                      width: "326px",
+                      height: "35.040000915527344px",
+                      paddingTop: "7.52px",
+                      paddingRight: "12px",
+                      paddingBottom: "7.52px",
+                      paddingLeft: "12px",
+                      borderRadius: "4px",
+                      borderWidth: "1px",
+                      border: "1px solid #CED4DA",
+                      opacity: 1,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Section */}
+            <div
+              className="flex justify-end items-center border-t"
+              style={{
+                width: "704px",
+                height: "77.04000091552734px",
+                gap: "10px",
+                opacity: 1,
+                borderBottomRightRadius: "10px",
+                borderBottomLeftRadius: "10px",
+                borderTopWidth: "1px",
+                paddingTop: "20px",
+                paddingRight: "16px",
+                paddingBottom: "20px",
+                paddingLeft: "16px",
+              }}
+            >
+              <div
+                className="flex gap-4"
+                style={{
+                  width: "158px",
+                  height: "37.040000915527344px",
+                  gap: "16px",
+                  opacity: 1,
+                }}
+              >
+                {/* Cancel Button */}
+                <button
+                  onClick={closeAcceptClientModal}
+                  className="flex items-center justify-center border rounded text-black"
+                  style={{
+                    width: "70px",
+                    height: "37.040000915527344px",
+                    paddingTop: "8.52px",
+                    paddingRight: "10px",
+                    paddingBottom: "8.52px",
+                    paddingLeft: "10px",
+                    borderRadius: "6px",
+                    background: "#FBFAFA",
+                    border: "1px solid #CED4DA",
+                    fontWeight: 400,
+                    fontSize: "14px",
+                    lineHeight: "19.5px",
+                    textAlign: "center",
+                    opacity: 1,
+                  }}
+                >
+                  Cancel
+                </button>
+
+                {/* Save Button */}
+                <button
+                  onClick={handleSaveAcceptClient}
+                  disabled={isAcceptingClient || !acceptClientName.trim()}
+                  className="flex items-center justify-center text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    width: "72px",
+                    height: "37.040000915527344px",
+                    gap: "6px",
+                    paddingTop: "8.52px",
+                    paddingRight: "20px",
+                    paddingBottom: "8.52px",
+                    paddingLeft: "20px",
+                    borderRadius: "6px",
+                    background: "#1F2A44",
+                    opacity: 1,
+                  }}
+                >
+                  {isAcceptingClient ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Room Request Confirmation Modal */}
+      {showRemoveRoomRequestModal && roomRequestToRemove && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
+        >
+          <div
+            className="bg-white rounded-[10px] mx-4"
+            style={{
+              width: "509px",
+              maxWidth: "90vw",
+            }}
+          >
+            {/* Header */}
+            <div 
+              className="flex justify-between items-center px-4 py-5 rounded-t-[10px] border-b"
+              style={{
+                borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
+                background: "#FFF"
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: "#EF4444" }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <h2 
+                  className="text-black font-bold"
+                  style={{
+                    fontSize: "20px",
+                    fontWeight: 700,
+                    lineHeight: "100%"
+                  }}
+                >
+                  Remove Room Request
+                </h2>
+              </div>
+              <button
+                onClick={closeRemoveRoomRequestModal}
+                disabled={isRemovingRoomRequest}
+                className="text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div 
+              className="px-4 py-5 border-b"
+              style={{
+                borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
+                background: "#FFF"
+              }}
+            >
+              <p 
+                className="text-gray-600 mb-4"
+                style={{
+                  color: "#525866",
+                  fontSize: "16px",
+                  fontWeight: 400,
+                  lineHeight: "150%"
+                }}
+              >
+                Are you sure you want to remove this room request from <span className="font-semibold">{roomRequestToRemove.guestName}</span>?
+              </p>
+              
+              {/* Details Card */}
+              <div 
+                className="bg-gray-50 rounded-[8px] p-4"
+                style={{
+                  background: "#F9FAFB",
+                  borderRadius: "8px"
+                }}
+              >
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600" style={{ fontSize: "13px", color: "#6B7280" }}>Room:</span>
+                    <span className="text-sm font-medium text-black" style={{ fontSize: "13px" }}>{roomRequestToRemove.roomName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600" style={{ fontSize: "13px", color: "#6B7280" }}>Guest:</span>
+                    <span className="text-sm font-medium text-black" style={{ fontSize: "13px" }}>{roomRequestToRemove.guestName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600" style={{ fontSize: "13px", color: "#6B7280" }}>Phone:</span>
+                    <span className="text-sm font-medium text-black" style={{ fontSize: "13px" }}>{roomRequestToRemove.guestPhone}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div 
+              className="flex justify-end items-center gap-3 px-4 py-5 rounded-b-[10px]"
+              style={{
+                background: "#FFF"
+              }}
+            >
+              <button
+                onClick={closeRemoveRoomRequestModal}
+                disabled={isRemovingRoomRequest}
+                className="px-2.5 py-2 rounded-[6px] text-center font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  padding: "8.52px 20px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  lineHeight: "19.5px",
+                  color: "#525866",
+                  background: "#F3F4F6",
+                  border: "1px solid #E5E7EB"
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmRemoveRoomRequest}
+                disabled={isRemovingRoomRequest}
+                className="px-2.5 py-2 rounded-[6px] text-center font-medium text-sm text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                style={{
+                  padding: "8.52px 20px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  lineHeight: "19.5px",
+                  background: "#EF4444"
+                }}
+              >
+                {isRemovingRoomRequest ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Removing...</span>
+                  </>
+                ) : (
+                  'Remove Request'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Room History Modal - Right Slide Popup */}
@@ -2988,6 +3793,7 @@ export default function RoomPage() {
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button 
+                            onClick={() => handleAcceptClient(request)}
                             className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center hover:bg-green-200 transition-colors"
                             title="Approve"
                           >
@@ -2996,6 +3802,7 @@ export default function RoomPage() {
                             </svg>
                           </button>
                           <button 
+                            onClick={() => handleRemoveRoomRequest(request)}
                             className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center hover:bg-red-200 transition-colors"
                             title="Reject"
                           >
