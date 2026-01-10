@@ -13,6 +13,7 @@ import UserPermissionsModal from "@/app/partner/components/user-permissions-moda
 import DropdownArrow from "@/app/superadmin/components/dropdown-arrow"
 import SortArrows from "@/app/superadmin/components/sort-arrows"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
+import SuccessCard from "@/app/superadmin/components/success-card"
 import AddStaffModal from "@/app/partner/components/add-staff-modal"
 import AddMemberModal from "@/app/partner/components/add-member-modal"
 import ResetPasswordModal from "@/app/partner/components/reset-password-modal"
@@ -148,6 +149,10 @@ export default function TeamPage() {
   const [memberForPermissions, setMemberForPermissions] = useState<TeamMember | StaffMember | null>(null)
   const [showAddStaffModal, setShowAddStaffModal] = useState(false)
   const [showAddMemberModal, setShowAddMemberModal] = useState(false)
+  // Success card state for staff operations
+  const [showSuccessCard, setShowSuccessCard] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
+  const [successProfileImage, setSuccessProfileImage] = useState<string | undefined>()
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
   const [memberForPasswordReset, setMemberForPasswordReset] = useState<TeamMember | StaffMember | null>(null)
   const [isLoadingMembers, setIsLoadingMembers] = useState(true)
@@ -1599,7 +1604,20 @@ export default function TeamPage() {
       <AddStaffModal
         isOpen={showAddStaffModal}
         onClose={() => setShowAddStaffModal(false)}
-        onSuccess={fetchStaff}
+        onSuccess={(staffName) => {
+          // Generate initials from staff name
+          const initials = staffName
+            .split(' ')
+            .map(n => n[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2)
+          
+          setSuccessMessage(`Staff added successfully.\n${staffName}`)
+          setSuccessProfileImage(initials)
+          setShowSuccessCard(true)
+          fetchStaff()
+        }}
       />
 
       {/* Add Member Modal */}
@@ -1626,6 +1644,14 @@ export default function TeamPage() {
             fetchMembers()
           }
         }}
+      />
+
+      {/* Success Card */}
+      <SuccessCard
+        isOpen={showSuccessCard}
+        message={successMessage}
+        onClose={() => setShowSuccessCard(false)}
+        profileImage={successProfileImage}
       />
     </div>
   )

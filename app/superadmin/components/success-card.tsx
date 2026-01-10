@@ -1,19 +1,22 @@
 "use client"
 
 import { useEffect } from "react"
+import Image from "next/image"
 
 interface SuccessCardProps {
   isOpen: boolean
   message: string
   onClose: () => void
   autoCloseDelay?: number // in milliseconds, default 5000
+  profileImage?: string // Optional profile image URL or initials
 }
 
 export default function SuccessCard({
   isOpen,
   message,
   onClose,
-  autoCloseDelay = 5000
+  autoCloseDelay = 5000,
+  profileImage
 }: SuccessCardProps) {
   useEffect(() => {
     if (isOpen) {
@@ -25,6 +28,11 @@ export default function SuccessCard({
   }, [isOpen, autoCloseDelay, onClose])
 
   if (!isOpen) return null
+
+  // Split message by newline to support multi-line messages
+  const messageParts = message.split('\n')
+  const mainMessage = messageParts[0]
+  const secondaryMessage = messageParts.length > 1 ? messageParts.slice(1).join('\n') : null
 
   return (
     <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5">
@@ -74,8 +82,61 @@ export default function SuccessCard({
               />
             </svg>
           </div>
-          <span className="text-sm font-medium text-gray-800">{message}</span>
+          <span className="text-sm font-medium text-gray-800">{mainMessage}</span>
         </div>
+
+        {/* Secondary Message Row (for name/ticket ID with profile image) */}
+        {secondaryMessage && (
+          <div
+            className="flex items-center gap-3"
+            style={{
+              display: "flex",
+              padding: "10px 13px",
+              alignItems: "center",
+              gap: "10px",
+              alignSelf: "stretch",
+              borderRadius: "10px",
+              background: "#0B0F18"
+            }}
+          >
+            {/* Profile Image */}
+            {profileImage && (
+              <div
+                style={{
+                  width: "24px",
+                  height: "24px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "50%",
+                  background: "#56C6FF",
+                  flexShrink: 0,
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  color: "#0B0F18"
+                }}
+              >
+                {profileImage.startsWith('http') || profileImage.startsWith('/') ? (
+                  <Image
+                    src={profileImage}
+                    alt="Profile"
+                    width={24}
+                    height={24}
+                    style={{
+                      borderRadius: "50%",
+                      objectFit: "cover"
+                    }}
+                  />
+                ) : (
+                  profileImage
+                )}
+              </div>
+            )}
+            <span className="text-sm font-medium text-white">
+              {secondaryMessage}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )

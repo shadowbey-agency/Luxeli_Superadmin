@@ -9,7 +9,7 @@ import ErrorCard from "@/app/superadmin/components/error-card"
 interface AddStaffModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess?: () => void
+  onSuccess?: (staffName: string) => void
 }
 
 export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffModalProps) {
@@ -96,7 +96,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess }: AddStaffMo
         // Close modal and refresh list
         onClose()
         if (onSuccess) {
-          onSuccess()
+          onSuccess(staffName)
         }
         // Show success card instead of alert
         setShowSuccessCard(true)

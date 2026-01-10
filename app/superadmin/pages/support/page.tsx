@@ -45,6 +45,7 @@ import UnmarkTicketModal from "@/app/superadmin/components/unmark-ticket-modal"
 import ContactPartnerModal from "@/app/superadmin/components/contact-partner-modal"
 import DeleteTicketModal from "@/app/superadmin/components/delete-ticket-modal"
 import AssignTicketModal from "@/app/superadmin/components/assign-ticket-modal"
+import SuccessCard from "@/app/superadmin/components/success-card"
 import { 
   ChangeStatusIcon, 
   MarkAsTicketIcon 
@@ -94,6 +95,9 @@ export default function SupportPage() {
   const [showAssignTicketModal, setShowAssignTicketModal] = useState(false)
   const [ticketToAssign, setTicketToAssign] = useState<Ticket | null>(null)
   const [assigneeOptions, setAssigneeOptions] = useState<Array<{ value: string; label: string; profilePic?: string }>>([])
+  const [showSuccessCard, setShowSuccessCard] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
+  const [successProfileImage, setSuccessProfileImage] = useState("")
 
   // Map API ticket to UI Ticket interface
   const mapApiTicketToTicket = (apiTicket: any): Ticket => {
@@ -257,6 +261,10 @@ export default function SupportPage() {
         return
       }
 
+      // Find the ticket to get the ticketId for display
+      const ticket = tickets.find((t) => t.id === ticketId)
+      const displayTicketId = ticket?.ticketId || ticketId
+
       console.log('Updating ticket:', ticketId, 'to status:', newStatus)
 
       const response = await fetch(`/api/superadmin/tickets/${ticketId}`, {
@@ -272,6 +280,11 @@ export default function SupportPage() {
       
       if (response.ok) {
         console.log('Ticket updated successfully:', responseData)
+        // Show success card with ticket ID and avatar
+        const ticketAssignee = ticket?.assignee
+        setSuccessProfileImage(ticketAssignee?.avatar || 'T')
+        setSuccessMessage(`Status changed successfully.\nTicket ID : ${displayTicketId}`)
+        setShowSuccessCard(true)
         // Refresh tickets after update
         await fetchTickets()
       } else {
@@ -1165,6 +1178,18 @@ export default function SupportPage() {
         onClose={closeAssignTicketModal}
         onConfirm={confirmAssignTicket}
         assigneeOptions={assigneeOptions}
+      />
+
+      {/* Success Card */}
+      <SuccessCard
+        isOpen={showSuccessCard}
+        message={successMessage}
+        profileImage={successProfileImage}
+        onClose={() => {
+          setShowSuccessCard(false)
+          setSuccessMessage("")
+          setSuccessProfileImage("")
+        }}
       />
 
     </div>

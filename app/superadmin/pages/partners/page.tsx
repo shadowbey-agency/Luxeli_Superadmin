@@ -452,6 +452,9 @@ export default function PartnersPage() {
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
   const [partnerIdForReset, setPartnerIdForReset] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'partner-info' | 'subscription' | 'room-api'>('partner-info')
+  // Bulk upload rooms state
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isUploadingRooms, setIsUploadingRooms] = useState(false)
   const [showPasswordDetails, setShowPasswordDetails] = useState(false)
   const [partnerStats, setPartnerStats] = useState<{
     totalPartners: number;
@@ -1444,6 +1447,64 @@ export default function PartnersPage() {
     setShowViewDetail(false)
     setSelectedPartner(null)
     setActiveTab('partner-info')
+    setSelectedFile(null)
+  }
+
+  const handleBulkUploadFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate file type
+      if (file.type !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' &&
+          file.type !== 'application/vnd.ms-excel') {
+        alert('Please upload a valid Excel file (.xlsx or .xls)')
+        return
+      }
+      setSelectedFile(file)
+    }
+  }
+
+  const handleBulkUploadRooms = async () => {
+    if (!selectedFile || !selectedPartner) {
+      alert('Please select a file and ensure a partner is selected')
+      return
+    }
+
+    try {
+      setIsUploadingRooms(true)
+      const token = getAuthToken()
+      if (!token) {
+        alert('Please log in to upload rooms')
+        return
+      }
+
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+
+      const response = await fetch('/api/partner/rooms/bulk-upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        alert(`Success! ${result.total} rooms uploaded successfully`)
+        setSelectedFile(null)
+        // Reset file input
+        const fileInput = document.getElementById('room-file-input') as HTMLInputElement
+        if (fileInput) fileInput.value = ''
+      } else {
+        alert(`Error: ${result.error || 'Failed to upload rooms'}`)
+      }
+    } catch (error: any) {
+      console.error('Error uploading rooms:', error)
+      alert(`Error: ${error?.message || 'Failed to upload rooms. Please try again.'}`)
+    } finally {
+      setIsUploadingRooms(false)
+    }
   }
 
   const normalized = (v: string) => v.toLowerCase()
@@ -2930,69 +2991,9 @@ export default function PartnersPage() {
                       <h3 className="text-lg font-semibold text-black">Upload rooms</h3>
                     </div>
 
-                    {/* Room API Loading Bar Section */}
-                    <div
-                      className="flex items-center gap-5 self-stretch rounded-lg border"
-                      style={{
-                        height: "42px",
-                        padding: "12px 13px",
-                        borderRadius: "6.75px",
-                        border: "1px solid #E6E6E6",
-                        background: "#FFF",
-                        boxShadow: "0 2px 2px 0 rgba(0, 0, 0, 0.05)"
-                      }}
-                    >
-                      {/* File Icon */}
-                      <div
-                        className="flex-shrink-0"
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          aspectRatio: "1/1"
-                        }}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                          <path d="M5.12276 0H11.8146L17.4792 5.90996V17.3982C17.4792 18.8353 16.3145 20 14.8774 20H5.12276C3.68571 20 2.521 18.8353 2.521 17.3982V2.60177C2.521 1.16474 3.68571 0 5.12276 0Z" fill="#0263D1" />
-                          <path opacity="0.302" fillRule="evenodd" clipRule="evenodd" d="M11.8062 0V5.86141H17.4789L11.8062 0Z" fill="white" />
-                          <path d="M4.93652 14.2705V10.9596H6.10935C6.34391 10.9596 6.56232 10.9947 6.76453 11.0594C6.96674 11.1268 7.15007 11.2239 7.31455 11.3533C7.47901 11.4827 7.60844 11.6553 7.7028 11.8709C7.79716 12.0866 7.8457 12.3347 7.8457 12.6151C7.8457 12.8955 7.79716 13.1435 7.7028 13.3592C7.60844 13.5749 7.47901 13.7474 7.31455 13.8768C7.15009 14.0062 6.96674 14.1033 6.76453 14.1707C6.56232 14.2354 6.34393 14.2705 6.10935 14.2705H4.93652ZM5.76424 13.5506H6.00959C6.1417 13.5506 6.26572 13.5345 6.37625 13.5048C6.48949 13.4724 6.59193 13.4212 6.68899 13.3538C6.78606 13.2864 6.86154 13.1893 6.91546 13.0626C6.97209 12.9386 6.99903 12.7876 6.99903 12.6151C6.99903 12.4425 6.97207 12.2915 6.91546 12.1648C6.86154 12.0408 6.78606 11.9437 6.68899 11.8763C6.59193 11.8062 6.48949 11.7577 6.37625 11.7253C6.26572 11.6957 6.1417 11.6795 6.00959 11.6795H5.76424V13.5506ZM9.85431 14.3082C9.35553 14.3082 8.94302 14.1465 8.61679 13.8256C8.29055 13.5048 8.12877 13.1004 8.12877 12.6151C8.12877 12.1298 8.29055 11.7254 8.61679 11.4045C8.94302 11.0837 9.35553 10.9219 9.85431 10.9219C10.345 10.9219 10.7521 11.0837 11.0784 11.4045C11.4019 11.7254 11.5637 12.1298 11.5637 12.6151C11.5637 13.1004 11.4019 13.5048 11.0784 13.8256C10.7521 14.1465 10.345 14.3082 9.85431 14.3082ZM9.21801 13.3134C9.38247 13.4967 9.59276 13.5884 9.8489 13.5884C10.105 13.5884 10.3126 13.4967 10.4771 13.3134C10.6416 13.1273 10.7225 12.8955 10.7225 12.6151C10.7225 12.3347 10.6416 12.1028 10.4771 11.9168C10.3127 11.7334 10.105 11.6417 9.8489 11.6417C9.59276 11.6417 9.38247 11.7334 9.21801 11.9168C9.05355 12.1028 8.96996 12.3347 8.96996 12.6151C8.96996 12.8955 9.05355 13.1273 9.21801 13.3134ZM13.5318 14.3082C13.0492 14.3082 12.6475 14.1573 12.3294 13.8607C12.0085 13.5614 11.8495 13.1462 11.8495 12.6151C11.8495 12.0866 12.0112 11.6714 12.3348 11.3721C12.661 11.0729 13.0573 10.9219 13.5319 10.9219C13.9605 10.9219 14.311 11.027 14.5888 11.24C14.8638 11.4503 15.0228 11.7307 15.0633 12.0812L14.2275 12.2511C14.1924 12.0677 14.1088 11.9195 13.9794 11.8089C13.85 11.6983 13.699 11.6417 13.5265 11.6417C13.2892 11.6417 13.0924 11.7253 12.9333 11.8952C12.7742 12.0677 12.6933 12.305 12.6933 12.615C12.6933 12.9251 12.7742 13.1624 12.9306 13.3322C13.0897 13.5048 13.2865 13.5884 13.5264 13.5884C13.699 13.5884 13.8473 13.5398 13.9686 13.4428C14.0899 13.3457 14.1654 13.2163 14.1978 13.0545L15.0525 13.2487C14.9743 13.583 14.8017 13.8418 14.5321 14.0278C14.2652 14.2139 13.9309 14.3082 13.5318 14.3082Z" fill="white" />
-                        </svg>
-                      </div>
-
-                      {/* Room API Data Text */}
-                      <span className="text-sm font-medium text-black">Rooms api data</span>
-
-                      {/* Loading Bar */}
-                      <div
-                        className="flex flex-col items-start gap-2.5 flex-1"
-                        style={{
-                          height: "8px",
-                          borderRadius: "10px",
-                          background: "#F5F6F6"
-                        }}
-                      >
-                        {/* Progress Bar */}
-                        <div
-                          className="h-2 rounded-lg"
-                          style={{
-                            width: "230px",
-                            height: "8px",
-                            borderRadius: "10px",
-                            background: "#56C6FF"
-                          }}
-                        />
-                      </div>
-
-                      {/* X Button */}
-                      <button className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-
                     {/* Choose File Section */}
                     <div
-                      className="flex flex-col justify-center items-center gap-3 rounded-lg border"
+                      className="flex flex-col justify-center items-center gap-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors"
                       style={{
                         height: "150px",
                         padding: "25px 13px",
@@ -3005,20 +3006,15 @@ export default function PartnersPage() {
                         border: "1px solid rgba(0, 0, 0, 0.06)",
                         background: "#FBFAFA"
                       }}
+                      onClick={() => document.getElementById('room-file-input')?.click()}
                     >
                       {/* Hidden File Input */}
                       <input
                         type="file"
                         id="room-file-input"
                         className="hidden"
-                        accept=".csv,.xlsx,.xls,.json"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) {
-                            console.log('Selected file:', file.name)
-                            // Here you can add file processing logic
-                          }
-                        }}
+                        accept=".xlsx,.xls"
+                        onChange={(e) => handleBulkUploadFile(e)}
                       />
 
                       {/* Upload Icon */}
@@ -3043,19 +3039,29 @@ export default function PartnersPage() {
                           choose file
                         </label>
                       </span>
+                      <span className="text-xs text-gray-500">Excel file (.xlsx, .xls) with roomName column</span>
                     </div>
                   </div>
 
-                  {/* Save Button */}
+                  {/* Save/Upload Button */}
                   <button
-                    className="flex justify-center items-center gap-1.5 rounded-md text-white font-medium hover:opacity-90 transition-opacity"
+                    onClick={handleBulkUploadRooms}
+                    disabled={!selectedFile || isUploadingRooms}
+                    className="flex justify-center items-center gap-1.5 rounded-md text-white font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                       padding: "8.52px 20px",
                       borderRadius: "6px",
                       background: "#1F2A44"
                     }}
                   >
-                    Save
+                    {isUploadingRooms ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      'Upload Rooms'
+                    )}
                   </button>
                 </div>
               )}

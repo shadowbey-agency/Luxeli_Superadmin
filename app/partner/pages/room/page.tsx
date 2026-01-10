@@ -15,6 +15,7 @@ import PublicIcon from "@/app/partner/components/public-icon"
 import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 import StatCard from "@/app/superadmin/components/stat-card"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
+import SuccessCard from "@/app/superadmin/components/success-card"
 import { getAuthToken } from "@/lib/auth-utils"
 import { QRCodeCanvas } from "qrcode.react"
 import * as XLSX from "xlsx"
@@ -173,6 +174,12 @@ export default function RoomPage() {
   // Two-step add room flow
   const [showAddStepOne, setShowAddStepOne] = useState(false)
   const [newRoomName, setNewRoomName] = useState("")
+  // Edit resident details state
+  const [editResidentName, setEditResidentName] = useState("")
+  const [editCheckInDate, setEditCheckInDate] = useState("")
+  const [editCheckInTime, setEditCheckInTime] = useState("")
+  const [editCheckOutDate, setEditCheckOutDate] = useState("")
+  const [editCheckOutTime, setEditCheckOutTime] = useState("")
   const [newRoomStatus, setNewRoomStatus] = useState<"Full" | "Empty">("Empty")
 
   // Room Requests State
@@ -209,6 +216,14 @@ export default function RoomPage() {
   const [newCheckInTime, setNewCheckInTime] = useState("")
   const [newCheckOutDate, setNewCheckOutDate] = useState("")
   const [newCheckOutTime, setNewCheckOutTime] = useState("")
+  // Success card state for room operations
+  const [showSuccessCard, setShowSuccessCard] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
+  const [successProfileImage, setSuccessProfileImage] = useState<string | undefined>()
+  // Import rooms modal state
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importSelectedFile, setImportSelectedFile] = useState<File | null>(null)
+  const [isImportingRooms, setIsImportingRooms] = useState(false)
   // Loading state
   const [isLoadingRooms, setIsLoadingRooms] = useState(true)
   // Pagination state
@@ -303,6 +318,22 @@ export default function RoomPage() {
     // Extract guest data from the populated guest field (only if isActive=true)
     const guest = apiRoom.guest || null
 
+    // Function to format date to ISO string (YYYY-MM-DD)
+    const toISODate = (date: Date | string | null) => {
+      if (!date) return undefined
+      const d = new Date(date)
+      return d.toISOString().split('T')[0]
+    }
+
+    // Function to extract time from ISO date string
+    const toISOTime = (date: Date | string | null) => {
+      if (!date) return undefined
+      const d = new Date(date)
+      const hours = String(d.getHours()).padStart(2, '0')
+      const minutes = String(d.getMinutes()).padStart(2, '0')
+      return `${hours}:${minutes}`
+    }
+
     return {
       id: apiRoom._id || apiRoom.id,
       roomNumber: apiRoom.roomId || apiRoom.roomName || '',
@@ -318,8 +349,9 @@ export default function RoomPage() {
       resident: guest?.guestName || null,
       residentEmail: guest?.guestEmail || null,
       residentPhoneNo: guest?.guestPhone || null,
-      checkIn: guest?.checkInDate ? formatDate(guest.checkInDate) : undefined,
-      checkOut: guest?.checkOutDate ? formatDate(guest.checkOutDate) : undefined,
+      // Store ISO formatted strings for editing
+      checkIn: guest?.checkInDate ? `${toISODate(guest.checkInDate)}T${toISOTime(guest.checkInDate)}` : undefined,
+      checkOut: guest?.checkOutDate ? `${toISODate(guest.checkOutDate)}T${toISOTime(guest.checkOutDate)}` : undefined,
     }
   }
 
@@ -555,15 +587,18 @@ export default function RoomPage() {
 
   const handleEditRoom = (room: Room) => {
     setSelectedRoom(room)
-    // Pre-fill only room name
-    setNewRoomName(room.roomNumber)
+    setEditResidentName(room.resident || "")
+    setEditCheckInDate(room.checkIn ? room.checkIn.split('T')[0] : "")
+    setEditCheckInTime(room.checkIn ? room.checkIn.split('T')[1]?.slice(0, 5) : "")
+    setEditCheckOutDate(room.checkOut ? room.checkOut.split('T')[0] : "")
+    setEditCheckOutTime(room.checkOut ? room.checkOut.split('T')[1]?.slice(0, 5) : "")
     setShowEditModal(true)
   }
 
   const handleSaveEdit = async () => {
     if (!selectedRoom) return
-    if (!newRoomName.trim()) {
-      showAlert('Validation Error', 'Please enter a room name', 'warning')
+    if (!editResidentName.trim()) {
+      showAlert('Validation Error', 'Please enter resident name', 'warning')
       return
     }
     try {
@@ -574,15 +609,16 @@ export default function RoomPage() {
         setIsUpdatingRoom(false)
         return
       }
-      const response = await fetch(`/api/partner/rooms/update-by-name`, {
+      const response = await fetch(`/api/partner/rooms/${selectedRoom.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          originalRoomName: selectedRoom.roomNumber, // Use room name instead of ID
-          roomName: newRoomName.trim(),
+          resident: editResidentName.trim(),
+          checkIn: editCheckInDate && editCheckInTime ? `${editCheckInDate}T${editCheckInTime}` : null,
+          checkOut: editCheckOutDate && editCheckOutTime ? `${editCheckOutDate}T${editCheckOutTime}` : null,
         })
       })
       const result = await response.json()
@@ -590,8 +626,13 @@ export default function RoomPage() {
         await fetchRooms()
         setShowEditModal(false)
         setSelectedRoom(null)
-        setNewRoomName("")
-        showAlert('Success', 'Room updated successfully', 'success')
+        setEditResidentName("")
+        setEditCheckInDate("")
+        setEditCheckInTime("")
+        setEditCheckOutDate("")
+        setEditCheckOutTime("")
+        setSuccessMessage(`Room updated successfully.\n${editResidentName.trim()}`)
+        setShowSuccessCard(true)
       } else {
         showAlert('Error', result.error || 'Failed to update room', 'error')
       }
@@ -701,7 +742,75 @@ export default function RoomPage() {
     // Download file
     const fileName = `rooms-export-${new Date().toISOString().split('T')[0]}.xlsx`;
     saveAs(blob, fileName);
-  };
+  }
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate file type
+      if (file.type !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' &&
+          file.type !== 'application/vnd.ms-excel') {
+        showAlert('Invalid File', 'Please upload a valid Excel file (.xlsx or .xls)', 'error')
+        return
+      }
+      setImportSelectedFile(file)
+    }
+  }
+
+  const handleImportRooms = async () => {
+    if (!importSelectedFile) {
+      showAlert('No File', 'Please select an Excel file to import', 'warning')
+      return
+    }
+
+    try {
+      setIsImportingRooms(true)
+      const token = getAuthToken()
+      if (!token) {
+        showAlert('Authentication Required', 'Please log in to import rooms', 'warning')
+        return
+      }
+
+      // Upload file to backend - let backend handle all validation
+      const formData = new FormData()
+      formData.append('file', importSelectedFile)
+
+      const response = await fetch('/api/partner/rooms/bulk-upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        // Build success message with skipped rooms info
+        let message = `Rooms imported successfully.\n${result.total} rooms added`
+        if (result.skipped && result.skipped > 0) {
+          message += `\n${result.skipped} room${result.skipped !== 1 ? 's' : ''} skipped (already existed)`
+        }
+        setSuccessMessage(message)
+        setShowSuccessCard(true)
+        setShowImportModal(false)
+        setImportSelectedFile(null)
+        // Reset file input
+        const fileInput = document.getElementById('import-file-input') as HTMLInputElement
+        if (fileInput) fileInput.value = ''
+        await fetchRooms()
+      } else {
+        // Show detailed error message from backend
+        const errorMsg = result.error || 'Failed to import rooms'
+        showAlert('Import Error', errorMsg, 'error')
+      }
+    } catch (error: any) {
+      console.error('Error importing rooms:', error)
+      showAlert('Error', error?.message || 'Failed to import rooms. Please try again.', 'error')
+    } finally {
+      setIsImportingRooms(false)
+    }
+  }
 
   const handleAssignRoom = (room: Room) => {
     setRoomToAssign(room)
@@ -709,10 +818,10 @@ export default function RoomPage() {
     setAssignResident(room.resident || "")
     setAssignResidentEmail(room.residentEmail || "")
     setAssignResidentPhoneNo(room.residentPhoneNo || "")
-    setAssignCheckInDate(room.checkIn ? room.checkIn.split(',')[0] : "")
-    setAssignCheckInTime(room.checkIn ? room.checkIn.split(',')[1]?.trim() || "" : "")
-    setAssignCheckOutDate(room.checkOut ? room.checkOut.split(',')[0] : "")
-    setAssignCheckOutTime(room.checkOut ? room.checkOut.split(',')[1]?.trim() || "" : "")
+    setAssignCheckInDate(room.checkIn ? room.checkIn.split('T')[0] : "")
+    setAssignCheckInTime(room.checkIn ? room.checkIn.split('T')[1]?.slice(0, 5) : "")
+    setAssignCheckOutDate(room.checkOut ? room.checkOut.split('T')[0] : "")
+    setAssignCheckOutTime(room.checkOut ? room.checkOut.split('T')[1]?.slice(0, 5) : "")
     setAssignError(null)
     setShowAssignModal(true)
   }
@@ -1186,7 +1295,8 @@ export default function RoomPage() {
         if (response.ok && result.success) {
           await fetchRooms()
           closeAddStepOne()
-          showAlert('Success', 'Room added successfully', 'success')
+          setSuccessMessage(`Room added successfully.\n${newRoomName.trim()}`)
+          setShowSuccessCard(true)
         } else {
           showAlert('Error', result.error || 'Failed to add room', 'error')
         }
@@ -1327,7 +1437,8 @@ export default function RoomPage() {
       setNewCheckInTime("")
       setNewCheckOutDate("")
       setNewCheckOutTime("")
-      showAlert('Success', newRoomStatus === 'Full' ? 'Room added and resident assigned successfully' : 'Room added successfully', 'success')
+      setSuccessMessage(`Room added successfully.\n${newRoomName.trim()}`)
+      setShowSuccessCard(true)
     } catch (error) {
       console.error('Error adding room:', error)
       showAlert('Error', 'Failed to add room. Please try again.', 'error')
@@ -1545,25 +1656,6 @@ export default function RoomPage() {
                     Select all items
                   </button>
                   <button
-                    onClick={handleExportRooms}
-                    style={{
-                      color: "#1F2A44",
-                      fontSize: "14px",
-                      textDecoration: "underline",
-                      fontWeight: "400",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px"
-                    }}
-                  >
-                    <svg width="14" height="16" viewBox="0 0 14 16" fill="none">
-                      <path d="M11.3333 10.6666C11.6705 10.9943 13 11.8665 13 12.3333M11.3333 14C11.6705 13.6723 13 12.8001 13 12.3333M13 12.3333L7.66667 12.3333" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M6.33398 14.6666H6.15217C3.97803 14.6666 2.89096 14.6666 2.13603 14.1347C1.91973 13.9823 1.7277 13.8016 1.56578 13.598C1.00065 12.8875 1.00065 11.8644 1.00065 9.81814V8.12117C1.00065 6.14572 1.00065 5.158 1.31328 4.36913C1.81586 3.10091 2.87874 2.10055 4.22622 1.62753C5.0644 1.33329 6.11386 1.33329 8.21277 1.33329C9.41215 1.33329 10.0118 1.33329 10.4908 1.50143C11.2608 1.77172 11.8682 2.34336 12.1553 3.06805C12.334 3.51884 12.334 4.08325 12.334 5.21208V8.66663" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M1.0013 8C1.0013 6.7727 1.99622 5.77778 3.22352 5.77778C3.66738 5.77778 4.19066 5.85555 4.62221 5.73992C5.00565 5.63718 5.30514 5.33768 5.40789 4.95424C5.52352 4.52269 5.44575 3.99941 5.44575 3.55556C5.44575 2.32826 6.44067 1.33333 7.66797 1.33333" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    Export
-                  </button>
-                  <button
                     onClick={handleBulkDelete}
                     style={{
                       color: "#1F2A44",
@@ -1584,6 +1676,8 @@ export default function RoomPage() {
               ) : (
                 // Normal controls
                 <div className="flex items-center gap-2">
+                
+
                   <div className="relative">
                     <select
                       value={itemsPerPage}
@@ -1691,7 +1785,11 @@ export default function RoomPage() {
                     <span className="text-sm font-medium text-[#212121]">Export</span>
                   </button>
 
-                  <button className="flex py-[8.52px] px-5 justify-center items-center gap-1.5 border border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 transition-colors" style={{ borderRadius: "6px" }}>
+                  <button
+                    onClick={() => setShowImportModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 border  border-[#CED4DA] bg-[#FBFAFA] hover:bg-muted/80 text-sm font-medium transition-colors"
+                    style={{ borderRadius: "6px" }}
+                  >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="14"
@@ -1719,7 +1817,7 @@ export default function RoomPage() {
                         strokeLinejoin="round"
                       />
                     </svg>
-                    <span className="text-sm font-medium text-[#212121]">Export room data</span>
+                    <span className="text-sm font-medium text-[#212121]">Import room data</span>
                   </button>
 
                   <button
@@ -1949,27 +2047,75 @@ export default function RoomPage() {
             </div>
           </div>
 
-          {/* Edit Room Modal - only room name */}
+          {/* Edit Room Modal - Resident Details */}
           <RoomModal
             isOpen={showEditModal}
             title="Edit Room"
-            width="480px"
+            width="704px"
             onClose={() => {
               setShowEditModal(false)
               setSelectedRoom(null)
-              setNewRoomName("")
+              setEditResidentName("")
+              setEditCheckInDate("")
+              setEditCheckInTime("")
+              setEditCheckOutDate("")
+              setEditCheckOutTime("")
             }}
             onSave={handleSaveEdit}
             isLoading={isUpdatingRoom}
           >
-            {/* Room name only */}
+            {/* Resident name */}
             <div className="col-span-2 flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-700">Room name</label>
+              <label className="text-sm font-medium text-gray-700">The resident</label>
               <input
                 type="text"
                 placeholder="Write Here..."
-                value={newRoomName}
-                onChange={(e) => setNewRoomName(e.target.value)}
+                value={editResidentName}
+                onChange={(e) => setEditResidentName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Check in date */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">Check in date</label>
+              <input
+                type="date"
+                value={editCheckInDate}
+                onChange={(e) => setEditCheckInDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Check in time */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">Check in time</label>
+              <input
+                type="time"
+                value={editCheckInTime}
+                onChange={(e) => setEditCheckInTime(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Check out date */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">Check out date</label>
+              <input
+                type="date"
+                value={editCheckOutDate}
+                onChange={(e) => setEditCheckOutDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Check out time */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">Check out time</label>
+              <input
+                type="time"
+                value={editCheckOutTime}
+                onChange={(e) => setEditCheckOutTime(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -4084,6 +4230,167 @@ export default function RoomPage() {
         }}
         onCancel={() => setConfirmationDialog({ ...confirmationDialog, isOpen: false })}
       />
+
+      {/* Success Card */}
+      <SuccessCard 
+        isOpen={showSuccessCard}
+        message={successMessage}
+        onClose={() => setShowSuccessCard(false)}
+        profileImage={successProfileImage}
+      />
+
+      {/* Import Rooms Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
+          <div className="bg-white shadow-xl max-w-2xl w-full mx-4" style={{ borderRadius: "10px" }}>
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-200" style={{ padding: "20px 16px" }}>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Import rooms Data</h2>
+                <p className="text-sm text-gray-500 mt-1">Gorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowImportModal(false)
+                  setImportSelectedFile(null)
+                  const fileInput = document.getElementById('import-file-input') as HTMLInputElement
+                  if (fileInput) fileInput.value = ''
+                }}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{ padding: "20px 16px" }}>
+              {/* Upload Room Section */}
+              <div className="flex flex-col gap-5">
+                {/* Label */}
+                <h3 className="text-base font-semibold text-gray-900">Upload rooms</h3>
+
+                {/* File Display (if selected) */}
+                {importSelectedFile && (
+                  <div
+                    className="flex items-center gap-5 rounded-lg border"
+                    style={{
+                      height: "42px",
+                      padding: "12px 13px",
+                      borderRadius: "6.75px",
+                      border: "1px solid #E6E6E6",
+                      background: "#FFF",
+                      boxShadow: "0 2px 2px 0 rgba(0, 0, 0, 0.05)"
+                    }}
+                  >
+                    {/* File Icon */}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path d="M5.12276 0H11.8146L17.4792 5.90996V17.3982C17.4792 18.8353 16.3145 20 14.8774 20H5.12276C3.68571 20 2.521 18.8353 2.521 17.3982V2.60177C2.521 1.16474 3.68571 0 5.12276 0Z" fill="#0263D1" />
+                      <path opacity="0.302" fillRule="evenodd" clipRule="evenodd" d="M11.8062 0V5.86141H17.4789L11.8062 0Z" fill="white" />
+                    </svg>
+
+                    {/* File Name */}
+                    <span className="text-sm font-medium text-black flex-1">{importSelectedFile.name}</span>
+
+                    {/* Clear Button */}
+                    <button
+                      onClick={() => {
+                        setImportSelectedFile(null)
+                        const fileInput = document.getElementById('import-file-input') as HTMLInputElement
+                        if (fileInput) fileInput.value = ''
+                      }}
+                      className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors"
+                    >
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+
+                {/* File Drop Area */}
+                <div
+                  className="flex flex-col justify-center items-center gap-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors"
+                  style={{
+                    height: "150px",
+                    padding: "25px 13px",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: "12px",
+                    alignSelf: "stretch",
+                    borderRadius: "6.75px",
+                    border: "1px solid rgba(0, 0, 0, 0.06)",
+                    background: "#FBFAFA"
+                  }}
+                  onClick={() => document.getElementById('import-file-input')?.click()}
+                >
+                  {/* Hidden File Input */}
+                  <input
+                    type="file"
+                    id="import-file-input"
+                    className="hidden"
+                    accept=".xlsx,.xls"
+                    onChange={handleImportFile}
+                  />
+
+                  {/* Upload Icon */}
+                  <div style={{ width: "24px", height: "24px", padding: "2px" }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="22" viewBox="0 0 23 22" fill="none">
+                      <circle cx="11.5" cy="11" r="10" stroke="#141B34" strokeWidth="1.5" />
+                      <path d="M14.5 7.75C14.9142 7.75 15.25 7.41421 15.25 7C15.25 6.58579 14.9142 6.25 14.5 6.25V7V7.75ZM8.5 6.25C8.08579 6.25 7.75 6.58579 7.75 7C7.75 7.41421 8.08579 7.75 8.5 7.75L8.5 7L8.5 6.25ZM8.94325 11.3691C8.66572 11.6766 8.68999 12.1508 8.99747 12.4284C9.30496 12.7059 9.77921 12.6816 10.0567 12.3741L9.5 11.8716L8.94325 11.3691ZM10.4393 10.8309L9.88259 10.3284L10.4393 10.8309ZM12.5607 10.8309L12.0039 11.3334H12.0039L12.5607 10.8309ZM12.9433 12.3741C13.2208 12.6816 13.695 12.7059 14.0025 12.4284C14.31 12.1508 14.3343 11.6766 14.0567 11.3691L13.5 11.8716L12.9433 12.3741ZM10.75 16C10.75 16.4142 11.0858 16.75 11.5 16.75C11.9142 16.75 12.25 16.4142 12.25 16H11.5H10.75ZM14.5 7V6.25L8.5 6.25L8.5 7L8.5 7.75L14.5 7.75V7ZM9.5 11.8716L10.0567 12.3741L10.9961 11.3334L10.4393 10.8309L9.88259 10.3284L8.94325 11.3691L9.5 11.8716ZM12.5607 10.8309L12.0039 11.3334L12.9433 12.3741L13.5 11.8716L14.0567 11.3691L13.1174 10.3284L12.5607 10.8309ZM10.4393 10.8309L10.9961 11.3334C11.2607 11.0403 11.409 10.8785 11.5248 10.7805C11.6273 10.6939 11.5993 10.75 11.5 10.75V10V9.25C11.09 9.25 10.7817 9.44458 10.5565 9.63495C10.3447 9.81396 10.118 10.0676 9.88259 10.3284L10.4393 10.8309ZM12.5607 10.8309L13.1174 10.3284C12.882 10.0676 12.6553 9.81397 12.4435 9.63495C12.2183 9.44458 11.91 9.25 11.5 9.25V10V10.75C11.4007 10.75 11.3727 10.6939 11.4752 10.7805C11.591 10.8785 11.7393 11.0403 12.0039 11.3334L12.5607 10.8309ZM11.5 10H10.75L10.75 16H11.5H12.25L12.25 10H11.5Z" fill="#141B34" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-medium text-black">Drag and drop your files here or
+                    <label className="text-blue-600 cursor-pointer hover:underline ml-1">
+                      choose file
+                    </label>
+                  </span>
+                  <span className="text-xs text-gray-500">Excel file (.xlsx, .xls) with roomName column</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div
+              className="flex justify-end items-center gap-4 p-4 border-t border-black/8"
+              style={{
+                padding: "20px 16px",
+                borderTop: "1px solid rgba(0, 0, 0, 0.08)",
+                background: "#FFF"
+              }}
+            >
+              <button
+                onClick={() => {
+                  setShowImportModal(false)
+                  setImportSelectedFile(null)
+                  const fileInput = document.getElementById('import-file-input') as HTMLInputElement
+                  if (fileInput) fileInput.value = ''
+                }}
+                disabled={isImportingRooms}
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleImportRooms}
+                disabled={!importSelectedFile || isImportingRooms}
+                className="px-5 py-2 text-sm font-medium text-white rounded-md hover:bg-primary/90 transition-colors bg-primary disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isImportingRooms ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Importing...</span>
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

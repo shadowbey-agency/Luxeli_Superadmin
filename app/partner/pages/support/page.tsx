@@ -20,6 +20,7 @@ import AssignTicketModal from "@/app/superadmin/components/assign-ticket-modal"
 import UnmarkTicketModal from "@/app/superadmin/components/unmark-ticket-modal"
 import ContactPartnerModal from "@/app/partner/components/contact-partner-modal"
 import DeleteTicketModal from "@/app/superadmin/components/delete-ticket-modal"
+import SuccessCard from "@/app/superadmin/components/success-card"
 import {
   ChangeStatusIcon,
   AssignTicketIcon,
@@ -108,6 +109,9 @@ export default function SupportPage() {
   const [showDeleteTicketModal, setShowDeleteTicketModal] = useState(false)
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null)
   const [showAddTicketModal, setShowAddTicketModal] = useState(false)
+  const [showSuccessCard, setShowSuccessCard] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
+  const [successProfileImage, setSuccessProfileImage] = useState("")
 
   // Fetch tickets from API
   const fetchTickets = async () => {
@@ -217,7 +221,51 @@ export default function SupportPage() {
   }
 
   const confirmStatusChange = async (ticketId: string, newStatus: Ticket["status"]) => {
-    setTickets(tickets.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)))
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        alert('Authentication token not found. Please log in again.')
+        return
+      }
+
+      // Find the ticket to get the ticketId for display
+      const ticket = tickets.find((t) => t.id === ticketId)
+      const displayTicketId = ticket?.ticketId || ticketId
+
+      const response = await fetch(`/api/partner/tickets/${ticketId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+
+      const responseData = await response.json().catch(() => ({}))
+
+      if (response.ok) {
+        // Show success card with ticket ID and avatar
+        const ticketData = tickets.find((t) => t.id === ticketId)
+        setSuccessProfileImage(ticketData?.assignee?.avatar || 'T')
+        setSuccessMessage(`Status changed successfully.\nTicket ID : ${displayTicketId}`)
+        setShowSuccessCard(true)
+        // Update local state and refresh
+        setTickets(tickets.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)))
+        // Refresh tickets after update
+        await fetchTickets()
+      } else {
+        console.error('Failed to update ticket status:', {
+          status: response.status,
+          error: responseData.error || responseData.message || 'Unknown error',
+          fullResponse: responseData
+        })
+        alert(`Failed to update ticket status: ${responseData.error || responseData.message || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error updating ticket status:', error)
+      alert(`Error updating ticket status: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   const handleAssignTicket = (ticket: Ticket) => {
@@ -1137,6 +1185,18 @@ export default function SupportPage() {
         isOpen={showAddTicketModal}
         onClose={() => setShowAddTicketModal(false)}
         onSuccess={handleTicketCreated}
+      />
+
+      {/* Success Card */}
+      <SuccessCard
+        isOpen={showSuccessCard}
+        message={successMessage}
+        profileImage={successProfileImage}
+        onClose={() => {
+          setShowSuccessCard(false)
+          setSuccessMessage("")
+          setSuccessProfileImage("")
+        }}
       />
     </div>
   )

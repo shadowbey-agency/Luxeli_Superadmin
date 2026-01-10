@@ -97,6 +97,7 @@ export default function TeamPage() {
   const permissionsDropdownRef = React.useRef<HTMLDivElement | null>(null)
   const [showSuccessCard, setShowSuccessCard] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
+  const [successProfileImage, setSuccessProfileImage] = useState("")
   const [alertDialog, setAlertDialog] = useState<{
     isOpen: boolean
     title: string
@@ -417,7 +418,11 @@ export default function TeamPage() {
           permissions: []
         })
         
-        showAlert('Success', 'Member created successfully!', 'success')
+        // Show success card with member name
+        const memberInitials = memberData.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+        setSuccessProfileImage(memberInitials)
+        setSuccessMessage(`Member added successfully.\n${memberData.name}`)
+        setShowSuccessCard(true)
         // Refresh the members list
         await fetchMembers()
       } else {
@@ -478,7 +483,11 @@ export default function TeamPage() {
           showAlert('Error', `${(result as any).error || 'Failed to update member'}`, 'error')
         } else {
           setTeamMembers(prev => prev.map(m => m.id === selectedMember.id ? { ...m, name: editForm.name, email: editForm.email, phone: editForm.phone, username: editForm.username } : m))
-          showAlert('Success', 'Member updated successfully', 'success')
+          // Show success card with member name
+          const memberInitials = editForm.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+          setSuccessProfileImage(memberInitials)
+          setSuccessMessage(`Member updated successfully.\n${editForm.name}`)
+          setShowSuccessCard(true)
           setShowEditModal(false)
           setShowPermissionsDropdown(false)
           setSelectedMember(null)
@@ -1534,7 +1543,12 @@ export default function TeamPage() {
       <SuccessCard
         isOpen={showSuccessCard}
         message={successMessage}
-        onClose={() => setShowSuccessCard(false)}
+        profileImage={successProfileImage}
+        onClose={() => {
+          setShowSuccessCard(false)
+          setSuccessMessage("")
+          setSuccessProfileImage("")
+        }}
       />
 
       {/* Alert Dialog */}
