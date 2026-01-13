@@ -2645,7 +2645,7 @@ export default function PartnersPage() {
                           </svg>
                           <span className="text-sm text-gray-700">RC</span>
                         </div>
-                        <span className="text-sm text-black">123456 - Casablanca</span>
+                        <span className="text-sm text-black">{selectedPartner.RC || '-'}</span>
                       </div>
 
                       <div className="flex items-center justify-between">
@@ -2655,7 +2655,7 @@ export default function PartnersPage() {
                           </svg>
                           <span className="text-sm text-gray-700">ICE</span>
                         </div>
-                        <span className="text-sm text-black">65561655668978</span>
+                        <span className="text-sm text-black">{selectedPartner.ICE || '-'}</span>
                       </div>
 
                       <div className="flex items-center justify-between">
@@ -2665,7 +2665,7 @@ export default function PartnersPage() {
                           </svg>
                           <span className="text-sm text-gray-700">Identifiant Fiscal</span>
                         </div>
-                        <span className="text-sm text-black">112356489</span>
+                        <span className="text-sm text-black">{selectedPartner.identifiantFiscal || '-'}</span>
                       </div>
 
                       <div className="flex items-center justify-between">
@@ -2675,7 +2675,7 @@ export default function PartnersPage() {
                           </svg>
                           <span className="text-sm text-gray-700">Nº Taxe Professionnelle</span>
                         </div>
-                        <span className="text-sm text-black">03264863</span>
+                        <span className="text-sm text-black">{selectedPartner.taxeProfessionnelle || '-'}</span>
                       </div>
 
                       <div className="flex items-center justify-between">
