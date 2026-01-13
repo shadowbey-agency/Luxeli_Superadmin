@@ -289,133 +289,219 @@ export class RoomController {
   /**
    * Bulk upload rooms from Excel file
    */
-  static async bulkUploadRooms(partnerId: string, rows: any[]) {
-    try {
-      await connectDB();
+static async bulkUploadRooms(partnerId: string, rows: any[]) {
+  try {
+    await connectDB();
 
-      if (!rows || rows.length === 0) {
-        return NextResponse.json(
-          { success: false, error: 'Excel file is empty. Please add at least one room.' },
-          { status: 400 }
-        );
-      }
-
-      // Validate and transform rows
-      const roomsToInsert: any[] = [];
-      const errors: string[] = [];
-
-      // Normalize room names - remove extra spaces, hidden chars, etc.
-      const normalizeRoomName = (value: any) =>
-        value
-          .toString()
-          .trim()
-          .replace(/\s+/g, ' ')        // remove extra spaces
-          .replace(/\u00A0/g, '')      // remove non-breaking space
-          .replace(/[\r\n\t]/g, '')    // remove hidden chars
-          .toLowerCase();
-
-      rows.forEach((row: any, index: number) => {
-        // Try multiple header name variations
-        const rawRoomName = row['Room name'] || 
-                           row['Room Name'] || 
-                           row.roomName || 
-                           row['room_name'] ||
-                           row['Roomname'] ||
-                           Object.values(row)[0]; // Fallback to first column value
-        
-        if (!rawRoomName || (typeof rawRoomName === 'string' && rawRoomName.trim() === '')) {
-          errors.push(`Row ${index + 1}: Room name is required`);
-          return;
-        }
-
-        roomsToInsert.push({
-          partnerId,
-          roomName: normalizeRoomName(rawRoomName),
-          roomStatus: 'empty', // All uploaded rooms start as empty
-        });
-      });
-
-      // If there were validation errors, return them
-      if (errors.length > 0) {
-        return NextResponse.json(
-          { success: false, error: `Validation error: ${errors[0]}` },
-          { status: 400 }
-        );
-      }
-
-      if (roomsToInsert.length === 0) {
-        return NextResponse.json(
-          { success: false, error: 'No valid rooms found in the file' },
-          { status: 400 }
-        );
-      }
-
-      // Check for duplicate room names within the upload (after normalization)
-      const roomNames = roomsToInsert.map(r => r.roomName);
-      const uniqueNames = new Set(roomNames);
-      if (uniqueNames.size !== roomNames.length) {
-        const duplicates = roomNames.filter((name, index) => roomNames.indexOf(name) !== index);
-        const uniqueDuplicates = [...new Set(duplicates)];
-        return NextResponse.json( 
-          { success: false, error: `Duplicate room names in file: ${uniqueDuplicates.join(', ')}. Each room name must be unique.` },
-          { status: 400 }
-        );
-      }
-
-      // Check for existing room names for this partner (case-insensitive)
-      const existingRooms = await Room.find({
-        partnerId,
-        roomName: { 
-          $in: roomsToInsert.map(r => new RegExp(`^${r.roomName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'))
-        }
-      }).lean();
-
-      // Separate new rooms from existing ones (case-insensitive comparison)
-      const existingRoomNames = new Set(existingRooms.map(r => r.roomName.toLowerCase()));
-      const newRooms = roomsToInsert.filter(r => !existingRoomNames.has(r.roomName.toLowerCase()));
-      const skippedRooms = existingRooms.map(r => r.roomName);
-
-      if (newRooms.length === 0) {
-        return NextResponse.json(
-          { success: false, error: `All rooms already exist: ${skippedRooms.join(', ')}. No new rooms to add.` },
-          { status: 409 }
-        );
-      }
-
-      // Insert rooms
-      try {
-        const result = await Room.insertMany(newRooms, { ordered: false });
-
-        // Build success message with details
-        let message = `${result.length} room${result.length !== 1 ? 's' : ''} added successfully`;
-        if (skippedRooms.length > 0) {
-          message += ` (${skippedRooms.length} room${skippedRooms.length !== 1 ? 's' : ''} skipped - already existed: ${skippedRooms.join(', ')})`;
-        }
-
-        return NextResponse.json({
-          success: true,
-          message: message,
-          total: result.length,
-          skipped: skippedRooms.length,
-          skippedRooms: skippedRooms,
-          createdRooms: result,
-        }, { status: 201 });
-      } catch (insertError: any) {
-        // Handle duplicate key errors from MongoDB
-        if (insertError.code === 11000) {
-          const field = Object.keys(insertError.keyValue || {})[0];
-          const value = insertError.keyValue?.[field];
-          if (field === 'roomName') {
-            return NextResponse.json(
-              { success: false, error: `Room "${value}" already exists in your system. Please use a different room name.` },
-              { status: 409 }
-            );
-          }
-        }
-        throw insertError;
-      }
-    } catch (error: any) {
-      return handleApiError(error, 'Failed to upload rooms');
+    // Validate input
+    if (!rows || rows.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Excel file is empty. Please add at least one room.' },
+        { status: 400 }
+      );
     }
+
+    console.log('📁 Starting bulk upload for partner:', partnerId);
+    console.log('📊 Total rows received:', rows.length);
+
+    // Normalize room names for comparison
+    const normalizeRoomName = (value: any) =>
+      value
+        .toString()
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replace(/\u00A0/g, '')
+        .replace(/[\r\n\t]/g, '')
+        .toLowerCase();
+
+    // Parse and validate rows
+    const roomsToInsert: any[] = [];
+    const errors: string[] = [];
+    const normalizedNamesMap = new Map<string, string>();
+
+    rows.forEach((row: any, index: number) => {
+      // Try multiple header variations
+      const rawRoomName = row['Room name'] || 
+                         row['Room Name'] || 
+                         row.roomName || 
+                         row['room_name'] ||
+                         row['Roomname'] ||
+                         Object.values(row)[0];
+      
+      if (!rawRoomName || (typeof rawRoomName === 'string' && rawRoomName.trim() === '')) {
+        errors.push(`Row ${index + 2}: Room name is required`);
+        return;
+      }
+
+      // Clean the room name
+      const cleanedName = rawRoomName
+        .toString()
+        .trim()
+        .replace(/\u00A0/g, '')
+        .replace(/[\r\n\t]/g, '')
+        .replace(/\s+/g, ' ');
+      
+      const normalizedName = normalizeRoomName(cleanedName);
+
+      // Check for duplicates within the Excel file
+      if (normalizedNamesMap.has(normalizedName)) {
+        errors.push(`Row ${index + 2}: Duplicate room name "${cleanedName}"`);
+        return;
+      }
+
+      normalizedNamesMap.set(normalizedName, cleanedName);
+      roomsToInsert.push(cleanedName); // Store just the name for now
+    });
+
+    console.log('✅ Valid rooms:', roomsToInsert.length);
+    console.log('❌ Errors:', errors.length);
+
+    // Return validation errors if any
+    if (errors.length > 0) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Validation failed',
+          errors: errors.slice(0, 10),
+          totalErrors: errors.length
+        },
+        { status: 400 }
+      );
+    }
+
+    if (roomsToInsert.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No valid rooms found in the file' },
+        { status: 400 }
+      );
+    }
+
+    // Fetch existing rooms for this partner
+    console.log('🔍 Checking existing rooms...');
+    const existingRooms = await Room.find({ partnerId }).lean();
+    console.log('Found existing rooms:', existingRooms.length);
+
+    // Create normalized name set for quick lookup
+    const existingNormalizedNames = new Set(
+      existingRooms.map(r => normalizeRoomName(r.roomName))
+    );
+
+    // Filter out rooms that already exist
+    const newRoomNames: string[] = [];
+    const skippedRooms: string[] = [];
+
+    roomsToInsert.forEach(roomName => {
+      const normalized = normalizeRoomName(roomName);
+      
+      if (existingNormalizedNames.has(normalized)) {
+        const existingRoom = existingRooms.find(
+          r => normalizeRoomName(r.roomName) === normalized
+        );
+        skippedRooms.push(existingRoom?.roomName || roomName);
+      } else {
+        newRoomNames.push(roomName);
+        existingNormalizedNames.add(normalized);
+      }
+    });
+
+    console.log('New rooms to insert:', newRoomNames.length);
+    console.log('Skipped (duplicates):', skippedRooms.length);
+
+    // If all rooms already exist
+    if (newRoomNames.length === 0) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'All rooms already exist',
+          error: `All ${skippedRooms.length} room(s) already exist in your system.`,
+          skippedRooms: skippedRooms,
+          totalSkipped: skippedRooms.length
+        },
+        { status: 409 }
+      );
+    }
+
+    // ⚠️ CRITICAL: Use individual .save() instead of insertMany
+    // This ensures the pre("save") hook runs to generate roomId
+    console.log('💾 Inserting rooms one by one to trigger hooks...');
+    
+    const insertedRooms: any[] = [];
+    const insertErrors: string[] = [];
+
+    for (const roomName of newRoomNames) {
+      try {
+        const newRoom = new Room({
+          partnerId,
+          roomName,
+          roomStatus: 'empty'
+        });
+        
+        const savedRoom = await newRoom.save();
+        insertedRooms.push(savedRoom);
+        console.log(`✅ Inserted: ${roomName} with roomId: ${savedRoom.roomId}`);
+      } catch (err: any) {
+        console.error(`❌ Failed to insert "${roomName}":`, err.message);
+        
+        if (err.code === 11000) {
+          // Duplicate key error
+          if (err.message.includes('roomName')) {
+            insertErrors.push(`"${roomName}" already exists`);
+          } else {
+            insertErrors.push(`Failed to insert "${roomName}" (duplicate)`);
+          }
+        } else {
+          insertErrors.push(`Failed to insert "${roomName}": ${err.message}`);
+        }
+      }
+    }
+
+    console.log('✅ Insert complete!');
+    console.log('  Successfully inserted:', insertedRooms.length);
+    console.log('  Failed:', insertErrors.length);
+
+    // Build response
+    if (insertedRooms.length === 0 && insertErrors.length > 0) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Failed to insert any rooms',
+          errors: insertErrors,
+          skippedRooms: skippedRooms
+        },
+        { status: 500 }
+      );
+    }
+
+    const message = skippedRooms.length > 0
+      ? `Successfully added ${insertedRooms.length} room(s). ${skippedRooms.length} room(s) were skipped (already exist).`
+      : `Successfully added ${insertedRooms.length} room(s).`;
+
+    return NextResponse.json({
+      success: true,
+      message: message,
+      inserted: insertedRooms.length,
+      skipped: skippedRooms.length,
+      failed: insertErrors.length,
+      skippedRooms: skippedRooms,
+      failedRooms: insertErrors.length > 0 ? insertErrors : undefined,
+      insertedRooms: insertedRooms.map(r => ({
+        id: r._id,
+        roomId: r.roomId,
+        roomName: r.roomName,
+        roomStatus: r.roomStatus
+      }))
+    }, { status: 201 });
+
+  } catch (error: any) {
+    console.error('💥 Bulk upload error:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error.message || 'Failed to upload rooms',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
+      { status: 500 }
+    );
   }
+}
 }
