@@ -1,5 +1,4 @@
 "use client"
-
 import React, { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import { createPortal } from "react-dom"
@@ -2266,6 +2265,112 @@ export default function PartnersPage() {
   )
 
   return (
+    <>
+     {/* Success Card */}
+      {showSuccessCard && (
+        <div className="fixed bottom-6 z-50" style={{ right: 0, left: 'auto' }}>
+          <div
+            className="flex items-center gap-3"
+            style={{
+              display: "flex",
+              padding: "10px 15px 10px 10px",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "10px",
+              borderRadius: "10px 0 0 10px",
+              borderTop: "1px solid #13B601",
+              borderBottom: "1px solid #13B601",
+              borderLeft: "1px solid #13B601",
+              background: "#F3FFEA"
+            }}
+          >
+            {/* Success Message Row */}
+            <div
+              className="flex items-center gap-3"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px"
+              }}
+            >
+              {/* Tick Icon */}
+              <div
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0
+                }}
+              >
+                <Image
+                  src="/assets/icons/tick check.svg"
+                  alt="Success"
+                  width={20}
+                  height={20}
+                />
+              </div>
+              <span className="text-sm font-medium text-gray-800">Partner added successfully.</span>
+            </div>
+
+            {/* Hotel Name Row */}
+            <div
+              className="flex items-center gap-3"
+              style={{
+                display: "flex",
+                padding: "10px 13px",
+                alignItems: "center",
+                gap: "10px",
+                alignSelf: "stretch",
+                borderRadius: "10px",
+                background: "#0B0F18"
+              }}
+            >
+              {/* House Icon */}
+              <div
+                style={{
+                  width: "24px",
+                  height: "24px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <g filter="url(#filter0_d_house)">
+                    <rect x="5" y="2" width="14" height="14" rx="7" fill="white" />
+                  </g>
+                  <path
+                    d="M8 10H16M8 13H16M12 5L6 9V17H18V9L12 5Z"
+                    stroke="#0B0F18"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                  />
+                  <defs>
+                    <filter id="filter0_d_house" x="0.470589" y="0.352942" width="23.0588" height="23.0588" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+                      <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+                      <feOffset dy="2.88235" />
+                      <feGaussianBlur stdDeviation="2.26471" />
+                      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.02 0" />
+                      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_house" />
+                      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_house" result="shape" />
+                    </filter>
+                  </defs>
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-white">
+                {lastCreatedHotelName || 'Hotel Name'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     <div className="p-4">
       {/* Content */}
       {overviewContent}
@@ -4337,111 +4442,7 @@ export default function PartnersPage() {
         </div>
       )}
 
-      {/* Success Card */}
-      {showSuccessCard && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <div
-            className="flex items-center gap-3"
-            style={{
-              display: "inline-flex",
-              padding: "10px 15px 10px 10px",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "10px",
-              borderRadius: "10px 0 0 10px",
-              borderTop: "1px solid #13B601",
-              borderBottom: "1px solid #13B601",
-              borderLeft: "1px solid #13B601",
-              background: "#F3FFEA"
-            }}
-          >
-            {/* Success Message Row */}
-            <div
-              className="flex items-center gap-3"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px"
-              }}
-            >
-              {/* Tick Icon */}
-              <div
-                style={{
-                  width: "20px",
-                  height: "20px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0
-                }}
-              >
-                <Image
-                  src="/assets/icons/tick check.svg"
-                  alt="Success"
-                  width={20}
-                  height={20}
-                />
-              </div>
-              <span className="text-sm font-medium text-gray-800">Partner added successfully.</span>
-            </div>
-
-            {/* Hotel Name Row */}
-            <div
-              className="flex items-center gap-3"
-              style={{
-                display: "flex",
-                padding: "10px 13px",
-                alignItems: "center",
-                gap: "10px",
-                alignSelf: "stretch",
-                borderRadius: "10px",
-                background: "#0B0F18"
-              }}
-            >
-              {/* House Icon */}
-              <div
-                style={{
-                  width: "24px",
-                  height: "24px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <g filter="url(#filter0_d_house)">
-                    <rect x="5" y="2" width="14" height="14" rx="7" fill="white" />
-                  </g>
-                  <path
-                    d="M8 10H16M8 13H16M12 5L6 9V17H18V9L12 5Z"
-                    stroke="#0B0F18"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    fill="none"
-                  />
-                  <defs>
-                    <filter id="filter0_d_house" x="0.470589" y="0.352942" width="23.0588" height="23.0588" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-                      <feFlood floodOpacity="0" result="BackgroundImageFix" />
-                      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
-                      <feOffset dy="2.88235" />
-                      <feGaussianBlur stdDeviation="2.26471" />
-                      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.02 0" />
-                      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_house" />
-                      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_house" result="shape" />
-                    </filter>
-                  </defs>
-                </svg>
-              </div>
-              <span className="text-sm font-medium text-white">
-                {lastCreatedHotelName || 'Hotel Name'}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+     
 
       {/* Alert Dialog */}
       <AlertDialog
@@ -4490,5 +4491,6 @@ export default function PartnersPage() {
         }}
       />
     </div>
+    </>
   )
 }

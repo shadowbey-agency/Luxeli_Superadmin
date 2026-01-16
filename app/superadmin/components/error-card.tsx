@@ -28,15 +28,15 @@ export default function ErrorCard({
   if (!isOpen) return null
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5">
+    <div className="fixed bottom-6 z-50 animate-in slide-in-from-bottom-5" style={{ right: 0, left: 'auto' }}>
       <div
         className="flex items-center gap-3"
         style={{
-          display: "inline-flex",
+          display: "flex",
           padding: "10px 15px 10px 10px",
           flexDirection: "column",
           justifyContent: "center",
-          alignItems: "center",
+          alignItems: "flex-start",
           gap: "10px",
           borderRadius: "10px 0 0 10px",
           borderTop: "1px solid #EF4444",

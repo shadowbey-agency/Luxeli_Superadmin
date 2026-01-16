@@ -852,7 +852,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Half Circle Progress Chart with Legend Inside */}
-            <div className="w-full flex flex-col justify-center items-center relative" style={{ marginTop: '24px' }}>
+            <div className="w-full flex flex-col justify-center items-center relative" style={{ marginTop: '29px' }}>
               {clientStatsLoading ? (
                 <div className="flex items-center justify-center h-40">
                   <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-label="loading" />
@@ -874,7 +874,7 @@ export default function DashboardPage() {
 
                 return (
                   <>
-                    <svg className="w-4/5 h-40" viewBox="0 0 400 180">
+                    <svg className="w-4/5 h-38" viewBox="0 0 400 180">
                       {/* Background semicircle */}
                       <path
                         d="M 50 160 A 150 150 0 0 1 350 160"

@@ -246,6 +246,18 @@ export default function SupportPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm])
 
+  // Auto-hide success card after 5 seconds
+  useEffect(() => {
+    if (showSuccessCard) {
+      const timer = setTimeout(() => {
+        setShowSuccessCard(false)
+        setSuccessMessage("")
+        setSuccessProfileImage("")
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [showSuccessCard])
+
   // Simple queue order - tickets are already sorted by creation date from API
   const totalPages = Math.ceil(totalTickets / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
@@ -475,18 +487,17 @@ export default function SupportPage() {
         // Refresh tickets after assignment
         await fetchTickets()
         closeAssignTicketModal()
-        alert('Ticket assigned successfully')
+        setSuccessMessage('Ticket assigned successfully')
+        setShowSuccessCard(true)
       } else {
         console.error('Failed to assign ticket:', {
           status: response.status,
           error: responseData.error || responseData.message || 'Unknown error',
           fullResponse: responseData
         })
-        alert(`Failed to assign ticket: ${responseData.error || responseData.message || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error assigning ticket:', error)
-      alert(`Error assigning ticket: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -1180,17 +1191,115 @@ export default function SupportPage() {
         assigneeOptions={assigneeOptions}
       />
 
-      {/* Success Card */}
-      <SuccessCard
-        isOpen={showSuccessCard}
-        message={successMessage}
-        profileImage={successProfileImage}
-        onClose={() => {
-          setShowSuccessCard(false)
-          setSuccessMessage("")
-          setSuccessProfileImage("")
-        }}
-      />
+      {/* Success Card - Ticket Assigned */}
+      {showSuccessCard && (
+        <div className="fixed bottom-6 z-50" style={{ right: 0, left: 'auto' }}>
+          <div
+            className="flex items-center gap-3"
+            style={{
+              display: "flex",
+              padding: "10px 15px 10px 10px",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "flex-start",
+              gap: "10px",
+              borderRadius: "10px 0 0 10px",
+              borderTop: "1px solid #13B601",
+              borderBottom: "1px solid #13B601",
+              borderLeft: "1px solid #13B601",
+              background: "#F3FFEA"
+            }}
+          >
+            {/* Success Message Row */}
+            <div
+              className="flex items-center gap-3"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px"
+              }}
+            >
+              {/* Tick Icon */}
+              <div
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <circle cx="10" cy="10" r="9" fill="#13B601" />
+                  <path
+                    d="M6 10L9 13L14 7"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-gray-800">Ticket assigned successfully.</span>
+            </div>
+
+            {/* Ticket ID Row */}
+            <div
+              className="flex items-center gap-3"
+              style={{
+                display: "flex",
+                padding: "10px 13px",
+                alignItems: "center",
+                gap: "10px",
+                alignSelf: "stretch",
+                borderRadius: "10px",
+                background: "#0B0F18"
+              }}
+            >
+              {/* Ticket Icon */}
+              <div
+                style={{
+                  width: "24px",
+                  height: "24px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <g filter="url(#filter0_d_ticket)">
+                    <rect x="5" y="2" width="14" height="14" rx="7" fill="white" />
+                  </g>
+                  <path
+                    d="M10 9H14M10 12H14M9 15H15M8 8V16C8 16.5304 8.21071 17.0391 8.58579 17.4142C8.96086 17.7893 9.46957 18 10 18H16C16.5304 18 17.0391 17.7893 17.4142 17.4142C17.7893 17.0391 18 16.5304 18 16V8C18 7.46957 17.7893 6.96086 17.4142 6.58579C17.0391 6.21071 16.5304 6 16 6H10C9.46957 6 8.96086 6.21071 8.58579 6.58579C8.21071 6.96086 8 7.46957 8 8Z"
+                    stroke="#0B0F18"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                  />
+                  <defs>
+                    <filter id="filter0_d_ticket" x="0.470589" y="0.352942" width="23.0588" height="23.0588" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+                      <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+                      <feOffset dy="2.88235" />
+                      <feGaussianBlur stdDeviation="2.26471" />
+                      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.02 0" />
+                      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_ticket" />
+                      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_ticket" result="shape" />
+                    </filter>
+                  </defs>
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-white">
+                {ticketToAssign?.ticketId || 'Ticket ID'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )
