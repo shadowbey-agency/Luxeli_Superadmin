@@ -92,6 +92,14 @@ export class AuthController {
         // If not found as member, try as partner by hotel email using the same email field
         const partnerByEmail = await Partner.findOne({ hotelAddressEmail: data.email.toLowerCase() });
         if (partnerByEmail) {
+          // Check if partner is active
+          if (partnerByEmail.status !== 'active') {
+            return NextResponse.json(
+              { error: 'Account is disabled. Please contact your administrator.' },
+              { status: 403 }
+            );
+          }
+
           const isPasswordValid = await comparePassword(data.password, partnerByEmail.password);
           if (isPasswordValid) {
             const token = generateToken({
@@ -125,6 +133,14 @@ export class AuthController {
         // First try partner
         const partner = await Partner.findOne({ username: data.username });
         if (partner) {
+          // Check if partner is active
+          if (partner.status !== 'active') {
+            return NextResponse.json(
+              { error: 'Account is disabled. Please contact your administrator.' },
+              { status: 403 }
+            );
+          }
+
           // Verify password for partner
           const isPasswordValid = await comparePassword(data.password, partner.password);
           if (isPasswordValid) {
