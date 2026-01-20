@@ -26,7 +26,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
     roomName: searchParams.get('roomName') || undefined,
   };
 
-  return await BookingInternRequestController.getBookingInternRequests(query);
+  return await BookingInternRequestController.getBookingInternRequests(query, partnerId);
 });
 
 // POST /api/partner/booking-intern-requests - Create new booking intern request

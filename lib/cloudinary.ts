@@ -141,6 +141,13 @@ export async function uploadImageToCloudinary(
   options: CloudinaryUploadOptions = {}
 ): Promise<CloudinaryUploadResponse> {
   try {
+    console.log('🔵 uploadImageToCloudinary called with:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      folder: options.folder
+    })
+
     // Validate file
     validateImageFile(file)
 
@@ -171,11 +178,15 @@ export async function uploadImageToCloudinary(
       }
     }
 
+    console.log('📤 Sending file to /api/upload/cloudinary...')
+
     // Upload via API route
     const response = await fetch('/api/upload/cloudinary', {
       method: 'POST',
       body: formData,
     })
+
+    console.log('📥 Cloudinary response status:', response.status, response.statusText)
 
     // Handle network errors
     if (!response.ok) {
@@ -184,6 +195,7 @@ export async function uploadImageToCloudinary(
 
       try {
         const errorText = await response.text()
+        console.log('❌ Error response text:', errorText)
         if (errorText) {
           try {
             const errorJson = JSON.parse(errorText) as CloudinaryErrorResponse
@@ -197,11 +209,19 @@ export async function uploadImageToCloudinary(
         console.error('Failed to read error response:', e)
       }
 
+      console.error('❌ CloudinaryError thrown:', { errorMessage, errorDetails })
       throw new CloudinaryError(errorMessage, response.status, errorDetails)
     }
 
     // Parse response
     const result = await response.json()
+
+    console.log('✅ Cloudinary upload successful:', {
+      secure_url: result.secure_url ? result.secure_url.substring(0, 80) + '...' : 'MISSING',
+      public_id: result.public_id,
+      width: result.width,
+      height: result.height
+    })
 
     if (!result.secure_url) {
       throw new CloudinaryError(

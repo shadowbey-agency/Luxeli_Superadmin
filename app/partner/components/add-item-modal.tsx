@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { RiCloseLine, RiImageLine, RiArrowDownSLine } from "react-icons/ri"
 import { getAuthToken } from "@/lib/auth-utils"
+import { uploadImageToCloudinary } from "@/lib/cloudinary"
 
 interface RequestItem {
   _id: string
@@ -30,7 +31,11 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, item }: AddIt
   const [itemImage, setItemImage] = useState<string>("")
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Use ref to store uploaded image URL immediately (not async like state)
+  const uploadedImageUrlRef = useRef<string>("")
 
   // Pre-fill form when editing an item
   useEffect(() => {
@@ -62,6 +67,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, item }: AddIt
     setItemImage("")
     setImagePreview(null)
     setError(null)
+    uploadedImageUrlRef.current = "" // Reset ref too
     onClose()
   }
 
@@ -69,7 +75,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, item }: AddIt
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}>
-       <div className="bg-white shadow-xl max-w-3xl w-full mx-4" style={{ borderRadius: "10px" }}>
+      <div className="bg-white shadow-xl max-w-3xl w-full mx-4" style={{ borderRadius: "10px" }}>
         {/* Header */}
         <div className="flex items-center justify-between pl-6 pr-6 pt-5 pb-5 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">{item ? "Edit item" : "Add new items"}</h2>
@@ -131,25 +137,25 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, item }: AddIt
               </div>
             </div>
 
-              {/* Category */}
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: "#212121" }}>
-                  Category
-                </label>
-                <div className="relative">
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3 py-2 pr-8 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
-                    style={{ borderRadius: "4px" }}
-                  >
-                    <option value="">Select</option>
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: "#212121" }}>
+                Category
+              </label>
+              <div className="relative">
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-3 py-2 pr-8 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                  style={{ borderRadius: "4px" }}
+                >
+                  <option value="">Select</option>
                   <option value="Pillows">Pillows</option>
                   <option value="Kitchen">Kitchen</option>
                   <option value="Cleaning">Cleaning</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <RiArrowDownSLine className="w-4 h-4 text-gray-400" />
                 </div>
               </div>
             </div>
@@ -186,7 +192,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, item }: AddIt
             className="flex flex-col"
           >
             <label className="text-sm font-medium" style={{ color: "#212121" }}>Item image</label>
-            
+
             <div className="flex flex-col">
               <div
                 style={{
@@ -211,6 +217,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, item }: AddIt
                       onClick={() => {
                         setImagePreview(null)
                         setItemImage("")
+                        uploadedImageUrlRef.current = ""
                       }}
                       className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded hover:bg-red-600"
                     >
@@ -220,34 +227,74 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, item }: AddIt
                 ) : (
                   <>
                     <label htmlFor="image-upload" className="cursor-pointer">
-                <RiImageLine className="w-8 h-8 text-gray-400 mb-2" />
-                <div className="text-center">
-                  <span className="text-sm text-gray-600">Drag and drop your image here or </span>
+                      <RiImageLine className="w-8 h-8 text-gray-400 mb-2" />
+                      <div className="text-center">
+                        <span className="text-sm text-gray-600">Drag and drop your image here or </span>
                         <span className="text-sm text-blue-600 underline">choose file</span>
-                </div>
+                      </div>
                     </label>
                     <input
                       id="image-upload"
                       type="file"
                       accept="image/*"
-                      onChange={(e) => {
+                      disabled={isUploadingImage}
+                      onChange={async (e) => {
                         const file = e.target.files?.[0]
                         if (file) {
                           if (!file.type.startsWith('image/')) {
                             setError("Please select a valid image file")
                             return
                           }
-                          if (file.size > 5 * 1024 * 1024) {
-                            setError("Image size must be less than 5MB")
+                          if (file.size > 10 * 1024 * 1024) {
+                            setError("Image size must be less than 10MB")
                             return
                           }
-                          const reader = new FileReader()
-                          reader.onloadend = () => {
-                            const result = reader.result as string
-                            setImagePreview(result)
-                            setItemImage(result) // Store as base64
+
+                          setIsUploadingImage(true)
+                          setError(null)
+
+                          try {
+                            // Show preview immediately using Promise
+                            await new Promise<void>((resolve) => {
+                              const reader = new FileReader()
+                              reader.onloadend = () => {
+                                setImagePreview(reader.result as string)
+                                resolve()
+                              }
+                              reader.readAsDataURL(file)
+                            })
+
+                            // Upload to Cloudinary
+                            const result = await uploadImageToCloudinary(file, {
+                              folder: 'requests-management'
+                            })
+
+                            // Store Cloudinary URL in BOTH state AND ref
+                            // Ref is immediate, state is async
+                            console.log('🔧 About to set itemImage state:', {
+                              secure_url: result.secure_url,
+                              public_id: result.public_id
+                            })
+
+                            // Store in ref IMMEDIATELY (synchronous)
+                            uploadedImageUrlRef.current = result.secure_url
+
+                            // Also update state (asynchronous, for UI display)
+                            setItemImage(result.secure_url)
+
+                            console.log('✅ Image uploaded to Cloudinary:', {
+                              url: result.secure_url,
+                              public_id: result.public_id,
+                              storedInRef: uploadedImageUrlRef.current
+                            })
+                          } catch (error: any) {
+                            console.error('Error uploading image:', error)
+                            setError(error.message || 'Failed to upload image. Please try again.')
+                            setImagePreview(null)
+                            setItemImage("")
+                          } finally {
+                            setIsUploadingImage(false)
                           }
-                          reader.readAsDataURL(file)
                         }
                       }}
                       className="hidden"
@@ -268,15 +315,15 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, item }: AddIt
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 pt-5 pb-5 pl-6 pr-6 border-t border-gray-200">
-           <button
-             onClick={handleClose}
-             disabled={isLoading}
-             className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-             style={{ borderRadius: "6px", background: "#FBFAFA" }}
-           >
-             Annuler
-           </button>
-           <button
+          <button
+            onClick={handleClose}
+            disabled={isLoading}
+            className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ borderRadius: "6px", background: "#FBFAFA" }}
+          >
+            Annuler
+          </button>
+          <button
             onClick={async () => {
               // Clear previous errors
               setError(null)
@@ -306,29 +353,48 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, item }: AddIt
                 }
 
                 // Prepare request body
+                console.log('🔍 Current itemImage state value:', {
+                  state: itemImage,
+                  ref: uploadedImageUrlRef.current,
+                  type: typeof itemImage,
+                  isEmpty: !itemImage,
+                })
+
+                // Use ref value if available (most recent upload), otherwise use state
+                const imageToSave = uploadedImageUrlRef.current || itemImage
+
                 const requestBody = {
                   name: itemName.trim(),
                   category: category.trim(),
                   status: isPublished ? 'published' : 'unpublished',
                   description: itemDescription.trim(),
-                  ...(itemImage && { image: itemImage }),
+                  image: imageToSave,
                 }
 
-                console.log('Saving item with data:', { ...requestBody, image: itemImage ? '[image data]' : 'none' })
+                console.log('📝 Saving item with data:', {
+                  name: itemName.trim(),
+                  category: category.trim(),
+                  status: isPublished ? 'published' : 'unpublished',
+                  description: itemDescription.trim(),
+                  imageUrl: imageToSave || 'NO IMAGE PROVIDED',
+                  imageLength: imageToSave ? imageToSave.length : 0,
+                  hasImageInBody: !!requestBody.image
+                })
+
+                console.log('📦 Full request body:', requestBody)
 
                 const isEditMode = !!item
-                const url = isEditMode 
+                const url = isEditMode
                   ? `/api/partner/requests-management/${item._id}`
                   : '/api/partner/requests-management'
                 const method = isEditMode ? 'PATCH' : 'POST'
 
-                console.log('Making API request with:', {
+                console.log('🚀 Making API request:', {
                   url,
                   method,
                   isEditMode,
-                  hasToken: !!token,
-                  tokenLength: token?.length,
-                  requestBody: { ...requestBody, image: itemImage ? '[base64 data]' : 'none' }
+                  hasImage: !!itemImage,
+                  imageUrl: itemImage ? itemImage.substring(0, 80) + '...' : 'none'
                 })
 
                 const response = await fetch(url, {
@@ -385,10 +451,18 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, item }: AddIt
 
                 console.log('✅ Item saved successfully:', data)
 
-                // Verify data was returned (handle case where duplicate save might not return data)
+                // Verify data was returned and check if image was saved
                 if (!data.data || !data.data.request) {
                   console.warn('Save Item Warning: Response missing data.request, but success is true')
                   // Still proceed as the item might have been saved
+                } else {
+                  console.log('🔍 Saved item data from response:', {
+                    _id: data.data.request._id,
+                    name: data.data.request.name,
+                    image: data.data.request.image,
+                    imageUrl: data.data.request.image ? data.data.request.image.substring(0, 80) + '...' : 'NO IMAGE IN DB',
+                    hasImage: !!data.data.request.image
+                  })
                 }
 
                 // Reset form only after successful save
@@ -407,7 +481,7 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, item }: AddIt
 
                 // Close modal after a short delay
                 setTimeout(() => {
-               onClose()
+                  onClose()
                 }, 300)
               } catch (err: any) {
                 console.error('❌ Error creating item:', {
@@ -423,12 +497,12 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, item }: AddIt
                 setIsLoading(false)
               }
             }}
-            disabled={isLoading || !itemName.trim() || !category.trim() || !itemDescription.trim()}
+            disabled={isLoading || isUploadingImage || !itemName.trim() || !category.trim() || !itemDescription.trim()}
             className="px-4 py-2 text-white hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-             style={{ borderRadius: "6px", background: "#1F2A44" }}
-           >
-            {isLoading ? (item ? "Updating..." : "Saving...") : (item ? "Update" : "Save")}
-           </button>
+            style={{ borderRadius: "6px", background: "#1F2A44" }}
+          >
+            {isUploadingImage ? "Uploading Image..." : (isLoading ? (item ? "Updating..." : "Saving...") : (item ? "Update" : "Save"))}
+          </button>
         </div>
       </div>
     </div>

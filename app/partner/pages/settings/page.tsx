@@ -5,8 +5,10 @@ import { RiNotification3Line, RiEyeLine, RiEyeOffLine, RiArrowDownSLine, RiAddLi
 import PublicIcon from "@/app/partner/components/public-icon"
 import ToggleSwitch from "@/app/superadmin/components/toggle-switch"
 import SimpleToggleSwitch from "@/app/partner/components/simple-toggle-switch"
+import SuccessCard from "@/app/superadmin/components/success-card"
 import Image from "next/image"
 import { getAuthToken } from "@/lib/auth-utils"
+import { uploadImageToCloudinary } from "@/lib/cloudinary"
 
 interface NotificationSetting {
   id: string
@@ -60,6 +62,13 @@ export default function SettingsPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  // Success card state for service operations
+  const [successCards, setSuccessCards] = useState<Array<{id: string; message: string}>>([])
+
+  // Track if services have been modified and original states for comparison
+  const [servicesModified, setServicesModified] = useState(false)
+  const [originalServices, setOriginalServices] = useState<Service[]>([])
 
   const [notificationSettings, setNotificationSettings] = useState<NotificationSetting[]>([
     {
@@ -195,41 +204,44 @@ export default function SettingsPage() {
     )
   }
 
-  const handleServiceToggle = async (id: string) => {
-    // Find the service definition to get the partner service key
-    const serviceDef = allServiceDefinitions.find(def => def.id === id)
-    if (!serviceDef) return
+  const handleServiceToggle = (id: string) => {
+    // Find the service to toggle
+    const service = services.find(s => s.id === id)
+    if (!service) return
 
-    // Find current service state
-    const currentService = services.find(s => s.id === id)
-    if (!currentService) return
+    console.log(`🔵 Toggling service locally: ${id}`)
 
-    // Calculate new status
-    const newStatus = currentService.status === "Active" ? false : true
-
-    // Optimistically update UI
+    // Update local state only
     setServices(
-      services.map((service) => ({
-        ...service,
-        status: service.id === id ? (newStatus ? "Active" : "Disable") : service.status
+      services.map((svc) => ({
+        ...svc,
+        status: svc.id === id ? (service.status === "Active" ? "Disable" : "Active") : svc.status
       }))
     )
+
+    // Mark as modified so Save button is enabled
+    setServicesModified(true)
+    setError(null)
+  }
+
+  const handleSaveServices = async () => {
+    if (!servicesModified) return
+
+    setIsSaving(true)
+    setError(null)
+    setSuccessCards([])
 
     try {
       const token = getAuthToken()
       if (!token) {
         setError("Authentication token not found. Please log in again.")
-        // Revert optimistic update
-        setServices(
-          services.map((service) => ({
-            ...service,
-            status: service.id === id ? currentService.status : service.status
-          }))
-        )
+        setIsSaving(false)
         return
       }
 
-      // Fetch current partner services to preserve other services
+      console.log(`🔵 Fetching current services before save`)
+
+      // Fetch current partner services
       const response = await fetch('/api/partner/account', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -241,17 +253,35 @@ export default function SettingsPage() {
         throw new Error(data.error || 'Failed to fetch current services')
       }
 
-      // Update only the isActive field for the specific service (preserve assigned)
-      const currentService = data.partner.services[serviceDef.partnerServiceKey] || { assigned: false, isActive: false }
-      const updatedServices = {
-        ...data.partner.services,
-        [serviceDef.partnerServiceKey]: {
-          ...currentService,
-          isActive: newStatus
-        }
-      }
+      console.log(`📤 Building updated services object`)
 
-      // Call API to update service
+      // Build updated services object with new status values
+      const updatedServices = { ...data.partner.services }
+      const modifiedServicesList: Array<{id: string; title: string; status: string}> = []
+
+      // Update each service that has been toggled and track changes
+      services.forEach(currentService => {
+        const serviceDef = allServiceDefinitions.find(def => def.id === currentService.id)
+        const originalService = originalServices.find(s => s.id === currentService.id)
+        
+        if (serviceDef && originalService && originalService.status !== currentService.status) {
+          // Service was changed
+          const fetchedService = updatedServices[serviceDef.partnerServiceKey] || { assigned: false, isActive: false }
+          updatedServices[serviceDef.partnerServiceKey] = {
+            ...fetchedService,
+            isActive: currentService.status === "Active"
+          }
+          modifiedServicesList.push({
+            id: serviceDef.id,
+            title: serviceDef.title,
+            status: currentService.status
+          })
+        }
+      })
+
+      console.log(`📤 Sending all service updates`, modifiedServicesList)
+
+      // Call API to update all services
       const updateResponse = await fetch('/api/partner/account', {
         method: 'PATCH',
         headers: {
@@ -266,8 +296,10 @@ export default function SettingsPage() {
       const updateData = await updateResponse.json()
 
       if (!updateResponse.ok || !updateData.success) {
-        throw new Error(updateData.error || 'Failed to update service')
+        throw new Error(updateData.error || 'Failed to update services')
       }
+
+      console.log(`✅ All services saved successfully`)
 
       // Update local state with the actual response
       if (updateData.partner?.services) {
@@ -275,34 +307,54 @@ export default function SettingsPage() {
         const updatedServiceList = allServiceDefinitions
           .map(serviceDef => {
             const service = partnerServices[serviceDef.partnerServiceKey] || { assigned: false, isActive: false }
-            // Service is active only if both assigned (by SuperAdmin) and isActive (by Partner)
             const isActive = service.assigned && service.isActive
             return {
               id: serviceDef.id,
               title: serviceDef.title,
               description: serviceDef.description,
               icon: serviceDef.icon,
-              available: service.assigned, // Only show as available if assigned by SuperAdmin
+              available: service.assigned,
               status: isActive ? "Active" as const : "Disable" as const
             }
           })
           .filter(service => service.available)
         setServices(updatedServiceList)
+        setOriginalServices(updatedServiceList)
       }
+
+      // Show individual success cards for each modified service, stacked upward
+      const newSuccessCards = modifiedServicesList.map((service, index) => {
+        const cardId = `${service.id}-${Date.now()}`
+        const statusText = service.status === "Active" ? "active" : "inactive"
+        return {
+          id: cardId,
+          message: `${service.title} ${statusText} successfully`,
+          index
+        }
+      })
+
+      // Add cards one by one with staggered timing
+      newSuccessCards.forEach((card, index) => {
+        setTimeout(() => {
+          setSuccessCards(prev => [...prev, { id: card.id, message: card.message }])
+          
+          // Auto-dismiss after 5 seconds
+          setTimeout(() => {
+            setSuccessCards(prev => prev.filter(c => c.id !== card.id))
+          }, 5000)
+        }, index * 200) // Stagger each card by 200ms
+      })
+
+      setServicesModified(false)
 
       // Trigger event to refresh partner services hook (for sidebar update)
       window.dispatchEvent(new Event('partnerServicesUpdated'))
 
     } catch (err: any) {
-      console.error('Error updating service:', err)
-      setError(err.message || 'Failed to update service')
-      // Revert optimistic update on error
-      setServices(
-        services.map((service) => ({
-          ...service,
-          status: service.id === id ? currentService.status : service.status
-        }))
-      )
+      console.error('❌ Error saving services:', err)
+      setError(err.message || 'Failed to save services')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -537,6 +589,8 @@ export default function SettingsPage() {
           .filter(service => service.available)
 
         setServices(assignedServices)
+        setOriginalServices(assignedServices)
+        setServicesModified(false)
       } else {
         setError(data.error || 'Failed to fetch services')
         setServices([])
@@ -1071,12 +1125,23 @@ export default function SettingsPage() {
                   Enable and configure the services available to your guests. Turn a service off to hide it from the guest app.
                 </p>
               </div>
-              <button className="px-6 py-2.5 bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90 rounded-lg text-sm font-medium transition-colors">
-                Save Changes
+              <button 
+                onClick={handleSaveServices}
+                disabled={!servicesModified || isSaving}
+                className="px-6 py-2.5 bg-[#1F2A44] text-white hover:bg-[#1F2A44]/90 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? "Saving..." : "Save Changes"}
               </button>
             </div>
 
-            <div className="p-6 bg-white rounded-b-lg">
+            <div className="p-6 bg-white rounded-b-lg space-y-4">
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                  {error}
+                </div>
+              )}
+
               {isLoadingServices ? (
                 <div className="flex items-center justify-center py-16">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -1245,6 +1310,18 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Success Cards for Services - Stacked upward */}
+      <div className="fixed bottom-6 right-0 z-50 flex flex-col gap-3">
+        {successCards.map((card, index) => (
+          <SuccessCard
+            key={card.id}
+            isOpen={true}
+            message={card.message}
+            onClose={() => setSuccessCards(prev => prev.filter(c => c.id !== card.id))}
+          />
+        ))}
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IRestaurant extends Document {
+  partnerId: string; // Reference to Partner
   restaurantName: string;
   status: "open" | "closed";
   startWork: string;
@@ -20,6 +21,12 @@ export interface IRestaurant extends Document {
 
 const RestaurantSchema = new Schema<IRestaurant>(
   {
+    partnerId: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
     restaurantName: { type: String, required: true, trim: true },
     status: { type: String, enum: ["open", "closed"], default: "open" },
     startWork: { type: String, required: true },

@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { RiCloseLine, RiImageLine } from "react-icons/ri"
 import { getAuthToken } from "@/lib/auth-utils"
+import { uploadImageToCloudinary } from "@/lib/cloudinary"
 
 interface AddTicketModalProps {
   isOpen: boolean
@@ -17,7 +18,11 @@ export default function AddTicketModal({ isOpen, onClose, onSuccess }: AddTicket
   const [ticketImage, setTicketImage] = useState<string>("")
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  // Use ref to store uploaded image URL immediately (not async like state)
+  const uploadedImageUrlRef = useRef<string>("")
 
   const handleSaveTicket = async () => {
     if (!ticketTitle.trim() || !ticketDescription.trim()) {
@@ -46,7 +51,7 @@ export default function AddTicketModal({ isOpen, onClose, onSuccess }: AddTicket
           title: ticketTitle.trim(),
           description: ticketDescription.trim(),
           priority: (ticketPriority || 'low') as "low" | "medium" | "urgent",
-          image: ticketImage || undefined,
+          image: uploadedImageUrlRef.current || ticketImage || undefined,
           status: 'open',
         }),
       })
@@ -83,7 +88,7 @@ export default function AddTicketModal({ isOpen, onClose, onSuccess }: AddTicket
   }
 
   // Handle image file selection
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       // Validate file type
@@ -98,14 +103,50 @@ export default function AddTicketModal({ isOpen, onClose, onSuccess }: AddTicket
         return
       }
 
-      // Create preview
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const result = reader.result as string
-        setImagePreview(result)
-        setTicketImage(result) // Store as base64 for now (you can upload to cloud storage later)
+      setIsUploadingImage(true)
+      setError(null)
+
+      try {
+        // Create preview immediately
+        await new Promise<void>((resolve) => {
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            setImagePreview(reader.result as string)
+            resolve()
+          }
+          reader.readAsDataURL(file)
+        })
+
+        // Upload to Cloudinary
+        const result = await uploadImageToCloudinary(file, {
+          folder: 'support-tickets'
+        })
+
+        // Store Cloudinary URL in BOTH state AND ref
+        console.log('🔧 About to set ticketImage state:', {
+          secure_url: result.secure_url,
+          public_id: result.public_id
+        })
+        
+        // Store in ref IMMEDIATELY (synchronous)
+        uploadedImageUrlRef.current = result.secure_url
+        
+        // Also update state (asynchronous, for UI display)
+        setTicketImage(result.secure_url)
+        
+        console.log('✅ Image uploaded to Cloudinary:', {
+          url: result.secure_url,
+          public_id: result.public_id,
+          storedInRef: uploadedImageUrlRef.current
+        })
+      } catch (error: any) {
+        console.error('Error uploading image:', error)
+        setError(error.message || 'Failed to upload image. Please try again.')
+        setImagePreview(null)
+        setTicketImage("")
+      } finally {
+        setIsUploadingImage(false)
       }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -123,6 +164,7 @@ export default function AddTicketModal({ isOpen, onClose, onSuccess }: AddTicket
     setTicketImage("")
     setImagePreview(null)
     setError(null)
+    uploadedImageUrlRef.current = "" // Reset ref too
     onClose()
   }
 

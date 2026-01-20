@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IActivity extends Document {
+  partnerId: string;
   activityTitle: string;
   status: "published" | "unpublished";
   activityDescription: string;
@@ -12,6 +13,11 @@ export interface IActivity extends Document {
 
 const activitySchema = new Schema<IActivity>(
   {
+    partnerId: {
+      type: String,
+      required: true,
+      index: true,
+    },
     activityTitle: {
       type: String,
       required: true,

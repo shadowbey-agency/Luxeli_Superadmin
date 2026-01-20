@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IBookingSettings extends Document {
+  partnerId: string;
   serviceName: string;
   category: string;
   serviceDescription: string;
@@ -17,6 +18,11 @@ export interface IBookingSettings extends Document {
 
 const bookingSettingsSchema = new Schema<IBookingSettings>(
   {
+    partnerId: {
+      type: String,
+      required: true,
+      index: true,
+    },
     serviceName: {
       type: String,
       required: true,

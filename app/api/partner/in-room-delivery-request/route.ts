@@ -25,7 +25,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
     restaurant: searchParams.get('restaurant') || undefined,
   };
 
-  return await InRoomDeliveryRequestController.getRequests(query);
+  return await InRoomDeliveryRequestController.getRequests(query, partnerId);
 });
 
 // POST /api/partner/in-room-delivery-request - Create new in-room delivery request

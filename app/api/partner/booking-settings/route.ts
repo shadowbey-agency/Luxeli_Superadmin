@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BookingSettingsController } from '@/controllers/partner/booking/BookingSettingsController';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 
 // GET /api/partner/booking-settings - Get all booking settings
 export const GET = withAuth(async (request: AuthenticatedRequest) => {
+  const partnerId = getPartnerId(request);
+  if (!partnerId) {
+    return NextResponse.json(
+      { success: false, error: 'Partner ID not found' },
+      { status: 401 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const query = {
     page: searchParams.get('page') || undefined,
@@ -13,12 +21,20 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
     category: searchParams.get('category') || undefined,
   };
 
-  return await BookingSettingsController.getBookingSettings(query);
+  return await BookingSettingsController.getBookingSettings(query, partnerId);
 });
 
 // POST /api/partner/booking-settings - Create new booking setting
 export const POST = withAuth(async (request: AuthenticatedRequest) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     
     const {
@@ -65,6 +81,7 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
     }
 
     return await BookingSettingsController.createBookingSetting({
+      partnerId,
       serviceName: serviceName?.trim() || '',
       category: category?.trim() || '',
       serviceDescription: serviceDescription?.trim() || '',

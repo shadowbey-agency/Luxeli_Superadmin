@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RequestsManagementController } from '@/controllers/partner/housekeeping/RequestsManagementController';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 
 // GET /api/partner/requests-management - Get all request items
 export const GET = withAuth(async (request: AuthenticatedRequest) => {
+  const partnerId = getPartnerId(request);
+  if (!partnerId) {
+    return NextResponse.json(
+      { success: false, error: 'Partner ID not found' },
+      { status: 401 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const query = {
     page: searchParams.get('page') || undefined,
@@ -13,22 +21,37 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
     category: searchParams.get('category') || undefined,
   };
 
-  return await RequestsManagementController.getRequests(query);
+  return await RequestsManagementController.getRequests(query, partnerId);
 });
 
 // POST /api/partner/requests-management - Create new request item
 export const POST = withAuth(async (request: AuthenticatedRequest) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     console.log('📥 POST /api/partner/requests-management - Request received');
     console.log('Request headers:', {
       authorization: request.headers.get('authorization') ? 'Present' : 'Missing',
       contentType: request.headers.get('content-type'),
+      partnerId: partnerId
     });
 
     const body = await request.json();
-    console.log('Request body:', {
-      ...body,
-      image: body.image ? `[base64 data, length: ${body.image?.length || 0}]` : 'none'
+    console.log('📦 Request body received:', {
+      name: body.name,
+      category: body.category,
+      status: body.status,
+      description: body.description ? body.description.substring(0, 50) + '...' : 'none',
+      imageProvided: !!body.image,
+      imageType: typeof body.image,
+      imageLength: body.image ? body.image.length : 0,
+      imageUrlStart: body.image ? body.image.substring(0, 100) + '...' : 'none'
     });
     
     const {
@@ -58,7 +81,14 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
     }
 
     console.log('✅ Validation passed, calling controller...');
+    console.log('🔧 Passing to controller:', {
+      partnerId,
+      hasImage: !!image,
+      imageLength: image ? image.length : 0,
+      imageUrl: image ? image.substring(0, 100) + '...' : 'undefined'
+    });
     const result = await RequestsManagementController.createRequest({
+      partnerId,
       name: name?.trim() || '',
       category: category?.trim() || '',
       status: status || 'unpublished',

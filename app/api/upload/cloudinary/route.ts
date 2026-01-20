@@ -41,19 +41,29 @@ interface CloudinaryErrorResponse {
  */
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔵 POST /api/upload/cloudinary called')
+
     // Get form data
     const formData = await request.formData()
     const file = formData.get('file') as File
 
     if (!file) {
+      console.error('❌ No file provided')
       return NextResponse.json(
         { error: { message: 'No file provided' } },
         { status: 400 }
       )
     }
 
+    console.log('📄 File received:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    })
+
     // Validate file type
     if (!file.type.startsWith('image/')) {
+      console.error('❌ Invalid file type:', file.type)
       return NextResponse.json(
         { error: { message: 'File must be an image' } },
         { status: 400 }
@@ -63,6 +73,7 @@ export async function POST(request: NextRequest) {
     // Validate file size (max 10MB)
     const maxSize = 10 * 1024 * 1024 // 10MB
     if (file.size > maxSize) {
+      console.error('❌ File too large:', file.size, 'max:', maxSize)
       return NextResponse.json(
         { error: { message: `Image size must be less than ${maxSize / 1024 / 1024}MB` } },
         { status: 400 }
@@ -75,7 +86,11 @@ export async function POST(request: NextRequest) {
     const apiSecret = process.env.CLOUDINARY_API_SECRET
 
     if (!cloudName || !apiKey || !apiSecret) {
-      console.error('Cloudinary credentials not configured')
+      console.error('❌ Cloudinary credentials not configured:', {
+        cloudName: !!cloudName,
+        apiKey: !!apiKey,
+        apiSecret: !!apiSecret
+      })
       return NextResponse.json(
         { 
           error: { 
@@ -86,6 +101,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log('✅ Cloudinary credentials found:', { cloudName })
+
     // Get upload parameters
     const folder = (formData.get('folder') as string) || undefined
     const publicId = (formData.get('public_id') as string) || undefined
@@ -93,11 +110,15 @@ export async function POST(request: NextRequest) {
     const tags = (formData.get('tags') as string)?.split(',').filter(Boolean) || undefined
     const transformation = (formData.get('transformation') as string) || undefined
 
+    console.log('📋 Upload parameters:', { folder, publicId, overwrite, tags })
+
     // Convert file to base64
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     const base64 = buffer.toString('base64')
     const dataURI = `data:${file.type};base64,${base64}`
+
+    console.log('🔄 File converted to base64, length:', dataURI.length)
 
     // Prepare parameters for signature
     const timestamp = Math.round(new Date().getTime() / 1000)
@@ -137,6 +158,11 @@ export async function POST(request: NextRequest) {
       .update(sortedParams + apiSecret)
       .digest('hex')
 
+    console.log('🔐 Signature generated:', {
+      sortedParams,
+      signatureLength: signature.length
+    })
+
     // Prepare upload form data
     const uploadFormData = new FormData()
     uploadFormData.append('file', dataURI)
@@ -167,12 +193,21 @@ export async function POST(request: NextRequest) {
     // Upload to Cloudinary
     const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`
     
+    console.log('📤 Uploading to Cloudinary:', cloudinaryUrl)
+    
     const cloudinaryResponse = await fetch(cloudinaryUrl, {
       method: 'POST',
       body: uploadFormData,
     })
 
+    console.log('📥 Cloudinary response received:', {
+      status: cloudinaryResponse.status,
+      statusText: cloudinaryResponse.statusText,
+      ok: cloudinaryResponse.ok
+    })
+
     const responseText = await cloudinaryResponse.text()
+    console.log('📄 Response text length:', responseText.length)
 
     if (!cloudinaryResponse.ok) {
       let errorMessage = 'Failed to upload image to Cloudinary'
@@ -186,7 +221,7 @@ export async function POST(request: NextRequest) {
         errorMessage = responseText || errorMessage
       }
 
-      console.error('Cloudinary upload error:', {
+      console.error('❌ Cloudinary upload error:', {
         status: cloudinaryResponse.status,
         message: errorMessage,
         details: errorDetails,
@@ -207,8 +242,12 @@ export async function POST(request: NextRequest) {
     let result: CloudinaryResponse
     try {
       result = JSON.parse(responseText) as CloudinaryResponse
+      console.log('✅ Response parsed successfully:', {
+        secure_url: result.secure_url ? result.secure_url.substring(0, 80) + '...' : 'MISSING',
+        public_id: result.public_id
+      })
     } catch (parseError) {
-      console.error('Failed to parse Cloudinary response:', parseError)
+      console.error('❌ Failed to parse Cloudinary response:', parseError)
       return NextResponse.json(
         { error: { message: 'Invalid response from Cloudinary' } },
         { status: 500 }
@@ -216,7 +255,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!result.secure_url) {
-      console.error('Cloudinary response missing secure_url:', result)
+      console.error('❌ Cloudinary response missing secure_url:', result)
       return NextResponse.json(
         { error: { message: 'Cloudinary response missing secure_url' } },
         { status: 500 }
@@ -224,6 +263,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Return structured response
+    console.log('✅ POST /api/upload/cloudinary returning success:', {
+      hasSecureUrl: !!result.secure_url,
+      hasPublicId: !!result.public_id
+    })
+
     return NextResponse.json({
       success: true,
       secure_url: result.secure_url,
@@ -237,7 +281,11 @@ export async function POST(request: NextRequest) {
       created_at: result.created_at,
     })
   } catch (error: any) {
-    console.error('Upload API Error:', error)
+    console.error('❌ Upload API Error:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    })
     return NextResponse.json(
       { 
         error: { 

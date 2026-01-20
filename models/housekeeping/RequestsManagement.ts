@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IRequestsManagement extends Document {
+  partnerId: string;
   name: string;
   category: string;
   status: "published" | "unpublished";
@@ -12,6 +13,11 @@ export interface IRequestsManagement extends Document {
 
 const requestsManagementSchema = new Schema<IRequestsManagement>(
   {
+    partnerId: {
+      type: String,
+      required: true,
+      index: true,
+    },
     name: {
       type: String,
       required: true,

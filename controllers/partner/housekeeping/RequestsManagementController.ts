@@ -13,7 +13,7 @@ export class RequestsManagementController {
     search?: string;
     status?: string;
     category?: string;
-  }) {
+  }, partnerId: string) {
     try {
       await connectDB();
 
@@ -21,8 +21,10 @@ export class RequestsManagementController {
       const limit = parseInt(query.limit || '20', 10);
       const skip = (page - 1) * limit;
 
-      // Build filter object
-      const filter: any = {};
+      // Build filter object - always include partnerId
+      const filter: any = {
+        partnerId: partnerId
+      };
       
       if (query.search) {
         filter.$or = [
@@ -40,6 +42,13 @@ export class RequestsManagementController {
         filter.category = query.category;
       }
 
+      console.log('🔍 Fetching requests for partnerId:', {
+        partnerId,
+        filter,
+        page,
+        limit
+      });
+
       // Get items with pagination
       const items = await RequestsManagement.find(filter)
         .sort({ createdAt: -1 })
@@ -49,6 +58,12 @@ export class RequestsManagementController {
 
       // Get total count
       const total = await RequestsManagement.countDocuments(filter);
+
+      console.log('✅ Fetched requests:', {
+        partnerId,
+        count: items.length,
+        total
+      });
 
       return NextResponse.json({
         success: true,
@@ -95,6 +110,7 @@ export class RequestsManagementController {
    * Create a new request item
    */
   static async createRequest(data: {
+    partnerId?: string;
     name?: string;
     category?: string;
     status?: "published" | "unpublished";
@@ -102,15 +118,39 @@ export class RequestsManagementController {
     image?: string;
   }) {
     // Extract and trim values outside try block so they're accessible in catch
+    const partnerId = data.partnerId || '';
     const trimmedName = data.name?.trim() || '';
     const trimmedCategory = data.category?.trim() || '';
     const trimmedDescription = data.description?.trim() || '';
 
+    console.log('🔵 RequestsManagementController.createRequest called:', {
+      partnerId,
+      name: trimmedName.substring(0, 50),
+      category: trimmedCategory,
+      description: trimmedDescription.substring(0, 50),
+      hasImage: !!data.image,
+      imageLength: data.image ? data.image.length : 0,
+      imageSample: data.image ? data.image.substring(0, 100) + '...' : 'NONE'
+    })
+
     try {
       await connectDB();
 
+      // Validate partnerId
+      if (!partnerId) {
+        console.error('❌ Missing partnerId')
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Partner ID is required' 
+          },
+          { status: 400 }
+        );
+      }
+
       // Simple validation: name, category, and description are required
       if (!trimmedName || !trimmedCategory || !trimmedDescription) {
+        console.error('❌ Missing required fields')
         return NextResponse.json(
           { 
             success: false, 
@@ -122,7 +162,18 @@ export class RequestsManagementController {
 
       // Create new request item - allow duplicates, no unique validation
       // Always save, even if duplicates exist
+      console.log('🔧 Creating RequestsManagement object:', {
+        partnerId,
+        name: trimmedName,
+        category: trimmedCategory,
+        status: data.status || 'unpublished',
+        description: trimmedDescription.substring(0, 50),
+        imageProvided: !!data.image,
+        imageValue: data.image || 'undefined'
+      });
+
       const item = new RequestsManagement({
+        partnerId: partnerId,
         name: trimmedName,
         category: trimmedCategory,
         status: data.status || 'unpublished',
@@ -130,7 +181,35 @@ export class RequestsManagementController {
         image: data.image || undefined,
       });
 
+      console.log('🔍 Item object before save:', {
+        partnerId: item.partnerId,
+        name: item.name,
+        category: item.category,
+        status: item.status,
+        description: item.description ? item.description.substring(0, 50) : 'none',
+        hasImage: !!item.image,
+        imageLength: item.image ? item.image.length : 0,
+        imageSample: item.image ? item.image.substring(0, 80) + '...' : 'NONE'
+      })
+
+      console.log('💾 Saving item to database:', {
+        partnerId: item.partnerId,
+        name: item.name,
+        hasImage: !!item.image,
+        imageLength: item.image ? item.image.length : 0
+      })
+
       await item.save();
+
+      console.log('✅ Item saved successfully to MongoDB:', {
+        _id: item._id,
+        partnerId: item.partnerId,
+        name: item.name,
+        hasImage: !!item.image,
+        imageLength: item.image ? item.image.length : 0,
+        imageUrl: item.image ? item.image.substring(0, 80) + '...' : 'NONE',
+        savedImageField: item.image
+      })
 
       return NextResponse.json({
         success: true,
@@ -139,7 +218,7 @@ export class RequestsManagementController {
         },
       }, { status: 201 });
     } catch (error: any) {
-      console.error('Create Request Error Details:', {
+      console.error('❌ Create Request Error Details:', {
         error,
         code: error.code,
         message: error.message,

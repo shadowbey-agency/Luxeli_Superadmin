@@ -14,9 +14,11 @@ export class InRoomDeliveryRequestController {
     status?: string;
     roomName?: string;
     restaurant?: string;
-  }) {
+  }, partnerId: string) {
     try {
       await connectDB();
+
+      console.log('🔵 [InRoomDeliveryRequest] getRequests started - partnerId:', partnerId);
 
       const page = parseInt(query.page || '1', 10);
       const limit = parseInt(query.limit || '20', 10);
@@ -24,6 +26,7 @@ export class InRoomDeliveryRequestController {
 
       // Build filter object
       const filter: any = {};
+      filter.partnerId = partnerId;
 
       if (query.search) {
         filter.$or = [
@@ -41,6 +44,8 @@ export class InRoomDeliveryRequestController {
       if (query.roomName) filter.roomName = query.roomName;
       if (query.restaurant) filter.restaurant = query.restaurant;
 
+      console.log('📤 [InRoomDeliveryRequest] Building filter:', filter);
+
       const requests = await InRoomDeliveryRequest.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -48,6 +53,8 @@ export class InRoomDeliveryRequestController {
         .lean();
 
       const total = await InRoomDeliveryRequest.countDocuments(filter);
+
+      console.log(`✅ [InRoomDeliveryRequest] Fetched ${requests.length} requests out of ${total} total`);
 
       return NextResponse.json({
         success: true,

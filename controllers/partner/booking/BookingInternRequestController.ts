@@ -15,7 +15,7 @@ export class BookingInternRequestController {
     category?: string;
     residentEmail?: string;
     roomName?: string;
-  }) {
+  }, partnerId: string) {
     try {
       await connectDB();
 
@@ -23,8 +23,10 @@ export class BookingInternRequestController {
       const limit = parseInt(query.limit || '20', 10);
       const skip = (page - 1) * limit;
 
-      // Build filter object
-      const filter: any = {};
+      // Build filter object - always include partnerId
+      const filter: any = {
+        partnerId: partnerId
+      };
       
       if (query.search) {
         filter.$or = [
@@ -51,6 +53,13 @@ export class BookingInternRequestController {
         filter.roomName = query.roomName;
       }
 
+      console.log('🔍 Fetching booking intern requests for partnerId:', {
+        partnerId,
+        filter,
+        page,
+        limit
+      });
+
       // Get items with pagination
       const items = await BookingInternRequest.find(filter)
         .sort({ createdAt: -1 })
@@ -60,6 +69,12 @@ export class BookingInternRequestController {
 
       // Get total count
       const total = await BookingInternRequest.countDocuments(filter);
+
+      console.log('✅ Fetched booking intern requests:', {
+        partnerId,
+        count: items.length,
+        total
+      });
 
       return NextResponse.json({
         success: true,

@@ -35,7 +35,7 @@ export default function SuccessCard({
   const secondaryMessage = messageParts.length > 1 ? messageParts.slice(1).join('\n') : null
 
   return (
-    <div className="fixed bottom-6 z-50 animate-in slide-in-from-bottom-5" style={{ right: 0, left: 'auto' }}>
+    <div className="animate-in slide-in-from-bottom-5" style={{ position: 'relative' }}>
       <div
         className="flex flex-col items-start gap-3"
         style={{
@@ -47,7 +47,8 @@ export default function SuccessCard({
           background: "#F3FFEA",
           display: "flex",
           flexDirection: "column",
-          gap: "10px"
+          gap: "10px",
+          minWidth: "300px"
         }}
       >
       {/* Success Message Row */}

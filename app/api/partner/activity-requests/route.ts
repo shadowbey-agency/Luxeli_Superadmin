@@ -25,7 +25,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
     service: searchParams.get('service') || undefined,
   };
 
-  return await ActivityRequestController.getRequests(query);
+  return await ActivityRequestController.getRequests(query, partnerId);
 });
 
 // POST /api/partner/activity-requests - Create new activity request

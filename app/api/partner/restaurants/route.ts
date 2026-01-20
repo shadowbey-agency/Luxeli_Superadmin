@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RestaurantController } from '@/controllers/partner/room-delivery/restaurants/RestaurantController';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 
 // GET /api/partner/restaurants - Get all restaurants
 export const GET = withAuth(async (request: AuthenticatedRequest) => {
+  const partnerId = getPartnerId(request);
+  if (!partnerId) {
+    return NextResponse.json(
+      { success: false, error: 'Partner ID not found' },
+      { status: 401 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const query = {
     page: searchParams.get('page') || undefined,
@@ -12,11 +20,19 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
     status: searchParams.get('status') || undefined,
   };
 
-  return await RestaurantController.getRestaurants(query);
+  return await RestaurantController.getRestaurants(query, partnerId);
 });
 
 // POST /api/partner/restaurants - Create new restaurant
 export const POST = withAuth(async (request: AuthenticatedRequest) => {
+  const partnerId = getPartnerId(request);
+  if (!partnerId) {
+    return NextResponse.json(
+      { success: false, error: 'Partner ID not found' },
+      { status: 401 }
+    );
+  }
+
   try {
     const body = await request.json();
     
@@ -46,6 +62,7 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
     }
 
     return await RestaurantController.createRestaurant({
+      partnerId,
       restaurantName: restaurantName?.trim() || '',
       status: status || 'open',
       startWork: startWork?.trim() || '',

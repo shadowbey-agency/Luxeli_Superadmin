@@ -13,7 +13,7 @@ export class BookingSettingsController {
     search?: string;
     status?: string;
     category?: string;
-  }) {
+  }, partnerId: string) {
     try {
       await connectDB();
 
@@ -21,8 +21,10 @@ export class BookingSettingsController {
       const limit = parseInt(query.limit || '20', 10);
       const skip = (page - 1) * limit;
 
-      // Build filter object
-      const filter: any = {};
+      // Build filter object - always include partnerId
+      const filter: any = {
+        partnerId: partnerId
+      };
       
       if (query.search) {
         filter.$or = [
@@ -41,6 +43,13 @@ export class BookingSettingsController {
         filter.category = query.category;
       }
 
+      console.log('🔍 Fetching booking settings for partnerId:', {
+        partnerId,
+        filter,
+        page,
+        limit
+      });
+
       // Get items with pagination
       const items = await BookingSettings.find(filter)
         .sort({ createdAt: -1 })
@@ -50,6 +59,12 @@ export class BookingSettingsController {
 
       // Get total count
       const total = await BookingSettings.countDocuments(filter);
+
+      console.log('✅ Fetched booking settings:', {
+        partnerId,
+        count: items.length,
+        total
+      });
 
       return NextResponse.json({
         success: true,
@@ -96,6 +111,7 @@ export class BookingSettingsController {
    * Create a new booking setting
    */
   static async createBookingSetting(data: {
+    partnerId?: string;
     serviceName?: string;
     category?: string;
     serviceDescription?: string;
@@ -108,6 +124,7 @@ export class BookingSettingsController {
     serviceImage?: string;
   }) {
     // Extract and trim values outside try block so they're accessible in catch
+    const partnerId = data.partnerId || '';
     const trimmedServiceName = data.serviceName?.trim() || '';
     const trimmedCategory = data.category?.trim() || '';
     const trimmedServiceDescription = data.serviceDescription?.trim() || '';
@@ -115,6 +132,17 @@ export class BookingSettingsController {
 
     try {
       await connectDB();
+
+      // Validate partnerId
+      if (!partnerId) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Partner ID is required' 
+          },
+          { status: 400 }
+        );
+      }
 
       // Simple validation: required fields
       if (!trimmedServiceName || !trimmedCategory || !trimmedServiceDescription || !trimmedServiceLocation) {
@@ -150,6 +178,7 @@ export class BookingSettingsController {
       // Create new booking setting - allow duplicates, no unique validation
       // Always save, even if duplicates exist
       const booking = new BookingSettings({
+        partnerId: partnerId,
         serviceName: trimmedServiceName,
         category: trimmedCategory,
         serviceDescription: trimmedServiceDescription,

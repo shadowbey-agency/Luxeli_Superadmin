@@ -325,7 +325,43 @@ export default function SupportPage() {
   }
 
   const confirmDeleteTicket = async (ticketId: string) => {
-    setTickets(tickets.filter((t) => t.id !== ticketId))
+    try {
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No auth token found')
+        alert('Authentication token not found. Please log in again.')
+        return
+      }
+
+      console.log('🔵 Deleting ticket:', ticketId)
+
+      const response = await fetch(`/api/partner/tickets/${ticketId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const responseData = await response.json().catch(() => ({}))
+      
+      if (response.ok) {
+        console.log('✅ Ticket deleted successfully:', responseData)
+        // Close modal after successful deletion
+        closeDeleteTicketModal()
+        // Remove ticket from UI
+        setTickets(tickets.filter((t) => t.id !== ticketId))
+      } else {
+        console.error('❌ Failed to delete ticket:', {
+          status: response.status,
+          error: responseData.error || responseData.message || 'Unknown error',
+          fullResponse: responseData
+        })
+        alert(`Failed to delete ticket: ${responseData.error || responseData.message || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('❌ Error deleting ticket:', error)
+      alert(`Error deleting ticket: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   return (

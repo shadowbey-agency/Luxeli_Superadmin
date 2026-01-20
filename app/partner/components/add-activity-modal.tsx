@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { RiCloseLine, RiImageLine } from "react-icons/ri"
 import { getAuthToken, getUserData } from "@/lib/auth-utils"
+import { uploadImageToCloudinary } from "@/lib/cloudinary"
 
 interface Activity {
   _id: string
@@ -29,8 +30,12 @@ export default function AddActivityModal({ isOpen, onClose, onSuccess, activity 
   const [activityImage, setActivityImage] = useState<string>("")
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  
+  // Use ref to store uploaded image URL immediately (not async like state)
+  const uploadedImageUrlRef = useRef<string>("")
 
   // Pre-fill form when editing an activity
   useEffect(() => {
@@ -199,24 +204,52 @@ export default function AddActivityModal({ isOpen, onClose, onSuccess, activity 
                       id="activity-image-upload"
                       type="file"
                       accept="image/*"
-                      onChange={(e) => {
+                      disabled={isUploadingImage}
+                      onChange={async (e) => {
                         const file = e.target.files?.[0]
                         if (file) {
                           if (!file.type.startsWith('image/')) {
                             setError("Please select a valid image file")
                             return
                           }
-                          if (file.size > 5 * 1024 * 1024) {
-                            setError("Image size must be less than 5MB")
+                          if (file.size > 10 * 1024 * 1024) {
+                            setError("Image size must be less than 10MB")
                             return
                           }
-                          const reader = new FileReader()
-                          reader.onloadend = () => {
-                            const result = reader.result as string
-                            setImagePreview(result)
-                            setActivityImage(result) // Store as base64
+
+                          setIsUploadingImage(true)
+                          setError(null)
+
+                          try {
+                            // Show preview immediately using Promise
+                            await new Promise<void>((resolve) => {
+                              const reader = new FileReader()
+                              reader.onloadend = () => {
+                                setImagePreview(reader.result as string)
+                                resolve()
+                              }
+                              reader.readAsDataURL(file)
+                            })
+
+                            // Upload to Cloudinary
+                            const result = await uploadImageToCloudinary(file, {
+                              folder: 'activities'
+                            })
+
+                            // Store Cloudinary URL
+                            setActivityImage(result.secure_url)
+                            console.log('✅ Image uploaded to Cloudinary:', {
+                              url: result.secure_url,
+                              public_id: result.public_id
+                            })
+                          } catch (error: any) {
+                            console.error('Error uploading image:', error)
+                            setError(error.message || 'Failed to upload image. Please try again.')
+                            setImagePreview(null)
+                            setActivityImage("")
+                          } finally {
+                            setIsUploadingImage(false)
                           }
-                          reader.readAsDataURL(file)
                         }
                       }}
                       className="hidden"

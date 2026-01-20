@@ -12,7 +12,7 @@ export class ActivityController {
     limit?: string;
     search?: string;
     status?: string;
-  }) {
+  }, partnerId: string) {
     try {
       await connectDB();
 
@@ -20,7 +20,10 @@ export class ActivityController {
       const limit = parseInt(query.limit || '20', 10);
       const skip = (page - 1) * limit;
 
-      const filter: any = {};
+      // Build filter object - always include partnerId
+      const filter: any = {
+        partnerId: partnerId
+      };
       
       if (query.search) {
         filter.$or = [
@@ -33,10 +36,23 @@ export class ActivityController {
         filter.status = query.status;
       }
 
+      console.log('🔍 Fetching activities for partnerId:', {
+        partnerId,
+        filter,
+        page,
+        limit
+      });
+
       const [activities, total] = await Promise.all([
         Activity.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
         Activity.countDocuments(filter),
       ]);
+
+      console.log('✅ Fetched activities:', {
+        partnerId,
+        count: activities.length,
+        total
+      });
 
       return NextResponse.json({
         success: true,
@@ -75,6 +91,7 @@ export class ActivityController {
    * Create a new activity
    */
   static async createActivity(data: {
+    partnerId?: string;
     activityTitle?: string;
     status?: "published" | "unpublished";
     activityDescription?: string;
@@ -84,9 +101,18 @@ export class ActivityController {
     try {
       await connectDB();
 
+      const partnerId = data.partnerId || '';
       const title = data.activityTitle?.trim() || '';
       const description = data.activityDescription?.trim() || '';
       const createdBy = data.createdBy?.trim() || '';
+
+      // Validate partnerId
+      if (!partnerId) {
+        return NextResponse.json(
+          { success: false, error: 'Partner ID is required' },
+          { status: 400 }
+        );
+      }
 
       // Validate required fields
       if (!title || !description || !createdBy) {
@@ -98,6 +124,7 @@ export class ActivityController {
 
       // Create and save activity (duplicates allowed)
       const activity = new Activity({
+        partnerId: partnerId,
         activityTitle: title,
         status: data.status || 'unpublished',
         activityDescription: description,
