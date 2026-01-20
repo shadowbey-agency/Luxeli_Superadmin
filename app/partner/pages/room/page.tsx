@@ -224,6 +224,7 @@ export default function RoomPage() {
   const [showImportModal, setShowImportModal] = useState(false)
   const [importSelectedFile, setImportSelectedFile] = useState<File | null>(null)
   const [isImportingRooms, setIsImportingRooms] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   // Loading state
   const [isLoadingRooms, setIsLoadingRooms] = useState(true)
   // Pagination state
@@ -757,6 +758,28 @@ export default function RoomPage() {
     }
   }
 
+  const downloadExcelTemplate = () => {
+    try {
+      // Create a new workbook with template data
+      const templateData = [
+        { roomName: '' } // Only one column with header
+      ]
+      
+      const ws = XLSX.utils.json_to_sheet(templateData)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, "Rooms")
+      
+      // Set column width for roomName
+      ws['!cols'] = [{ wch: 30 }]
+      
+      // Download the file
+      XLSX.writeFile(wb, 'room-template.xlsx')
+    } catch (error) {
+      console.error('Error downloading template:', error)
+      showAlert('Error', 'Failed to download template', 'error')
+    }
+  }
+
   const handleImportRooms = async () => {
     if (!importSelectedFile) {
       showAlert('No File', 'Please select an Excel file to import', 'warning')
@@ -765,6 +788,7 @@ export default function RoomPage() {
 
     try {
       setIsImportingRooms(true)
+      setUploadProgress(10)
       const token = getAuthToken()
       if (!token) {
         showAlert('Authentication Required', 'Please log in to import rooms', 'warning')
@@ -775,6 +799,14 @@ export default function RoomPage() {
       const formData = new FormData()
       formData.append('file', importSelectedFile)
 
+      // Simulate progress updates while uploading
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev < 90) return prev + Math.random() * 30
+          return prev
+        })
+      }, 500)
+
       const response = await fetch('/api/partner/rooms/bulk-upload', {
         method: 'POST',
         headers: {
@@ -782,6 +814,9 @@ export default function RoomPage() {
         },
         body: formData
       })
+
+      clearInterval(progressInterval)
+      setUploadProgress(100)
 
       const result = await response.json()
 
@@ -809,6 +844,7 @@ export default function RoomPage() {
       showAlert('Error', error?.message || 'Failed to import rooms. Please try again.', 'error')
     } finally {
       setIsImportingRooms(false)
+      setUploadProgress(0)
     }
   }
 
@@ -4268,13 +4304,22 @@ export default function RoomPage() {
             <div style={{ padding: "20px 16px" }}>
               {/* Upload Room Section */}
               <div className="flex flex-col gap-5">
-                {/* Label */}
-                <h3 className="text-base font-semibold text-gray-900">Upload rooms</h3>
+                {/* Label with Download Button */}
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-gray-900">Upload rooms</h3>
+                  <button
+                    onClick={downloadExcelTemplate}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors flex items-center gap-2"
+                  >
+                    <FaDownload size={14} />
+                    Download template
+                  </button>
+                </div>
 
                 {/* File Display (if selected) */}
                 {importSelectedFile && (
                   <div
-                    className="flex items-center gap-5 rounded-lg border"
+                    className="flex items-center gap-3 rounded-lg border"
                     style={{
                       height: "42px",
                       padding: "12px 13px",
@@ -4285,22 +4330,32 @@ export default function RoomPage() {
                     }}
                   >
                     {/* File Icon */}
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" className="flex-shrink-0">
                       <path d="M5.12276 0H11.8146L17.4792 5.90996V17.3982C17.4792 18.8353 16.3145 20 14.8774 20H5.12276C3.68571 20 2.521 18.8353 2.521 17.3982V2.60177C2.521 1.16474 3.68571 0 5.12276 0Z" fill="#0263D1" />
                       <path opacity="0.302" fillRule="evenodd" clipRule="evenodd" d="M11.8062 0V5.86141H17.4789L11.8062 0Z" fill="white" />
                     </svg>
 
-                    {/* File Name */}
-                    <span className="text-sm font-medium text-black flex-1">{importSelectedFile.name}</span>
+                    {/* Label */}
+                    <span className="text-sm font-medium text-black flex-shrink-0">Rooms api data</span>
+
+                    {/* Progress Bar */}
+                    <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500 transition-all duration-300"
+                        style={{ width: `${Math.max(uploadProgress, 0)}%` }}
+                      ></div>
+                    </div>
 
                     {/* Clear Button */}
                     <button
                       onClick={() => {
                         setImportSelectedFile(null)
+                        setUploadProgress(0)
                         const fileInput = document.getElementById('import-file-input') as HTMLInputElement
                         if (fileInput) fileInput.value = ''
                       }}
                       className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors"
+                      disabled={isImportingRooms}
                     >
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
