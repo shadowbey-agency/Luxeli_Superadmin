@@ -28,7 +28,7 @@ import { saveAs } from "file-saver"
 import PublicIcon from "@/app/partner/components/public-icon"
 import { FiEye, FiEyeOff } from "react-icons/fi"
 import AlertDialog from "@/app/partner/components/alert-dialog"
-import { FaTrash } from "react-icons/fa"
+import { FaTrash, FaDownload } from "react-icons/fa"
 import ResetPasswordModal from "@/app/superadmin/components/reset-password-modal"
 import { uploadImageToCloudinary } from "@/lib/cloudinary"
 import SuccessCard from "@/app/superadmin/components/success-card"
@@ -332,6 +332,9 @@ export default function PartnersPage() {
   // Services popover now uses DropdownMenu (portal) like 3-dot menu
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingPartners, setIsLoadingPartners] = useState(true)
+  const [importSelectedFile, setImportSelectedFile] = useState<File | null>(null)
+  const [isImportingRooms, setIsImportingRooms] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [formData, setFormData] = useState({
     hotelName: '',
     hotelCity: '',
@@ -1003,6 +1006,109 @@ export default function PartnersPage() {
     setImagePreview(null)
   }
 
+  // Handle room file import
+  const handleImportFile = (file: File) => {
+    if (file.type !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' &&
+        file.type !== 'application/vnd.ms-excel') {
+      setErrorMessage('Please upload a valid Excel file (.xlsx or .xls)')
+      setShowErrorCard(true)
+      return
+    }
+    setImportSelectedFile(file)
+  }
+
+  const downloadExcelTemplate = () => {
+    try {
+      const templateData = [
+        { roomName: '' }
+      ]
+      
+      const ws = XLSX.utils.json_to_sheet(templateData)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, "Rooms")
+      ws['!cols'] = [{ wch: 30 }]
+      XLSX.writeFile(wb, 'room-template.xlsx')
+    } catch (error) {
+      console.error('Error downloading template:', error)
+      setErrorMessage('Failed to download template')
+      setShowErrorCard(true)
+    }
+  }
+
+  const handleImportRooms = async () => {
+    if (!importSelectedFile || !editingPartnerId) {
+      setErrorMessage('Please select a file and ensure partner is selected')
+      setShowErrorCard(true)
+      return
+    }
+
+    try {
+      setIsImportingRooms(true)
+      setUploadProgress(10)
+      const token = getAuthToken()
+      if (!token) {
+        setErrorMessage('Authentication required')
+        setShowErrorCard(true)
+        return
+      }
+
+      const formData = new FormData()
+      formData.append('file', importSelectedFile)
+
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev < 90) return prev + Math.random() * 30
+          return prev
+        })
+      }, 500)
+
+      const response = await fetch(`/api/superadmin/partners/${editingPartnerId}/bulk-upload-rooms`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      })
+
+      clearInterval(progressInterval)
+      setUploadProgress(100)
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        let message = `Rooms imported successfully.\n${result.total} rooms added`
+        if (result.skipped && result.skipped > 0) {
+          message += `\n${result.skipped} room${result.skipped !== 1 ? 's' : ''} skipped (already existed)`
+        }
+        setSuccessMessage(message)
+        setShowSuccessCard(true)
+        setImportSelectedFile(null)
+        const fileInput = document.getElementById('superadmin-import-file-input') as HTMLInputElement
+        if (fileInput) fileInput.value = ''
+        
+        // Close modal after showing completed progress bar
+        setTimeout(() => {
+          setShowAddPartnerModal(false)
+          setCurrentStep(1)
+          setIsEditingPartner(false)
+          setEditingPartnerId(null)
+          setUploadProgress(0)
+        }, 1500)
+      } else {
+        const errorMsg = result.error || 'Failed to import rooms'
+        setErrorMessage(errorMsg)
+        setShowErrorCard(true)
+        setUploadProgress(0)
+      }
+    } catch (error: any) {
+      console.error('Error importing rooms:', error)
+      setErrorMessage(error?.message || 'Failed to import rooms. Please try again.')
+      setShowErrorCard(true)
+      setUploadProgress(0)
+    } finally {
+      setIsImportingRooms(false)
+    }
+  }
 
   const handleEditPartner = (partner: any) => {
     setIsEditingPartner(true)
@@ -4235,76 +4341,69 @@ export default function PartnersPage() {
                       background: "#FFF"
                     }}
                   >
-                    {/* Upload Room Heading */}
-                    <div
-                      className="flex items-center gap-2 w-full text-center justify-center"
-                    >
-                      <h3 className="text-lg font-semibold text-black text-center">Upload rooms</h3>
-                    </div>
-
-                    {/* Room API Loading Bar Section */}
-                    <div
-                      className="flex items-center gap-5 self-stretch rounded-lg border"
-                      style={{
-                        height: "42px",
-                        padding: "12px 13px",
-                        borderRadius: "6.75px",
-                        border: "1px solid #E6E6E6",
-                        background: "#FFF",
-                        boxShadow: "0 2px 2px 0 rgba(0, 0, 0, 0.05)"
-                      }}
-                    >
-                      {/* File Icon */}
-                      <div
-                        className="flex-shrink-0"
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          aspectRatio: "1/1"
-                        }}
+                    {/* Upload Room Heading with Download Button */}
+                    <div className="flex items-center justify-between w-full">
+                      <h3 className="text-lg font-semibold text-black">Upload rooms</h3>
+                      <button
+                        onClick={downloadExcelTemplate}
+                        className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors flex items-center gap-2"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                          <path d="M5.12276 0H11.8146L17.4792 5.90996V17.3982C17.4792 18.8353 16.3145 20 14.8774 20H5.12276C3.68571 20 2.521 18.8353 2.521 17.3982V2.60177C2.521 1.16474 3.68571 0 5.12276 0Z" fill="#0263D1" />
-                          <path opacity="0.302" fillRule="evenodd" clipRule="evenodd" d="M11.8062 0V5.86141H17.4789L11.8062 0Z" fill="white" />
-                          <path d="M4.93652 14.2705V10.9596H6.10935C6.34391 10.9596 6.56232 10.9947 6.76453 11.0594C6.96674 11.1268 7.15007 11.2239 7.31455 11.3533C7.47901 11.4827 7.60844 11.6553 7.7028 11.8709C7.79716 12.0866 7.8457 12.3347 7.8457 12.6151C7.8457 12.8955 7.79716 13.1435 7.7028 13.3592C7.60844 13.5749 7.47901 13.7474 7.31455 13.8768C7.15009 14.0062 6.96674 14.1033 6.76453 14.1707C6.56232 14.2354 6.34393 14.2705 6.10935 14.2705H4.93652ZM5.76424 13.5506H6.00959C6.1417 13.5506 6.26572 13.5345 6.37625 13.5048C6.48949 13.4724 6.59193 13.4212 6.68899 13.3538C6.78606 13.2864 6.86154 13.1893 6.91546 13.0626C6.97209 12.9386 6.99903 12.7876 6.99903 12.6151C6.99903 12.4425 6.97207 12.2915 6.91546 12.1648C6.86154 12.0408 6.78606 11.9437 6.68899 11.8763C6.59193 11.8062 6.48949 11.7577 6.37625 11.7253C6.26572 11.6957 6.1417 11.6795 6.00959 11.6795H5.76424V13.5506ZM9.85431 14.3082C9.35553 14.3082 8.94302 14.1465 8.61679 13.8256C8.29055 13.5048 8.12877 13.1004 8.12877 12.6151C8.12877 12.1298 8.29055 11.7254 8.61679 11.4045C8.94302 11.0837 9.35553 10.9219 9.85431 10.9219C10.345 10.9219 10.7521 11.0837 11.0784 11.4045C11.4019 11.7254 11.5637 12.1298 11.5637 12.6151C11.5637 13.1004 11.4019 13.5048 11.0784 13.8256C10.7521 14.1465 10.345 14.3082 9.85431 14.3082ZM9.21801 13.3134C9.38247 13.4967 9.59276 13.5884 9.8489 13.5884C10.105 13.5884 10.3126 13.4967 10.4771 13.3134C10.6416 13.1273 10.7225 12.8955 10.7225 12.6151C10.7225 12.3347 10.6416 12.1028 10.4771 11.9168C10.3127 11.7334 10.105 11.6417 9.8489 11.6417C9.59276 11.6417 9.38247 11.7334 9.21801 11.9168C9.05355 12.1028 8.96996 12.3347 8.96996 12.6151C8.96996 12.8955 9.05355 13.1273 9.21801 13.3134ZM13.5318 14.3082C13.0492 14.3082 12.6475 14.1573 12.3294 13.8607C12.0085 13.5614 11.8495 13.1462 11.8495 12.6151C11.8495 12.0866 12.0112 11.6714 12.3348 11.3721C12.661 11.0729 13.0573 10.9219 13.5319 10.9219C13.9605 10.9219 14.311 11.027 14.5888 11.24C14.8638 11.4503 15.0228 11.7307 15.0633 12.0812L14.2275 12.2511C14.1924 12.0677 14.1088 11.9195 13.9794 11.8089C13.85 11.6983 13.699 11.6417 13.5265 11.6417C13.2892 11.6417 13.0924 11.7253 12.9333 11.8952C12.7742 12.0677 12.6933 12.305 12.6933 12.615C12.6933 12.9251 12.7742 13.1624 12.9306 13.3322C13.0897 13.5048 13.2865 13.5884 13.5264 13.5884C13.699 13.5884 13.8473 13.5398 13.9686 13.4428C14.0899 13.3457 14.1654 13.2163 14.1978 13.0545L15.0525 13.2487C14.9743 13.583 14.8017 13.8418 14.5321 14.0278C14.2652 14.2139 13.9309 14.3082 13.5318 14.3082Z" fill="white" />
-                        </svg>
-                      </div>
-
-                      {/* Room API Data Text */}
-                      <span className="text-sm font-medium text-black">Rooms api data</span>
-
-                      {/* Loading Bar */}
-                      <div
-                        className="flex flex-col items-start gap-2.5 flex-1"
-                        style={{
-                          height: "8px",
-                          borderRadius: "10px",
-                          background: "#F5F6F6"
-                        }}
-                      >
-                        {/* Progress Bar */}
-                        {/* <div
-                          className="h-2 rounded-lg"
-                          style={{
-                            width: "230px",
-                            height: "8px",
-                            borderRadius: "10px",
-                            background: "#56C6FF"
-                          }}
-                        /> */}
-                      </div>
-
-                      {/* X Button */}
-                      <button className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <FaDownload size={14} />
+                        Download template
                       </button>
                     </div>
 
+                    {/* File Display (if selected) */}
+                    {importSelectedFile && (
+                      <div
+                        className="flex items-center gap-3 rounded-lg border w-full"
+                        style={{
+                          height: "42px",
+                          padding: "12px 13px",
+                          borderRadius: "6.75px",
+                          border: "1px solid #E6E6E6",
+                          background: "#FFF",
+                          boxShadow: "0 2px 2px 0 rgba(0, 0, 0, 0.05)"
+                        }}
+                      >
+                        {/* File Icon */}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" className="flex-shrink-0">
+                          <path d="M5.12276 0H11.8146L17.4792 5.90996V17.3982C17.4792 18.8353 16.3145 20 14.8774 20H5.12276C3.68571 20 2.521 18.8353 2.521 17.3982V2.60177C2.521 1.16474 3.68571 0 5.12276 0Z" fill="#0263D1" />
+                          <path opacity="0.302" fillRule="evenodd" clipRule="evenodd" d="M11.8062 0V5.86141H17.4789L11.8062 0Z" fill="white" />
+                        </svg>
+
+                        {/* Label */}
+                        <span className="text-sm font-medium text-black flex-shrink-0">Rooms api data</span>
+
+                        {/* Progress Bar */}
+                        <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="h-full bg-blue-500 transition-all duration-300"
+                            style={{ width: `${Math.max(uploadProgress, 0)}%` }}
+                          ></div>
+                        </div>
+
+                        {/* Clear Button */}
+                        <button
+                          onClick={() => {
+                            setImportSelectedFile(null)
+                            setUploadProgress(0)
+                            const fileInput = document.getElementById('superadmin-import-file-input') as HTMLInputElement
+                            if (fileInput) fileInput.value = ''
+                          }}
+                          className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors"
+                          disabled={isImportingRooms}
+                        >
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+
                     {/* Choose File Section */}
                     <div
-                      className="flex flex-col justify-center items-center gap-3 rounded-lg border w-full"
+                      className="flex flex-col justify-center items-center gap-3 rounded-lg border w-full cursor-pointer hover:bg-gray-50 transition-colors"
                       style={{
                         height: "150px",
                         padding: "25px 13px",
@@ -4317,7 +4416,20 @@ export default function PartnersPage() {
                         border: "1px solid rgba(0, 0, 0, 0.06)",
                         background: "#FBFAFA"
                       }}
+                      onClick={() => document.getElementById('superadmin-import-file-input')?.click()}
                     >
+                      {/* Hidden File Input */}
+                      <input
+                        type="file"
+                        id="superadmin-import-file-input"
+                        className="hidden"
+                        accept=".xlsx,.xls"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) handleImportFile(file)
+                        }}
+                      />
+
                       <div
                         className="flex justify-center items-center flex-shrink-0"
                         style={{
@@ -4331,7 +4443,8 @@ export default function PartnersPage() {
                           <path d="M14.5 7.75C14.9142 7.75 15.25 7.41421 15.25 7C15.25 6.58579 14.9142 6.25 14.5 6.25V7V7.75ZM8.5 6.25C8.08579 6.25 7.75 6.58579 7.75 7C7.75 7.41421 8.08579 7.75 8.5 7.75L8.5 7L8.5 6.25ZM8.94325 11.3691C8.66572 11.6766 8.68999 12.1508 8.99747 12.4284C9.30496 12.7059 9.77921 12.6816 10.0567 12.3741L9.5 11.8716L8.94325 11.3691ZM10.4393 10.8309L9.88259 10.3284L10.4393 10.8309ZM12.5607 10.8309L12.0039 11.3334H12.0039L12.5607 10.8309ZM12.9433 12.3741C13.2208 12.6816 13.695 12.7059 14.0025 12.4284C14.31 12.1508 14.3343 11.6766 14.0567 11.3691L13.5 11.8716L12.9433 12.3741ZM10.75 16C10.75 16.4142 11.0858 16.75 11.5 16.75C11.9142 16.75 12.25 16.4142 12.25 16H11.5H10.75ZM14.5 7V6.25L8.5 6.25L8.5 7L8.5 7.75L14.5 7.75V7ZM9.5 11.8716L10.0567 12.3741L10.9961 11.3334L10.4393 10.8309L9.88259 10.3284L8.94325 11.3691L9.5 11.8716ZM12.5607 10.8309L12.0039 11.3334L12.9433 12.3741L13.5 11.8716L14.0567 11.3691L13.1174 10.3284L12.5607 10.8309ZM10.4393 10.8309L10.9961 11.3334C11.2607 11.0403 11.409 10.8785 11.5248 10.7805C11.6273 10.6939 11.5993 10.75 11.5 10.75V10V9.25C11.09 9.25 10.7817 9.44458 10.5565 9.63495C10.3447 9.81396 10.118 10.0676 9.88259 10.3284L10.4393 10.8309ZM12.5607 10.8309L13.1174 10.3284C12.882 10.0676 12.6553 9.81397 12.4435 9.63495C12.2183 9.44458 11.91 9.25 11.5 9.25V10V10.75C11.4007 10.75 11.3727 10.6939 11.4752 10.7805C11.591 10.8785 11.7393 11.0403 12.0039 11.3334L12.5607 10.8309ZM11.5 10H10.75L10.75 16H11.5H12.25L12.25 10H11.5Z" fill="#141B34" />
                         </svg>
                       </div>
-                      <span className="text-sm font-medium text-black">Drag and drop your files here or <span className="text-blue-600 cursor-pointer hover:underline">choose file</span></span>
+                      <span className="text-sm font-medium text-black">Drag and drop your files here or <label className="text-blue-600 cursor-pointer hover:underline">choose file</label></span>
+                      <span className="text-xs text-gray-500">Excel file (.xlsx, .xls) with roomName column</span>
                     </div>
                   </div>
                 </div>
@@ -4418,16 +4531,22 @@ export default function PartnersPage() {
                       setFormErrors(prev => ({ ...prev, ...newErrors }))
                       return
                     }
+                  } else if (currentStep === 4) {
+                    // Handle room import in step 4
+                    if (importSelectedFile) {
+                      handleImportRooms()
+                      return
+                    }
                   }
 
                   if (currentStep < 4) {
                     setCurrentStep(currentStep + 1)
-                  } else {
-                    // Save partner
+                  } else if (currentStep === 4) {
+                    // Save partner (step 4 final save)
                     savePartner()
                   }
                 }}
-                disabled={isLoading}
+                disabled={isLoading || isImportingRooms}
                 className="px-4 py-2 rounded text-white font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
                 style={{
                   padding: "8.52px 20px",
@@ -4435,7 +4554,7 @@ export default function PartnersPage() {
                   background: "#1F2A44"
                 }}
               >
-                {isLoading ? 'Saving...' : (currentStep === 4 ? 'Save' : 'Next')}
+                {isLoading || isImportingRooms ? 'Processing...' : (currentStep === 4 ? (importSelectedFile ? 'Upload' : 'Save') : 'Next')}
               </button>
             </div>
           </div>

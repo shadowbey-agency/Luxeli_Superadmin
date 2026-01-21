@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 import { RestaurantController } from '@/controllers/partner/room-delivery/restaurants/RestaurantController';
 
 // POST /api/partner/restaurants/[id]/items - Add item to restaurant
 export const POST = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -23,7 +31,7 @@ export const POST = withAuth(async (request: AuthenticatedRequest, context?: { p
     }
 
     const body = await request.json();
-    return await RestaurantController.addItem(id, body);
+    return await RestaurantController.addItem(id, partnerId, body);
   } catch (error: any) {
     console.error('Add Item API Error:', error);
     return NextResponse.json(

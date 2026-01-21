@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 import { RestaurantController } from '@/controllers/partner/room-delivery/restaurants/RestaurantController';
 
 // PATCH /api/partner/restaurants/[id]/status - Update restaurant status
 export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -32,7 +40,7 @@ export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { 
       );
     }
 
-    return await RestaurantController.updateRestaurantStatus(id, status);
+    return await RestaurantController.updateRestaurantStatus(id, partnerId, status);
   } catch (error: any) {
     console.error('Update Restaurant Status API Error:', error);
     return NextResponse.json(

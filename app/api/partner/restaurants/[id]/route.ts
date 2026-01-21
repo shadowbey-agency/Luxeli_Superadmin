@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 import { RestaurantController } from '@/controllers/partner/room-delivery/restaurants/RestaurantController';
 
 // GET /api/partner/restaurants/[id] - Get restaurant by ID
@@ -35,6 +35,14 @@ export const GET = withAuth(async (request: AuthenticatedRequest, context?: { pa
 // PATCH /api/partner/restaurants/[id] - Update restaurant
 export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -53,7 +61,7 @@ export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { 
     }
 
     const body = await request.json();
-    return await RestaurantController.updateRestaurant(id, body);
+    return await RestaurantController.updateRestaurant(id, partnerId, body);
   } catch (error: any) {
     console.error('Update Restaurant API Error:', error);
     return NextResponse.json(
@@ -66,6 +74,14 @@ export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { 
 // DELETE /api/partner/restaurants/[id] - Delete restaurant
 export const DELETE = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -83,7 +99,7 @@ export const DELETE = withAuth(async (request: AuthenticatedRequest, context?: {
       );
     }
 
-    return await RestaurantController.deleteRestaurant(id);
+    return await RestaurantController.deleteRestaurant(id, partnerId);
   } catch (error: any) {
     console.error('Delete Restaurant API Error:', error);
     return NextResponse.json(

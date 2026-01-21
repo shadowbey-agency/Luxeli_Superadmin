@@ -5,14 +5,14 @@ import { handleApiError } from '@/lib/middleware';
 
 export class RestaurantController {
   /**
-   * Get all restaurants with pagination and filtering
+   * Get all restaurants with pagination and filtering by partnerId
    */
   static async getRestaurants(query: {
     page?: string;
     limit?: string;
     search?: string;
     status?: string;
-  }) {
+  }, partnerId: string) {
     try {
       await connectDB();
 
@@ -20,7 +20,7 @@ export class RestaurantController {
       const limit = parseInt(query.limit || '20', 10);
       const skip = (page - 1) * limit;
 
-      const filter: any = {};
+      const filter: any = { partnerId };
       
       if (query.search) {
         filter.$or = [
@@ -74,6 +74,7 @@ export class RestaurantController {
    * Create a new restaurant
    */
   static async createRestaurant(data: {
+    partnerId: string;
     restaurantName?: string;
     status?: "open" | "closed";
     startWork?: string;
@@ -123,6 +124,7 @@ export class RestaurantController {
 
       // Create and save restaurant
       const restaurant = new Restaurant({
+        partnerId: data.partnerId,
         restaurantName,
         status: data.status || 'open',
         startWork,
@@ -142,6 +144,7 @@ export class RestaurantController {
       if (error.code === 11000 || error.message?.toLowerCase().includes('duplicate')) {
         try {
           const restaurantData = {
+            partnerId: data.partnerId,
             restaurantName: data.restaurantName?.trim() || '',
             status: data.status || 'open',
             startWork: data.startWork?.trim() || '',
@@ -182,7 +185,7 @@ export class RestaurantController {
   /**
    * Update a restaurant by ID
    */
-  static async updateRestaurant(restaurantId: string, data: {
+  static async updateRestaurant(restaurantId: string, partnerId: string, data: {
     restaurantName?: string;
     status?: "open" | "closed";
     startWork?: string;
@@ -191,7 +194,7 @@ export class RestaurantController {
   }) {
     try {
       await connectDB();
-      const restaurant = await Restaurant.findById(restaurantId);
+      const restaurant = await Restaurant.findOne({ _id: restaurantId, partnerId });
       
       if (!restaurant) {
         return NextResponse.json(
@@ -221,10 +224,10 @@ export class RestaurantController {
   /**
    * Delete a restaurant by ID
    */
-  static async deleteRestaurant(restaurantId: string) {
+  static async deleteRestaurant(restaurantId: string, partnerId: string) {
     try {
       await connectDB();
-      const restaurant = await Restaurant.findByIdAndDelete(restaurantId);
+      const restaurant = await Restaurant.findOneAndDelete({ _id: restaurantId, partnerId });
       
       if (!restaurant) {
         return NextResponse.json(
@@ -245,10 +248,10 @@ export class RestaurantController {
   /**
    * Update restaurant status (open/closed)
    */
-  static async updateRestaurantStatus(restaurantId: string, status: "open" | "closed") {
+  static async updateRestaurantStatus(restaurantId: string, partnerId: string, status: "open" | "closed") {
     try {
       await connectDB();
-      const restaurant = await Restaurant.findById(restaurantId);
+      const restaurant = await Restaurant.findOne({ _id: restaurantId, partnerId });
       
       if (!restaurant) {
         return NextResponse.json(
@@ -272,7 +275,7 @@ export class RestaurantController {
   /**
    * Add item to restaurant
    */
-  static async addItem(restaurantId: string, itemData: {
+  static async addItem(restaurantId: string, partnerId: string, itemData: {
     itemName: string;
     status?: "published" | "unpublished";
     category: string;
@@ -282,7 +285,7 @@ export class RestaurantController {
   }) {
     try {
       await connectDB();
-      const restaurant = await Restaurant.findById(restaurantId);
+      const restaurant = await Restaurant.findOne({ _id: restaurantId, partnerId });
       
       if (!restaurant) {
         return NextResponse.json(
@@ -330,7 +333,7 @@ export class RestaurantController {
   /**
    * Update item in restaurant
    */
-  static async updateItem(restaurantId: string, itemIndex: number, itemData: {
+  static async updateItem(restaurantId: string, partnerId: string, itemIndex: number, itemData: {
     itemName?: string;
     status?: "published" | "unpublished";
     category?: string;
@@ -340,7 +343,7 @@ export class RestaurantController {
   }) {
     try {
       await connectDB();
-      const restaurant = await Restaurant.findById(restaurantId);
+      const restaurant = await Restaurant.findOne({ _id: restaurantId, partnerId });
       
       if (!restaurant) {
         return NextResponse.json(
@@ -387,10 +390,10 @@ export class RestaurantController {
   /**
    * Delete item from restaurant
    */
-  static async deleteItem(restaurantId: string, itemIndex: number) {
+  static async deleteItem(restaurantId: string, partnerId: string, itemIndex: number) {
     try {
       await connectDB();
-      const restaurant = await Restaurant.findById(restaurantId);
+      const restaurant = await Restaurant.findOne({ _id: restaurantId, partnerId });
       
       if (!restaurant) {
         return NextResponse.json(
@@ -421,10 +424,10 @@ export class RestaurantController {
   /**
    * Update item status in restaurant
    */
-  static async updateItemStatus(restaurantId: string, itemIndex: number, status: "published" | "unpublished") {
+  static async updateItemStatus(restaurantId: string, partnerId: string, itemIndex: number, status: "published" | "unpublished") {
     try {
       await connectDB();
-      const restaurant = await Restaurant.findById(restaurantId);
+      const restaurant = await Restaurant.findOne({ _id: restaurantId, partnerId });
       
       if (!restaurant) {
         return NextResponse.json(

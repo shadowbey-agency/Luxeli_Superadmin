@@ -821,6 +821,16 @@ export default function RoomPage() {
       const result = await response.json()
 
       if (response.ok && result.success) {
+        // Check if no rooms were added
+        if (result.total === 0) {
+          const errorMsg = result.skipped > 0 
+            ? `All rooms already exist. ${result.skipped} room${result.skipped !== 1 ? 's' : ''} skipped.`
+            : 'No valid rooms found in the file.'
+          showAlert('No Rooms Added', errorMsg, 'error')
+          setUploadProgress(0)
+          return
+        }
+
         // Build success message with skipped rooms info
         let message = `Rooms imported successfully.\n${result.total} rooms added`
         if (result.skipped && result.skipped > 0) {
@@ -828,23 +838,29 @@ export default function RoomPage() {
         }
         setSuccessMessage(message)
         setShowSuccessCard(true)
-        setShowImportModal(false)
         setImportSelectedFile(null)
         // Reset file input
         const fileInput = document.getElementById('import-file-input') as HTMLInputElement
         if (fileInput) fileInput.value = ''
-        await fetchRooms()
+        
+        // Close modal after showing completed progress bar
+        setTimeout(() => {
+          setShowImportModal(false)
+          setUploadProgress(0)
+          fetchRooms()
+        }, 1500)
       } else {
         // Show detailed error message from backend
         const errorMsg = result.error || 'Failed to import rooms'
         showAlert('Import Error', errorMsg, 'error')
+        setUploadProgress(0)
       }
     } catch (error: any) {
       console.error('Error importing rooms:', error)
       showAlert('Error', error?.message || 'Failed to import rooms. Please try again.', 'error')
+      setUploadProgress(0)
     } finally {
       setIsImportingRooms(false)
-      setUploadProgress(0)
     }
   }
 
