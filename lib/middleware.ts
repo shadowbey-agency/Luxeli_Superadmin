@@ -11,12 +11,12 @@ export interface AuthenticatedRequest extends NextRequest {
  */
 export function withAuth(
   handler: (
-    req: AuthenticatedRequest, 
+    req: AuthenticatedRequest,
     context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }
   ) => Promise<NextResponse>
 ) {
   return async (
-    req: NextRequest, 
+    req: NextRequest,
     context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }
   ): Promise<NextResponse> => {
     try {
@@ -107,17 +107,22 @@ export function withSuperAdminAuth(handler: (req: AuthenticatedRequest) => Promi
 export function getPartnerId(request: AuthenticatedRequest): string | null {
   const user = request.user;
   if (!user) return null;
-  
+
   // If user is a partner, userId is the partnerId
   if (user.role === 'partner' || user.userType === 'partner') {
     return user.userId;
   }
-  
+
   // If user is a partner member or staff, partnerId is in the token
   if (user.userType === 'partnermember' || user.userType === 'partnerstaff') {
     return user.partnerId || null;
   }
-  
+
+  // If user is a guest, partnerId is in the token
+  if (user.userType === 'guest') {
+    return user.partnerId || null;
+  }
+
   return null;
 }
 
@@ -191,10 +196,10 @@ export function withGuestAuth(
  */
 export function handleApiError(error: any, message: string = 'Internal server error') {
   console.error('API Error:', error);
-  
+
   if (error.name === 'ValidationError') {
     // Extract validation error messages
-    const errorMessages = error.errors 
+    const errorMessages = error.errors
       ? Object.values(error.errors).map((e: any) => e.message).join(', ')
       : error.message || 'Validation error';
     return NextResponse.json(
