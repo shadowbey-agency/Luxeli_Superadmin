@@ -518,7 +518,7 @@ export default function PartnersPage() {
       }
 
       console.log('Fetching partners from API...')
-      const response = await fetch('/api/superadmin/partners', {
+      const response = await fetch('/api/superadmin/partners?limit=1000', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
