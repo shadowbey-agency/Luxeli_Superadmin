@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LaundryRequestController } from '@/controllers/partner/laundary/LaundaryRequest';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 
 // POST /api/partner/laundary-request/[id]/assign - Assign staff to laundry request
 export const POST = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -33,7 +41,7 @@ export const POST = withAuth(async (request: AuthenticatedRequest, context?: { p
       );
     }
 
-    return await LaundryRequestController.assignStaff(id, assignee);
+    return await LaundryRequestController.assignStaff(id, partnerId, assignee);
   } catch (error: any) {
     console.error('Assign Staff to Laundry Request API Error:', error);
     return NextResponse.json(

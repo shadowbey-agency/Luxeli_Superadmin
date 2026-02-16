@@ -3,6 +3,14 @@ import { StaffController } from '@/controllers/partner/StaffController';
 import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 
 export const GET = withAuth(async (request: AuthenticatedRequest) => {
+  const partnerId = getPartnerId(request);
+  if (!partnerId) {
+    return NextResponse.json(
+      { success: false, error: 'Partner ID is required' },
+      { status: 401 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const query = {
     page: searchParams.get('page') || undefined,
@@ -12,7 +20,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
     status: searchParams.get('status') || undefined,
   };
 
-  return await StaffController.getStaff(query);
+  return await StaffController.getStaff(partnerId, query);
 });
 
 export const POST = withAuth(async (request: AuthenticatedRequest) => {

@@ -26,7 +26,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
     service: searchParams.get('service') || undefined,
   };
 
-  return await LaundryRequestController.getRequests(query);
+  return await LaundryRequestController.getRequests(partnerId, query);
 });
 
 // POST /api/partner/laundry-requests - Create new laundry request

@@ -1089,6 +1089,7 @@ export default function RequestsPage() {
           setShowViewRequest(false)
           setSelectedRequest(null)
         }}
+        onStatusChange={fetchRequests}
       />
 
       {/* Assign Staff Modal */}

@@ -25,7 +25,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
     roomName: searchParams.get('roomName') || undefined,
   };
 
-  return await CustomizedServiceRequestController.getCustomizedServiceRequests(query);
+  return await CustomizedServiceRequestController.getCustomizedServiceRequests(partnerId, query);
 });
 
 // POST /api/partner/customized-service-requests - Create new customized service request

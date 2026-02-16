@@ -5,9 +5,10 @@ import { handleApiError } from '@/lib/middleware';
 
 export class CustomizedServiceRequestController {
   /**
-   * Get all customized service requests with pagination and filtering
+   * Get all customized service requests for a partner with pagination and filtering
+   * Only returns requests belonging to the given partnerId
    */
-  static async getCustomizedServiceRequests(query: {
+  static async getCustomizedServiceRequests(partnerId: string, query: {
     page?: string;
     limit?: string;
     search?: string;
@@ -22,8 +23,8 @@ export class CustomizedServiceRequestController {
       const limit = parseInt(query.limit || '20', 10);
       const skip = (page - 1) * limit;
 
-      // Build filter object
-      const filter: any = {};
+      // Build filter object - always filter by partnerId so partner only sees their requests
+      const filter: any = { partnerId };
       
       if (query.search) {
         filter.$or = [
@@ -77,12 +78,13 @@ export class CustomizedServiceRequestController {
 
   /**
    * Get a single customized service request by ID
+   * Only returns request if it belongs to the given partnerId
    */
-  static async getCustomizedServiceRequestById(requestId: string) {
+  static async getCustomizedServiceRequestById(requestId: string, partnerId: string) {
     try {
       await connectDB();
 
-      const request = await CustomizedServiceRequest.findById(requestId).lean();
+      const request = await CustomizedServiceRequest.findOne({ _id: requestId, partnerId }).lean();
       if (!request) {
         return NextResponse.json(
           { success: false, error: 'Customized service request not found' },
@@ -165,8 +167,9 @@ export class CustomizedServiceRequestController {
 
   /**
    * Update a customized service request by ID
+   * Only updates request if it belongs to the given partnerId
    */
-  static async updateCustomizedServiceRequest(requestId: string, data: {
+  static async updateCustomizedServiceRequest(requestId: string, partnerId: string, data: {
     roomName?: string;
     residentEmail?: string;
     title?: string;
@@ -181,7 +184,7 @@ export class CustomizedServiceRequestController {
     try {
       await connectDB();
 
-      const request = await CustomizedServiceRequest.findById(requestId);
+      const request = await CustomizedServiceRequest.findOne({ _id: requestId, partnerId });
       if (!request) {
         return NextResponse.json(
           { success: false, error: 'Customized service request not found' },
@@ -222,12 +225,13 @@ export class CustomizedServiceRequestController {
 
   /**
    * Delete a customized service request by ID
+   * Only deletes request if it belongs to the given partnerId
    */
-  static async deleteCustomizedServiceRequest(requestId: string) {
+  static async deleteCustomizedServiceRequest(requestId: string, partnerId: string) {
     try {
       await connectDB();
 
-      const request = await CustomizedServiceRequest.findByIdAndDelete(requestId);
+      const request = await CustomizedServiceRequest.findOneAndDelete({ _id: requestId, partnerId });
       if (!request) {
         return NextResponse.json(
           { success: false, error: 'Customized service request not found' },
@@ -246,15 +250,17 @@ export class CustomizedServiceRequestController {
 
   /**
    * Update customized service request status
+   * Only updates request if it belongs to the given partnerId
    */
   static async updateCustomizedServiceRequestStatus(
-    requestId: string, 
+    requestId: string,
+    partnerId: string,
     status: "new" | "accepted" | "completed" | "no-show" | "canceled"
   ) {
     try {
       await connectDB();
 
-      const request = await CustomizedServiceRequest.findById(requestId);
+      const request = await CustomizedServiceRequest.findOne({ _id: requestId, partnerId });
       if (!request) {
         return NextResponse.json(
           { success: false, error: 'Customized service request not found' },
@@ -285,9 +291,11 @@ export class CustomizedServiceRequestController {
 
   /**
    * Update customized service request assignee
+   * Only updates request if it belongs to the given partnerId
    */
   static async updateCustomizedServiceRequestAssignee(
     requestId: string,
+    partnerId: string,
     assignee: {
       name: string;
       staffId: string;
@@ -297,7 +305,7 @@ export class CustomizedServiceRequestController {
     try {
       await connectDB();
 
-      const request = await CustomizedServiceRequest.findById(requestId);
+      const request = await CustomizedServiceRequest.findOne({ _id: requestId, partnerId });
       if (!request) {
         return NextResponse.json(
           { success: false, error: 'Customized service request not found' },

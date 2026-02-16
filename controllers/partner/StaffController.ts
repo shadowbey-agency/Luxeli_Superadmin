@@ -5,9 +5,10 @@ import { handleApiError } from '@/lib/middleware';
 
 export class StaffController {
   /**
-   * Get all staff with pagination and filtering
+   * Get all staff for a partner with pagination and filtering
+   * Only returns staff belonging to the given partnerId
    */
-  static async getStaff(query: {
+  static async getStaff(partnerId: string, query: {
     page?: string;
     limit?: string;
     search?: string;
@@ -21,8 +22,8 @@ export class StaffController {
       const limit = parseInt(query.limit || '10');
       const skip = (page - 1) * limit;  
 
-      // Build filter object
-      const filter: any = {};
+      // Build filter object - always filter by partnerId so partner only sees their staff
+      const filter: any = { partnerId };
       
       if (query.search) {
         filter.$or = [

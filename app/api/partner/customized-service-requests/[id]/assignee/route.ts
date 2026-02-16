@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 import { CustomizedServiceRequestController } from '@/controllers/partner/customized-services/CustomizedServiceRequestController';
 
 // PATCH /api/partner/customized-service-requests/[id]/assignee - Update customized service request assignee
 export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -33,7 +41,7 @@ export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { 
       );
     }
 
-    return await CustomizedServiceRequestController.updateCustomizedServiceRequestAssignee(id, assignee);
+    return await CustomizedServiceRequestController.updateCustomizedServiceRequestAssignee(id, partnerId, assignee);
   } catch (error: any) {
     console.error('Update Customized Service Request Assignee API Error:', error);
     return NextResponse.json(

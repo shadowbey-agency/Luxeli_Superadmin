@@ -6,9 +6,10 @@ import { handleApiError } from '@/lib/middleware';
 export class LaundryRequestController {
 
   /**
-   * Get all laundry requests with pagination and filtering
+   * Get all laundry requests for a partner with pagination and filtering
+   * Only returns requests belonging to the given partnerId
    */
-  static async getRequests(query: {
+  static async getRequests(partnerId: string, query: {
     page?: string;
     limit?: string;
     search?: string;
@@ -24,8 +25,8 @@ export class LaundryRequestController {
       const limit = parseInt(query.limit || '20', 10);
       const skip = (page - 1) * limit;
 
-      // Build filter object
-      const filter: any = {};
+      // Build filter object - always filter by partnerId so partner only sees their requests
+      const filter: any = { partnerId };
 
       if (query.search) {
         filter.$or = [
@@ -69,12 +70,13 @@ export class LaundryRequestController {
 
   /**
    * Get a single laundry request by ID
+   * Only returns request if it belongs to the given partnerId
    */
-  static async getRequestById(requestId: string) {
+  static async getRequestById(requestId: string, partnerId: string) {
     try {
       await connectDB();
 
-      const request = await LaundryRequest.findById(requestId).lean();
+      const request = await LaundryRequest.findOne({ _id: requestId, partnerId }).lean();
       if (!request) {
         return NextResponse.json({ success: false, error: 'Laundry request not found' }, { status: 404 });
       }
@@ -135,8 +137,9 @@ export class LaundryRequestController {
 
   /**
    * Update a laundry request by ID
+   * Only updates request if it belongs to the given partnerId
    */
-  static async updateRequest(requestId: string, data: {
+  static async updateRequest(requestId: string, partnerId: string, data: {
     roomName?: string;
     residentialName?: string;
     services?: string[];
@@ -154,7 +157,7 @@ export class LaundryRequestController {
     try {
       await connectDB();
 
-      const request = await LaundryRequest.findById(requestId);
+      const request = await LaundryRequest.findOne({ _id: requestId, partnerId });
       if (!request) return NextResponse.json({ success: false, error: 'Laundry request not found' }, { status: 404 });
 
       if (data.roomName !== undefined) request.roomName = data.roomName.trim();
@@ -183,12 +186,13 @@ export class LaundryRequestController {
 
   /**
    * Delete a laundry request by ID
+   * Only deletes request if it belongs to the given partnerId
    */
-  static async deleteRequest(requestId: string) {
+  static async deleteRequest(requestId: string, partnerId: string) {
     try {
       await connectDB();
 
-      const request = await LaundryRequest.findByIdAndDelete(requestId);
+      const request = await LaundryRequest.findOneAndDelete({ _id: requestId, partnerId });
       if (!request) return NextResponse.json({ success: false, error: 'Laundry request not found' }, { status: 404 });
 
       return NextResponse.json({ success: true, message: 'Laundry request deleted successfully' });
@@ -199,13 +203,14 @@ export class LaundryRequestController {
 
   /**
    * Update laundry request status
+   * Only updates request if it belongs to the given partnerId
    */
-  static async updateRequestStatus(requestId: string, status: "new" | "accepted" | "completed" | "no-show" | "canceled") {
+  static async updateRequestStatus(requestId: string, partnerId: string, status: "new" | "accepted" | "completed" | "no-show" | "canceled") {
     try {
       await connectDB();
 
-      const request = await LaundryRequest.findByIdAndUpdate(
-        requestId,
+      const request = await LaundryRequest.findOneAndUpdate(
+        { _id: requestId, partnerId },
         { status },
         { new: true }
       );
@@ -230,13 +235,14 @@ export class LaundryRequestController {
 
   /**
    * Assign staff to a laundry request
+   * Only updates request if it belongs to the given partnerId
    */
-  static async assignStaff(requestId: string, assigne: { name: string; staffId: string; profilePic?: string }) {
+  static async assignStaff(requestId: string, partnerId: string, assigne: { name: string; staffId: string; profilePic?: string }) {
     try {
       await connectDB();
 
-      const request = await LaundryRequest.findByIdAndUpdate(
-        requestId,
+      const request = await LaundryRequest.findOneAndUpdate(
+        { _id: requestId, partnerId },
         { 
           assigne,
           status: 'accepted' // Auto-update status to accepted when assigned

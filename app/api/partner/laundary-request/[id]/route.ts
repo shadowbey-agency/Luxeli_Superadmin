@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LaundryRequestController } from '@/controllers/partner/laundary/LaundaryRequest';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 
 
 // GET /api/partner/laundary-request/[id] - Get single laundry request
 export const GET = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -23,7 +31,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest, context?: { pa
       );
     }
 
-    return await LaundryRequestController.getRequestById(id);
+    return await LaundryRequestController.getRequestById(id, partnerId);
   } catch (error: any) {
     console.error('Get Laundry Request API Error:', error);
     return NextResponse.json(
@@ -36,6 +44,14 @@ export const GET = withAuth(async (request: AuthenticatedRequest, context?: { pa
 // PATCH /api/partner/laundary-request/[id] - Update laundry request
 export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -54,7 +70,7 @@ export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { 
     }
 
     const body = await request.json();
-    return await LaundryRequestController.updateRequest(id, body);
+    return await LaundryRequestController.updateRequest(id, partnerId, body);
   } catch (error: any) {
     console.error('Update Laundry Request API Error:', error);
     return NextResponse.json(
@@ -67,6 +83,14 @@ export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { 
 // DELETE /api/partner/laundary-request/[id] - Delete laundry request
 export const DELETE = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -84,7 +108,7 @@ export const DELETE = withAuth(async (request: AuthenticatedRequest, context?: {
       );
     }  
 
-    return await LaundryRequestController.deleteRequest(id);
+    return await LaundryRequestController.deleteRequest(id, partnerId);
   } catch (error: any) {
     console.error('Delete Laundry Request API Error:', error);
     return NextResponse.json(

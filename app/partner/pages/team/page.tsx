@@ -158,6 +158,9 @@ export default function TeamPage() {
   const [isLoadingMembers, setIsLoadingMembers] = useState(true)
   const [isLoadingStaff, setIsLoadingStaff] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [roleFilter, setRoleFilter] = useState("")
+  const [totalStaff, setTotalStaff] = useState(0)
+  const [totalMembers, setTotalMembers] = useState(0)
   // Alert and confirmation dialog state
   const [alertDialog, setAlertDialog] = useState<{
     isOpen: boolean
@@ -232,12 +235,18 @@ export default function TeamPage() {
             avatar: member.memberName ? member.memberName.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'M'
           }))
           setTeamMembers(transformedMembers)
+          // Update total count from API pagination
+          if (result.data.pagination) {
+            setTotalMembers(result.data.pagination.total || 0)
+          }
         } else {
           setTeamMembers([])
+          setTotalMembers(0)
         }
       } else {
         console.error('Failed to fetch members')
         setTeamMembers([])
+        setTotalMembers(0)
       }
     } catch (error) {
       console.error('Error fetching members:', error)
@@ -259,7 +268,8 @@ export default function TeamPage() {
       }
 
       const searchParam = searchQuery.trim() ? `&search=${encodeURIComponent(searchQuery.trim())}` : ''
-      const response = await fetch(`/api/partner/staff?page=${currentPage}&limit=${itemsPerPage}${searchParam}`, {
+      const roleParam = roleFilter ? `&role=${encodeURIComponent(roleFilter)}` : ''
+      const response = await fetch(`/api/partner/staff?page=${currentPage}&limit=${itemsPerPage}${searchParam}${roleParam}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -283,12 +293,18 @@ export default function TeamPage() {
             avatar: staff.staffName ? staff.staffName.split(' ').map((n: string) => n.charAt(0)).join('').toUpperCase().slice(0, 2) : 'S'
           }))
           setStaffMembers(transformedStaff)
+          // Update total count from API pagination
+          if (result.data.pagination) {
+            setTotalStaff(result.data.pagination.total || 0)
+          }
         } else {
           setStaffMembers([])
+          setTotalStaff(0)
         }
       } else {
         console.error('Failed to fetch staff')
         setStaffMembers([])
+        setTotalStaff(0)
       }
     } catch (error) {
       console.error('Error fetching staff:', error)
@@ -298,10 +314,10 @@ export default function TeamPage() {
     }
   }
 
-  // Reset page to 1 when search query changes
+  // Reset page to 1 when search query or role filter changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery])
+  }, [searchQuery, roleFilter])
 
   // Load data when component mounts or tab changes
   useEffect(() => {
@@ -310,7 +326,7 @@ export default function TeamPage() {
     } else {
       fetchStaff()
     }
-  }, [activeTab, currentPage, itemsPerPage, searchQuery])
+  }, [activeTab, currentPage, itemsPerPage, searchQuery, roleFilter])
 
   const handleToggleActive = async (id: string) => {
     try {
@@ -780,11 +796,14 @@ export default function TeamPage() {
     }
   }
 
+  // Use server-side pagination - API already returns paginated results
   const currentData = activeTab === 'members' ? teamMembers : staffMembers
-  const totalPages = Math.ceil(currentData.length / itemsPerPage)
+  const totalCount = activeTab === 'members' ? totalMembers : totalStaff
+  const totalPages = Math.ceil(totalCount / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentMembers = currentData.slice(startIndex, endIndex)
+  const endIndex = Math.min(startIndex + itemsPerPage, totalCount)
+  // No need to slice - API already returns paginated data
+  const currentMembers = currentData
 
   return (
     <div className="p-4">
@@ -792,7 +811,10 @@ export default function TeamPage() {
       <div className="mb-6">
         <div className="flex">
           <button
-            onClick={() => setActiveTab('members')}
+            onClick={() => {
+              setActiveTab('members')
+              setRoleFilter('') // Reset role filter when switching to members tab
+            }}
             className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
               activeTab === 'members'
                 ? 'text-foreground border-b-2 border-primary -mb-[2px]'
@@ -806,7 +828,10 @@ export default function TeamPage() {
             Members
           </button>
           <button
-            onClick={() => setActiveTab('staff')}
+            onClick={() => {
+              setActiveTab('staff')
+              setRoleFilter('') // Reset role filter when switching to staff tab
+            }}
             className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
               activeTab === 'staff'
                 ? 'text-foreground border-b-2 border-primary -mb-[2px]'
@@ -877,6 +902,8 @@ export default function TeamPage() {
             {activeTab === 'staff' && (
               <div className="relative">
                 <select
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
                   className="appearance-none"
                   style={{
                     padding: "7.52px 12px",
@@ -890,11 +917,13 @@ export default function TeamPage() {
                     lineHeight: "19.5px"
                   }}
                 >
-                  <option value="">Role</option>
-                  <option value="admin">Admin</option>
-                  <option value="manager">Manager</option>
-                  <option value="staff">Staff</option>
-                  <option value="receptionist">Receptionist</option>
+                  <option value="">All Roles</option>
+                  <option value="housekeeper">Housekeeper</option>
+                  <option value="booking assistant">Booking Assistant</option>
+                  <option value="custom service agent">Custom Service Agent</option>
+                  <option value="activity supervisor">Activity Supervisor</option>
+                  <option value="laundary attendant">Laundary Attendant</option>
+                  <option value="delivery staff">Delivery Staff</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                   <DropdownArrow />
@@ -1142,7 +1171,7 @@ export default function TeamPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between  py-3 border-t ">
           <p className="text-sm text-muted-foreground">
-            Displaying {startIndex + 1}-{Math.min(endIndex, currentData.length)} results out of {currentData.length}
+            Displaying {currentData.length > 0 ? startIndex + 1 : 0}-{endIndex} results out of {totalCount}
           </p>
 
           <div className="flex items-center gap-2">

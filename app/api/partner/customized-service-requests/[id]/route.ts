@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware';
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 import { CustomizedServiceRequestController } from '@/controllers/partner/customized-services/CustomizedServiceRequestController';
 
 // GET /api/partner/customized-service-requests/[id] - Get customized service request by ID
 export const GET = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -22,7 +30,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest, context?: { pa
       );
     }
 
-    return await CustomizedServiceRequestController.getCustomizedServiceRequestById(id);
+    return await CustomizedServiceRequestController.getCustomizedServiceRequestById(id, partnerId);
   } catch (error: any) {
     console.error('Get Customized Service Request API Error:', error);
     return NextResponse.json(
@@ -35,6 +43,14 @@ export const GET = withAuth(async (request: AuthenticatedRequest, context?: { pa
 // PATCH /api/partner/customized-service-requests/[id] - Update customized service request
 export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -53,7 +69,7 @@ export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { 
     }
 
     const body = await request.json();
-    return await CustomizedServiceRequestController.updateCustomizedServiceRequest(id, body);
+    return await CustomizedServiceRequestController.updateCustomizedServiceRequest(id, partnerId, body);
   } catch (error: any) {
     console.error('Update Customized Service Request API Error:', error);
     return NextResponse.json(
@@ -66,6 +82,14 @@ export const PATCH = withAuth(async (request: AuthenticatedRequest, context?: { 
 // DELETE /api/partner/customized-service-requests/[id] - Delete customized service request
 export const DELETE = withAuth(async (request: AuthenticatedRequest, context?: { params?: { [key: string]: string | string[] } | Promise<{ [key: string]: string | string[] }> }) => {
   try {
+    const partnerId = getPartnerId(request);
+    if (!partnerId) {
+      return NextResponse.json(
+        { success: false, error: 'Partner ID not found' },
+        { status: 401 }
+      );
+    }
+
     let id: string;
     if (context?.params) {
       const params = await Promise.resolve(context.params);
@@ -83,7 +107,7 @@ export const DELETE = withAuth(async (request: AuthenticatedRequest, context?: {
       );
     }
 
-    return await CustomizedServiceRequestController.deleteCustomizedServiceRequest(id);
+    return await CustomizedServiceRequestController.deleteCustomizedServiceRequest(id, partnerId);
   } catch (error: any) {
     console.error('Delete Customized Service Request API Error:', error);
     return NextResponse.json(
