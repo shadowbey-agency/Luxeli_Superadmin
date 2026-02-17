@@ -113,24 +113,24 @@ export default function AddItemModal({ isOpen, onClose, onSuccess, item }: AddIt
                   Status
                 </label>
                 <div className="flex items-center space-x-3">
-                  <span className={`text-sm ${isPublished ? 'text-gray-500' : 'text-gray-900'}`}>
+                  <span className={`text-sm ${isPublished ? 'text-gray-900' : 'text-gray-500'}`}>
                     Published
                   </span>
                   <div
                     className="relative w-11 h-6 rounded-full transition-colors cursor-pointer"
                     style={{
-                      backgroundColor: isPublished ? "#E5E7EB" : "#50BE87"
+                      backgroundColor: isPublished ? "#50BE87" : "#E5E7EB"
                     }}
                     onClick={() => setIsPublished(!isPublished)}
                   >
                     <div
                       className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform"
                       style={{
-                        transform: isPublished ? "translateX(24px)" : "translateX(4px)"
+                        transform: isPublished ? "translateX(4px)" : "translateX(24px)"
                       }}
                     />
                   </div>
-                  <span className={`text-sm ${isPublished ? 'text-gray-900' : 'text-gray-500'}`}>
+                  <span className={`text-sm ${isPublished ? 'text-gray-500' : 'text-gray-900'}`}>
                     Unpublished
                   </span>
                 </div>

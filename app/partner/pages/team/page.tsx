@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { getAuthToken } from "@/lib/auth-utils"
 import {
   RiMoreLine,
@@ -10,6 +10,7 @@ import {
 import ToggleSwitch from "@/app/superadmin/components/toggle-switch"
 import DropdownMenu from "@/app/superadmin/components/dropdown-menu"
 import UserPermissionsModal from "@/app/partner/components/user-permissions-modal"
+import PermissionDetailModal from "@/app/partner/components/permission-detail-modal"
 import DropdownArrow from "@/app/superadmin/components/dropdown-arrow"
 import SortArrows from "@/app/superadmin/components/sort-arrows"
 import { LeftArrow, RightArrow } from "@/app/superadmin/components/pagination-arrows"
@@ -147,6 +148,11 @@ export default function TeamPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
   const [memberForPermissions, setMemberForPermissions] = useState<TeamMember | StaffMember | null>(null)
+  const [selectedPermissions, setSelectedPermissions] = useState<{ [key: string]: any }>({})
+  const [showPermissionDetailModal, setShowPermissionDetailModal] = useState(false)
+  const [selectedPermissionKey, setSelectedPermissionKey] = useState<string>("")
+  const [isPermissionDropdownOpen, setIsPermissionDropdownOpen] = useState(false)
+  const permissionDropdownRef = useRef<HTMLDivElement>(null)
   const [showAddStaffModal, setShowAddStaffModal] = useState(false)
   const [showAddMemberModal, setShowAddMemberModal] = useState(false)
   // Success card state for staff operations
@@ -476,6 +482,9 @@ export default function TeamPage() {
       password: '',
       status: member.isActive ? 'active' : 'disabled'
     })
+    // Reset permissions - will be loaded from API
+    setSelectedPermissions({})
+    setIsPermissionDropdownOpen(false)
     
     // Fetch full data to get username (for both staff and members)
     try {
@@ -529,6 +538,12 @@ export default function TeamPage() {
                   ? (memberData.status === 'disable' ? 'disabled' : 'active') 
                   : (prev.status || 'active')
               }))
+              // Set permissions if they exist
+              if (memberData.permissions) {
+                setSelectedPermissions(memberData.permissions)
+              } else {
+                setSelectedPermissions({})
+              }
             } else {
               console.warn('Failed to load member details, using existing data')
             }
@@ -563,6 +578,200 @@ export default function TeamPage() {
   const handleEditFromPermissions = () => {
     // This handler is no longer needed as the edit permissions modal
     // is now handled directly within the UserPermissionsModal component
+  }
+
+  // Permission options (same as Add Member modal)
+  const permissionOptions = [
+    { key: "dashboard", label: "Dashboard", icon: "/assets/icons/dashboard.svg", hasSubPermissions: false },
+    { key: "room", label: "Rooms", icon: "/assets/icons/bed-bunk.svg", hasSubPermissions: true, subOptions: [
+      { key: "rooms", label: "Rooms" },
+      { key: "requests", label: "Requests" }
+    ]},
+    { key: "support", label: "Support", icon: "/assets/icons/support.svg", hasSubPermissions: true, subOptions: [
+      { key: "myTickets", label: "My Tickets" },
+      { key: "ticketSaved", label: "Ticket Saved" }
+    ]},
+    { key: "team", label: "Team", icon: "/assets/icons/team.svg", hasSubPermissions: true, subOptions: [
+      { key: "members", label: "Members" },
+      { key: "staff", label: "Staff" }
+    ]},
+    { key: "housekeeping", label: "Housekeeping", icon: "/assets/icons/housekeeping.svg", hasSubPermissions: true, subOptions: [
+      { key: "requests", label: "Requests" },
+      { key: "houseCleaning", label: "House Cleaning" },
+      { key: "requestManagement", label: "Request Management" }
+    ]},
+    { key: "booking", label: "Bookings interns", icon: "/assets/icons/calendar.svg", hasSubPermissions: true, subOptions: [
+      { key: "requests", label: "Requests", hasSubOptions: true, subSubOptions: [
+        { key: "allCategories", label: "All categories" },
+        { key: "categoryName", label: "Category name" }
+      ]},
+      { key: "bookingSetting", label: "Bookings setting" }
+    ]},
+    { key: "activityAlert", label: "Activity alerts", icon: "/assets/icons/activity alert.svg", hasSubPermissions: true, subOptions: [
+      { key: "requests", label: "Requests" },
+      { key: "activities", label: "Activities" }
+    ]},
+    { key: "laundry", label: "Laundry", icon: "/assets/icons/laundary.svg", hasSubPermissions: true, subOptions: [
+      { key: "requests", label: "Requests" },
+      { key: "setting", label: "Laundry Settings" }
+    ]},
+    { key: "inRoomDelivery", label: "In-room delivery", icon: "/assets/icons/in-room delivery.svg", hasSubPermissions: true, subOptions: [
+      { key: "requests", label: "Requests", hasSubOptions: true, subSubOptions: [
+        { key: "restaurantName", label: "Restaurant name" }
+      ]},
+      { key: "restaurantSetting", label: "Restaurants settings" }
+    ]}
+  ]
+
+  // Close permission dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (permissionDropdownRef.current && !permissionDropdownRef.current.contains(event.target as Node)) {
+        setIsPermissionDropdownOpen(false)
+      }
+    }
+
+    if (isPermissionDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isPermissionDropdownOpen])
+
+  const handlePermissionSelect = (permissionKey: string) => {
+    const permission = permissionOptions.find(p => p.key === permissionKey)
+    if (!permission) return
+
+    if (permission.hasSubPermissions && permission.subOptions) {
+      // Open modal for sub-permissions
+      setSelectedPermissionKey(permissionKey)
+      setShowPermissionDetailModal(true)
+    } else {
+      // Toggle simple permission (like dashboard)
+      setSelectedPermissions(prev => ({
+        ...prev,
+        [permissionKey]: !prev[permissionKey]
+      }))
+    }
+    setIsPermissionDropdownOpen(false)
+  }
+
+  const handlePermissionModalSave = (checkedItems: { [key: string]: boolean }) => {
+    setSelectedPermissions(prev => {
+      const newPerms = { ...prev }
+      if (selectedPermissionKey === "room") {
+        newPerms.room = {
+          rooms: checkedItems.rooms || false,
+          requests: checkedItems.requests || false
+        }
+      } else if (selectedPermissionKey === "support") {
+        newPerms.support = {
+          myTickets: checkedItems.myTickets || false,
+          ticketSaved: checkedItems.ticketSaved || false
+        }
+      } else if (selectedPermissionKey === "team") {
+        newPerms.team = {
+          members: checkedItems.members || false,
+          staff: checkedItems.staff || false
+        }
+      } else if (selectedPermissionKey === "housekeeping") {
+        newPerms.housekeeping = {
+          requests: checkedItems.requests || false,
+          houseCleaning: checkedItems.houseCleaning || false,
+          requestManagement: checkedItems.requestManagement || false
+        }
+      } else if (selectedPermissionKey === "booking") {
+        newPerms.booking = {
+          internalRequests: {
+            allCategories: checkedItems.allCategories || false,
+            categoryName: checkedItems.categoryName || false
+          },
+          bookingSetting: checkedItems.bookingSetting || false
+        }
+      } else if (selectedPermissionKey === "activityAlert") {
+        newPerms.activityAlert = {
+          requests: checkedItems.requests || false,
+          activities: checkedItems.activities || false
+        }
+      } else if (selectedPermissionKey === "laundry") {
+        newPerms.laundry = {
+          requests: checkedItems.requests || false,
+          setting: checkedItems.setting || false
+        }
+      } else if (selectedPermissionKey === "inRoomDelivery") {
+        newPerms.inRoomDelivery = {
+          requests: checkedItems.requests || false,
+          restaurantName: checkedItems.restaurantName || false,
+          restaurantSetting: checkedItems.restaurantSetting || false
+        }
+      }
+      return newPerms
+    })
+    setShowPermissionDetailModal(false)
+    setSelectedPermissionKey("")
+  }
+
+  const isPermissionSelected = (key: string): boolean => {
+    if (key === "dashboard") {
+      return selectedPermissions.dashboard === true
+    }
+    const perm = selectedPermissions[key]
+    if (!perm) return false
+    if (typeof perm === "object") {
+      // Check if any sub-permission is selected
+      return Object.values(perm).some((val: any) => {
+        if (typeof val === "object") {
+          return Object.values(val).some((v: any) => v === true)
+        }
+        return val === true
+      })
+    }
+    return perm === true
+  }
+
+  const getSelectedPermissionLabel = (): string => {
+    const selectedCount = permissionOptions.filter(p => isPermissionSelected(p.key)).length
+    if (selectedCount === 0) return "Select"
+    if (selectedCount === 1) {
+      const selected = permissionOptions.find(p => isPermissionSelected(p.key))
+      return selected ? selected.label : "Select"
+    }
+    return `${selectedCount} permissions selected`
+  }
+
+  const getPermissionModalOptions = (): { key: string; label: string; hasSubOptions?: boolean; subSubOptions?: { key: string; label: string }[] }[] => {
+    const permission = permissionOptions.find(p => p.key === selectedPermissionKey)
+    if (!permission || !permission.subOptions) return []
+    return permission.subOptions
+  }
+
+  const getPermissionModalInitialChecked = (): { [key: string]: boolean } => {
+    const perm = selectedPermissions[selectedPermissionKey]
+    if (!perm || typeof perm !== "object") return {}
+    
+    const checked: { [key: string]: boolean } = {}
+    if (selectedPermissionKey === "booking" && perm.internalRequests) {
+      checked.allCategories = perm.internalRequests.allCategories || false
+      checked.categoryName = perm.internalRequests.categoryName || false
+      checked.bookingSetting = perm.bookingSetting || false
+    } else if (selectedPermissionKey === "inRoomDelivery" && perm.restaurantName !== undefined) {
+      checked.requests = perm.requests || false
+      checked.restaurantName = perm.restaurantName || false
+      checked.restaurantSetting = perm.restaurantSetting || false
+    } else {
+      Object.keys(perm).forEach(key => {
+        if (typeof perm[key] === "boolean") {
+          checked[key] = perm[key]
+        } else if (typeof perm[key] === "object") {
+          Object.keys(perm[key]).forEach(subKey => {
+            checked[subKey] = perm[key][subKey] || false
+          })
+        }
+      })
+    }
+    return checked
   }
 
   const handleSaveEdit = async () => {
@@ -613,11 +822,54 @@ export default function TeamPage() {
       }
 
       if (activeTab === 'members') {
+        // Build permissions structure from selectedPermissions
+        const permissions = {
+          dashboard: selectedPermissions.dashboard || false,
+          room: selectedPermissions.room || {
+            rooms: false,
+            requests: false
+          },
+          support: selectedPermissions.support || {
+            myTickets: false,
+            ticketSaved: false
+          },
+          team: selectedPermissions.team || {
+            members: false,
+            staff: false
+          },
+          housekeeping: selectedPermissions.housekeeping || {
+            requests: false,
+            houseCleaning: false,
+            requestManagement: false
+          },
+          booking: selectedPermissions.booking || {
+            internalRequests: {
+              allCategories: false,
+              categoryName: false
+            },
+            bookingSetting: false
+          },
+          activityAlert: selectedPermissions.activityAlert || {
+            requests: false,
+            activities: false
+          },
+          laundry: selectedPermissions.laundry || {
+            requests: false,
+            setting: false
+          },
+          inRoomDelivery: selectedPermissions.inRoomDelivery || {
+            requests: false,
+            restaurantName: false,
+            restaurantSetting: false
+          }
+        }
+
         // Update member
         const memberData: any = {
           memberName: name,
           email: email.toLowerCase(),
-          phoneNumber: phone
+          phoneNumber: phone,
+          permissions: permissions
         }
         
         // Only include password if it's provided
@@ -668,8 +920,10 @@ export default function TeamPage() {
           ))
           showAlert('Success', 'Member updated successfully', 'success')
           setEditFormData({ name: '', email: '', phone: '', role: '', username: '', password: '', status: 'active' })
-    setShowEditModal(false)
-    setSelectedMember(null)
+          setSelectedPermissions({})
+          setIsPermissionDropdownOpen(false)
+          setShowEditModal(false)
+          setSelectedMember(null)
           fetchMembers() // Refresh the list
         } else {
           const errorMsg = result?.error || result?.message || 'Failed to update member'
@@ -1346,27 +1600,95 @@ export default function TeamPage() {
                       </div>
                     ) : (
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-[#212121]">Permissions</label>
-                      <div className="relative">
-                        <select
-                          className="w-full px-3 py-2 border border-[#CED4DA] rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
-                          style={{
-                            padding: "7.52px 12px",
-                            border: "1px solid #CED4DA",
-                            borderRadius: "4px",
-                            background: "#FFF"
+                      <label className="text-sm font-medium text-[#212121]">Permission</label>
+                      <div className="relative" ref={permissionDropdownRef}>
+                        <button
+                          type="button"
+                          onClick={() => setIsPermissionDropdownOpen(!isPermissionDropdownOpen)}
+                          className="w-full px-3 py-2 border border-[#CED4DA] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left flex items-center justify-between"
+                          style={{ 
+                            borderRadius: "4px", 
+                            background: "#FFF",
+                            padding: "7.52px 12px"
                           }}
                         >
-                          <option value="">Select</option>
-                          <option value="admin">Admin</option>
-                          <option value="manager">Manager</option>
-                          <option value="user">User</option>
-                        </select>
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                          <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
-                            <path d="M1 1.5L6 6.5L11 1.5" stroke="#666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <span className={getSelectedPermissionLabel() === "Select" ? "text-gray-400" : "text-gray-900"}>
+                            {getSelectedPermissionLabel()}
+                          </span>
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
-                        </div>
+                        </button>
+                        
+                        {isPermissionDropdownOpen && (
+                          <div 
+                            className="absolute z-50 w-full mt-1 bg-white"
+                            style={{
+                              height: "402px",
+                              boxShadow: "0px 0px 32px 4px #161A1D1A",
+                              borderRadius: "9px",
+                              overflowY: "auto"
+                            }}
+                          >
+                            {permissionOptions.map((permission, index) => (
+                              <button
+                                key={permission.key}
+                                type="button"
+                                onClick={() => handlePermissionSelect(permission.key)}
+                                className="w-full flex items-center text-left hover:bg-gray-50"
+                                style={{
+                                  height: "41px",
+                                  gap: "10px",
+                                  paddingTop: "10px",
+                                  paddingRight: "12px",
+                                  paddingBottom: "10px",
+                                  paddingLeft: "12px",
+                                  background: "#FFFFFF",
+                                  borderTopLeftRadius: index === 0 ? "9px" : "0px",
+                                  borderTopRightRadius: index === 0 ? "10px" : "0px"
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: "20px",
+                                    height: "20px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  <PublicIcon 
+                                    src={permission.icon} 
+                                    alt={permission.label} 
+                                    width={20} 
+                                    height={20}
+                                    style={{
+                                      filter: "brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(0%) contrast(100%)"
+                                    }}
+                                  />
+                                </div>
+                                <span 
+                                  className="flex-1"
+                                  style={{ 
+                                    fontSize: "15px",
+                                    color: "#000000",
+                                    lineHeight: "20px",
+                                    display: "flex",
+                                    alignItems: "center"
+                                  }}
+                                >
+                                  {permission.label}
+                                </span>
+                                {isPermissionSelected(permission.key) && (
+                                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M13.3333 4L6 11.3333L2.66667 8" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                     )}
@@ -1466,6 +1788,8 @@ export default function TeamPage() {
                   setSelectedMember(null)
                   setShowPassword(false)
                   setEditFormData({ name: '', email: '', phone: '', role: '', username: '', password: '', status: 'active' })
+                  setSelectedPermissions({})
+                  setIsPermissionDropdownOpen(false)
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                 style={{ 
@@ -1606,6 +1930,23 @@ export default function TeamPage() {
         onClose={closePermissionsModal}
         onEdit={handleEditFromPermissions}
       />
+
+      {/* Permission Detail Modal */}
+      {showPermissionDetailModal && (
+        <PermissionDetailModal
+          isOpen={showPermissionDetailModal}
+          onClose={() => {
+            setShowPermissionDetailModal(false)
+            setSelectedPermissionKey("")
+          }}
+          onSave={handlePermissionModalSave}
+          permissionKey={selectedPermissionKey}
+          permissionLabel={permissionOptions.find(p => p.key === selectedPermissionKey)?.label || ""}
+          iconSrc={permissionOptions.find(p => p.key === selectedPermissionKey)?.icon}
+          options={getPermissionModalOptions()}
+          initialCheckedItems={getPermissionModalInitialChecked()}
+        />
+      )}
 
       {/* Alert Dialog */}
       <AlertDialog
