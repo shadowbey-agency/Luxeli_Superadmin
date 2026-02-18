@@ -7,7 +7,7 @@ export const GET = withAuth(async (request: AuthenticatedRequest, context?: { pa
   try {
     const partnerId = getPartnerId(request);
     if (!partnerId) {
-      return NextResponse.json([]
+      return NextResponse.json(
         { success: false, error: 'Partner ID not found' },
         { status: 401 }
       );
