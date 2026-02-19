@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { RiArrowDownSLine, RiCalendarLine, RiAddLine, RiRestaurantLine } from "react-icons/ri"
 import PublicIcon from "../../../components/public-icon"
 import AddRestaurantModal from "../../../components/add-restaurant-modal"
+import AddRestaurantItemModal from "../../../components/add-restaurant-item-modal"
 import { getAuthToken } from "@/lib/auth-utils"
 
 interface Restaurant {
@@ -31,11 +32,13 @@ const RestaurantCard = ({
   restaurant,
   onEdit, 
   onDelete,
+  onAddItem,
   router
 }: {
   restaurant: Restaurant
   onEdit?: (restaurant: Restaurant) => void
   onDelete?: (restaurant: Restaurant) => void
+  onAddItem?: (restaurant: Restaurant) => void
   router: any
 }) => {
   const formatTime = (time: string) => {
@@ -160,7 +163,9 @@ const RestaurantCard = ({
 
         {/* Add New Items Button */}
         <button 
-          className="w-full flex items-center justify-center gap-[6px] rounded-[6px] border border-[#DDDFE3] text-center"
+          type="button"
+          onClick={() => onAddItem?.(restaurant)}
+          className="w-full flex items-center justify-center gap-[6px] rounded-[6px] border border-[#DDDFE3] text-center hover:bg-[#DDDFE3] transition-colors cursor-pointer"
           style={{
             height: "37.040000915527344px",
             paddingTop: "8.52px",
@@ -195,6 +200,7 @@ export default function RoomDeliveryRestaurantsPage() {
   const [totalRestaurants, setTotalRestaurants] = useState(0)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
+  const [restaurantIdForAddItem, setRestaurantIdForAddItem] = useState<string | null>(null)
 
   // Fetch restaurants from API
   const fetchRestaurants = async () => {
@@ -422,6 +428,7 @@ export default function RoomDeliveryRestaurantsPage() {
                     restaurant={restaurant}
                     onEdit={handleEditRestaurant}
                     onDelete={handleDeleteRestaurant}
+                    onAddItem={(r) => setRestaurantIdForAddItem(r._id)}
                     router={router}
                   />
                 ))}
@@ -441,6 +448,19 @@ export default function RoomDeliveryRestaurantsPage() {
         onSuccess={handleRestaurantCreated}
         restaurant={editingRestaurant}
       />
+
+      {/* Add new item modal (for the selected restaurant) */}
+      {restaurantIdForAddItem && (
+        <AddRestaurantItemModal
+          isOpen={!!restaurantIdForAddItem}
+          onClose={() => setRestaurantIdForAddItem(null)}
+          onSuccess={() => {
+            setRestaurantIdForAddItem(null)
+            fetchRestaurants()
+          }}
+          restaurantId={restaurantIdForAddItem}
+        />
+      )}
     </div>
   )
 }

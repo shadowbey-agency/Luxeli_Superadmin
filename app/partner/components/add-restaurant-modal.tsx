@@ -113,7 +113,7 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess, restaur
                 </label>
                 <div className="flex items-center space-x-3">
                   <span className={`text-sm ${!isOpenStatus ? 'text-gray-900' : 'text-gray-500'}`}>
-                    Open
+                    Closed
                   </span>
                   <div
                     className="relative w-11 h-6 rounded-full transition-colors cursor-pointer"
@@ -129,8 +129,8 @@ export default function AddRestaurantModal({ isOpen, onClose, onSuccess, restaur
                       }}
                     />
                   </div>
-                  <span className={`text-sm ${isOpenStatus ? 'text-gray-500' : 'text-gray-900'}`}>
-                    Closed
+                  <span className={`text-sm ${isOpenStatus ? 'text-gray-900' : 'text-gray-500'}`}>
+                    Open
                   </span>
                 </div>
               </div>

@@ -41,7 +41,9 @@ export default function AddActivityModal({ isOpen, onClose, onSuccess, activity 
   useEffect(() => {
     if (activity && isOpen) {
       setActivityTitle(activity.activityTitle || "")
-      setIsPublished(activity.status === "published")
+      // Normalize status to lowercase so "Published"/"published" etc. show and save correctly
+      const status = typeof activity.status === "string" ? activity.status.toLowerCase() : ""
+      setIsPublished(status === "published")
       setActivityDescription(activity.activityDescription || "")
       setActivityImage(activity.activityImage || "")
       setImagePreview(activity.activityImage || null)
@@ -102,7 +104,7 @@ export default function AddActivityModal({ isOpen, onClose, onSuccess, activity 
                 </label>
                 <div className="flex items-center space-x-3">
                   <span className={`text-sm ${!isPublished ? 'text-gray-900' : 'text-gray-500'}`}>
-                    Published
+                    Unpublished
                   </span>
                   <div
                     className="relative w-11 h-6 rounded-full transition-colors cursor-pointer"
@@ -118,8 +120,8 @@ export default function AddActivityModal({ isOpen, onClose, onSuccess, activity 
                       }}
                     />
                   </div>
-                  <span className={`text-sm ${isPublished ? 'text-gray-500' : 'text-gray-900'}`}>
-                    Unpublished
+                  <span className={`text-sm ${isPublished ? 'text-gray-900' : 'text-gray-500'}`}>
+                    Published
                   </span>
                 </div>
               </div>

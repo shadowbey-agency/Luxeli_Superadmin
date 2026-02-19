@@ -49,7 +49,9 @@ export default function AddRestaurantItemModal({
   useEffect(() => {
     if (item && isOpen) {
       setItemName(item.itemName || "")
-      setIsPublished(item.status === "published")
+      // Normalize status to lowercase so "Published"/"published" etc. all map correctly
+      const status = typeof item.status === "string" ? item.status.toLowerCase() : ""
+      setIsPublished(status === "published")
       setCategory(item.category || "")
       setItemPrice(item.itemPrice?.toString() || "")
       setItemDescription(item.itemDescription || "")
@@ -126,7 +128,7 @@ export default function AddRestaurantItemModal({
               </label>
               <div className="flex items-center space-x-3">
                 <span className={`text-sm ${!isPublished ? 'text-gray-900' : 'text-gray-500'}`}>
-                  Published
+                  Unpublished
                 </span>
                 <div
                   className="relative w-11 h-6 rounded-full transition-colors cursor-pointer"
@@ -142,8 +144,8 @@ export default function AddRestaurantItemModal({
                     }}
                   />
                 </div>
-                <span className={`text-sm ${isPublished ? 'text-gray-500' : 'text-gray-900'}`}>
-                  Unpublished
+                <span className={`text-sm ${isPublished ? 'text-gray-900' : 'text-gray-500'}`}>
+                  Published
                 </span>
               </div>
             </div>

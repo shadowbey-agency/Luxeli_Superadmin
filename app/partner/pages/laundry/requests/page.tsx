@@ -120,11 +120,15 @@ export default function LaundryRequestsPage() {
     const formatPickup = (date: Date | string | null) => {
       if (!date) return "N/A"
       const d = new Date(date)
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+      const month = months[d.getMonth()]
+      const day = d.getDate()
+      const year = d.getFullYear()
       const hours = d.getHours()
       const minutes = d.getMinutes()
       const ampm = hours >= 12 ? 'PM' : 'AM'
       const displayHour = hours % 12 || 12
-      return `${displayHour}:${minutes.toString().padStart(2, '0')} ${ampm}`
+      return `${month} ${day}, ${year} ${displayHour}:${minutes.toString().padStart(2, '0')} ${ampm}`
     }
 
     const getStatusStyle = (status: string) => {
