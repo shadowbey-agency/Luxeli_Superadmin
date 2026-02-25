@@ -51,6 +51,9 @@ interface PermissionData {
     }
     bookingSetting: boolean
   }
+  customizedServices: {
+    requests: boolean
+  }
   activityAlert: {
     requests: boolean
     activities: boolean
@@ -91,6 +94,9 @@ const permissionOptions = [
       { key: "categoryName", label: "Category name" }
     ]},
     { key: "bookingSetting", label: "Bookings setting" }
+  ]},
+  { key: "customizedServices", label: "Customized services", icon: "/assets/icons/customized service.svg", hasSubPermissions: true, subOptions: [
+    { key: "requests", label: "Requests" }
   ]},
   { key: "activityAlert", label: "Activity alerts", icon: "/assets/icons/activity alert.svg", hasSubPermissions: true, subOptions: [
     { key: "requests", label: "Requests" },
@@ -211,6 +217,8 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
           internalRequests: { allCategories: false, categoryName: false },
           bookingSetting: false
         }
+      } else if (key === "customizedServices") {
+        updatedPermissions.customizedServices = { requests: false }
       } else if (key === "activityAlert") {
         updatedPermissions.activityAlert = { requests: false, activities: false }
       } else if (key === "laundry") {
@@ -287,6 +295,10 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
           allCategories: checkedItems.allCategories || false,
           categoryName: checkedItems.categoryName || false
         }
+      }
+    } else if (selectedPermissionKey === "customizedServices") {
+      updatedPermissions.customizedServices = {
+        requests: checkedItems.requests || false
       }
     } else if (selectedPermissionKey === "activityAlert") {
       updatedPermissions.activityAlert = {
@@ -399,6 +411,10 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
         allCategories: perm.internalRequests?.allCategories || false,
         categoryName: perm.internalRequests?.categoryName || false,
         bookingSetting: perm.bookingSetting || false
+      }
+    } else if (key === "customizedServices") {
+      return {
+        requests: perm.requests || false
       }
     } else if (key === "activityAlert") {
       return {
@@ -555,6 +571,8 @@ export default function UserPermissionsModal({ member, isOpen, onClose, onEdit }
                                 return perm.internalRequests?.allCategories || perm.internalRequests?.categoryName
                               }
                               return perm.bookingSetting
+                            } else if (permission.key === "customizedServices") {
+                              return subOption.key === "requests" ? perm.requests : false
                             } else if (permission.key === "activityAlert") {
                               return subOption.key === "requests" ? perm.requests : perm.activities
                             } else if (permission.key === "laundry") {

@@ -38,6 +38,9 @@ export interface IPartnerMember extends Document {
       };
       bookingSetting: boolean;
     };
+    customizedServices: {
+      requests: boolean;
+    };
     activityAlert: {
       requests: boolean;
       activities: boolean;
@@ -128,6 +131,9 @@ const PartnerMemberSchema = new Schema<IPartnerMember>(
           categoryName: { type: Boolean, default: false },
         },
         bookingSetting: { type: Boolean, default: false },
+      },
+      customizedServices: {
+        requests: { type: Boolean, default: false },
       },
       activityAlert: {
         requests: { type: Boolean, default: false },

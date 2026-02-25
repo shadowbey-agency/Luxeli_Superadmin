@@ -607,6 +607,9 @@ export default function TeamPage() {
       ]},
       { key: "bookingSetting", label: "Bookings setting" }
     ]},
+    { key: "customizedServices", label: "Customized services", icon: "/assets/icons/customized service.svg", hasSubPermissions: true, subOptions: [
+      { key: "requests", label: "Requests" }
+    ]},
     { key: "activityAlert", label: "Activity alerts", icon: "/assets/icons/activity alert.svg", hasSubPermissions: true, subOptions: [
       { key: "requests", label: "Requests" },
       { key: "activities", label: "Activities" }
@@ -689,6 +692,10 @@ export default function TeamPage() {
             categoryName: checkedItems.categoryName || false
           },
           bookingSetting: checkedItems.bookingSetting || false
+        }
+      } else if (selectedPermissionKey === "customizedServices") {
+        newPerms.customizedServices = {
+          requests: checkedItems.requests || false
         }
       } else if (selectedPermissionKey === "activityAlert") {
         newPerms.activityAlert = {
@@ -848,6 +855,9 @@ export default function TeamPage() {
               categoryName: false
             },
             bookingSetting: false
+          },
+          customizedServices: selectedPermissions.customizedServices || {
+            requests: false
           },
           activityAlert: selectedPermissions.activityAlert || {
             requests: false,

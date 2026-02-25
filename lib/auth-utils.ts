@@ -98,6 +98,24 @@ export function storeAuthData(token: string, userData: UserData, remember: boole
 }
 
 /**
+ * Update stored user data (e.g. after refreshing member permissions from API).
+ * Uses the same storage (local or session) as the existing auth_token.
+ */
+export function updateStoredUserData(userData: UserData): void {
+  if (typeof window === 'undefined') return;
+  const token = getAuthToken();
+  if (!token) return;
+  const fromLocal = localStorage.getItem('auth_token') === token;
+  if (fromLocal) {
+    localStorage.setItem('user_data', JSON.stringify(userData));
+    localStorage.setItem('superadmin_data', JSON.stringify(userData));
+  } else {
+    sessionStorage.setItem('user_data', JSON.stringify(userData));
+    sessionStorage.setItem('superadmin_data', JSON.stringify(userData));
+  }
+}
+
+/**
  * Clear authentication data
  */
 export function clearAuthData(): void {

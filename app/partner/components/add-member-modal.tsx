@@ -115,6 +115,9 @@ export default function AddMemberModal({ isOpen, onClose, onSuccess }: AddMember
           },
           bookingSetting: false
         },
+        customizedServices: selectedPermissions.customizedServices || {
+          requests: false
+        },
         activityAlert: selectedPermissions.activityAlert || {
           requests: false,
           activities: false
@@ -203,6 +206,9 @@ export default function AddMemberModal({ isOpen, onClose, onSuccess }: AddMember
       ]},
       { key: "bookingSetting", label: "Bookings setting" }
     ]},
+    { key: "customizedServices", label: "Customized services", icon: "/assets/icons/customized service.svg", hasSubPermissions: true, subOptions: [
+      { key: "requests", label: "Requests" }
+    ]},
     { key: "activityAlert", label: "Activity alerts", icon: "/assets/icons/activity alert.svg", hasSubPermissions: true, subOptions: [
       { key: "requests", label: "Requests" },
       { key: "activities", label: "Activities" }
@@ -275,6 +281,10 @@ export default function AddMemberModal({ isOpen, onClose, onSuccess }: AddMember
             allCategories: checkedItems.allCategories || false,
             categoryName: checkedItems.categoryName || false
           }
+        }
+      } else if (selectedPermissionKey === "customizedServices") {
+        newPerms.customizedServices = {
+          requests: checkedItems.requests || false
         }
       } else if (selectedPermissionKey === "activityAlert") {
         newPerms.activityAlert = {
@@ -652,6 +662,10 @@ export default function AddMemberModal({ isOpen, onClose, onSuccess }: AddMember
                   allCategories: perm.internalRequests?.allCategories || false,
                   categoryName: perm.internalRequests?.categoryName || false,
                   bookingSetting: perm.bookingSetting || false
+                }
+              } else if (selectedPermissionKey === "customizedServices") {
+                return {
+                  requests: perm.requests || false
                 }
               } else if (selectedPermissionKey === "activityAlert") {
                 return {

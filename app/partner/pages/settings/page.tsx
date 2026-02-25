@@ -7,8 +7,37 @@ import ToggleSwitch from "@/app/superadmin/components/toggle-switch"
 import SimpleToggleSwitch from "@/app/partner/components/simple-toggle-switch"
 import SuccessCard from "@/app/superadmin/components/success-card"
 import Image from "next/image"
-import { getAuthToken } from "@/lib/auth-utils"
+import { getAuthToken, getUserData } from "@/lib/auth-utils"
 import { uploadImageToCloudinary } from "@/lib/cloudinary"
+import { hasAnyRoutePermission } from "@/lib/permissions"
+import type { PartnerMemberPermissions } from "@/lib/permissions"
+
+// Routes per partner service key – same as sidebar; member must have permission to at least one route
+const serviceKeyToRoutes: Record<string, string[]> = {
+  housekeeping: [
+    "/partner/pages/housekeeping/requests",
+    "/partner/pages/housekeeping/house-cleaning",
+    "/partner/pages/housekeeping/requests-management",
+  ],
+  bookingInterns: ["/partner/pages/booking/requests", "/partner/pages/booking/settings"],
+  customizedServices: ["/partner/pages/customized-services/requests"],
+  activityAlerts: [
+    "/partner/pages/activity-alerts/requests",
+    "/partner/pages/activity-alerts/activities",
+  ],
+  laundry: ["/partner/pages/laundry/requests", "/partner/pages/laundry/settings", "/partner/pages/laundry/setting"],
+  roomDelivery: [
+    "/partner/pages/room-delivery/requests",
+    "/partner/pages/room-delivery/restaurants",
+  ],
+}
+
+function memberHasAccessToService(permissions: any, partnerServiceKey: string): boolean {
+  const routes = serviceKeyToRoutes[partnerServiceKey]
+  if (!routes?.length) return false
+  if (!permissions || typeof permissions !== "object") return false
+  return hasAnyRoutePermission(routes, permissions as PartnerMemberPermissions, "partnermember")
+}
 
 interface NotificationSetting {
   id: string
@@ -205,21 +234,15 @@ export default function SettingsPage() {
   }
 
   const handleServiceToggle = (id: string) => {
-    // Find the service to toggle
-    const service = services.find(s => s.id === id)
-    if (!service) return
-
-    console.log(`🔵 Toggling service locally: ${id}`)
-
-    // Update local state only
-    setServices(
-      services.map((svc) => ({
-        ...svc,
-        status: svc.id === id ? (service.status === "Active" ? "Disable" : "Active") : svc.status
-      }))
-    )
-
-    // Mark as modified so Save button is enabled
+    setServices((prev) => {
+      const service = prev.find((s) => s.id === id)
+      if (!service) return prev
+      return prev.map((svc) =>
+        svc.id === id
+          ? { ...svc, status: svc.status === "Active" ? ("Disable" as const) : ("Active" as const) }
+          : svc
+      )
+    })
     setServicesModified(true)
     setError(null)
   }
@@ -301,10 +324,14 @@ export default function SettingsPage() {
 
       console.log(`✅ All services saved successfully`)
 
-      // Update local state with the actual response
+      // Update local state with the actual response (re-apply member filter if member)
       if (updateData.partner?.services) {
         const partnerServices = updateData.partner.services
-        const updatedServiceList = allServiceDefinitions
+        const user = getUserData() as { role?: string; userType?: string; permissions?: Record<string, unknown> } | null
+        const isPartnerMember =
+          user?.role === "partnermember" || (user as any)?.userType === "partnermember"
+        const memberPermissions = isPartnerMember ? (user?.permissions ?? (user as any)?.permissions ?? null) : null
+        let updatedServiceList = allServiceDefinitions
           .map(serviceDef => {
             const service = partnerServices[serviceDef.partnerServiceKey] || { assigned: false, isActive: false }
             const isActive = service.assigned && service.isActive
@@ -314,10 +341,17 @@ export default function SettingsPage() {
               description: serviceDef.description,
               icon: serviceDef.icon,
               available: service.assigned,
-              status: isActive ? "Active" as const : "Disable" as const
+              status: isActive ? "Active" as const : "Disable" as const,
+              partnerServiceKey: serviceDef.partnerServiceKey,
             }
           })
           .filter(service => service.available)
+        if (isPartnerMember && memberPermissions) {
+          updatedServiceList = updatedServiceList.filter(service =>
+            memberHasAccessToService(memberPermissions, service.partnerServiceKey)
+          )
+        }
+        updatedServiceList = updatedServiceList.map(({ partnerServiceKey, ...rest }) => rest)
         setServices(updatedServiceList)
         setOriginalServices(updatedServiceList)
       }
@@ -568,25 +602,32 @@ export default function SettingsPage() {
 
       if (response.ok && data.partner?.services) {
         const partnerServices = data.partner.services
+        const user = getUserData() as { role?: string; userType?: string; permissions?: Record<string, unknown> } | null
+        const isPartnerMember =
+          user?.role === "partnermember" || (user as any)?.userType === "partnermember"
+        const memberPermissions = isPartnerMember ? (user?.permissions ?? (user as any)?.permissions ?? null) : null
 
-        // Show only services that were assigned by superadmin
-        // Partner can only enable/disable services that are assigned (available = assigned)
+        // Show only services that are assigned by SuperAdmin and (for members) assigned to the member by permissions
         const assignedServices = allServiceDefinitions
           .map(serviceDef => {
             const service = partnerServices[serviceDef.partnerServiceKey] || { assigned: false, isActive: false }
-            // Service is active only if both assigned (by SuperAdmin) and isActive (by Partner)
             const isActive = service.assigned && service.isActive
             return {
               id: serviceDef.id,
               title: serviceDef.title,
               description: serviceDef.description,
               icon: serviceDef.icon,
-              available: service.assigned, // Only available if assigned by SuperAdmin
-              status: isActive ? "Active" as const : "Disable" as const
+              available: service.assigned,
+              status: isActive ? "Active" as const : "Disable" as const,
+              partnerServiceKey: serviceDef.partnerServiceKey,
             }
           })
-          // Filter to only show services assigned by SuperAdmin
           .filter(service => service.available)
+          .filter(service => {
+            if (!isPartnerMember) return true
+            return memberHasAccessToService(memberPermissions, service.partnerServiceKey)
+          })
+          .map(({ partnerServiceKey, ...rest }) => rest)
 
         setServices(assignedServices)
         setOriginalServices(assignedServices)

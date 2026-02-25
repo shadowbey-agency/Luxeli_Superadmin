@@ -111,7 +111,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { isCollapsed, setIsCollapsed } = useSidebar()
   const [expandedServices, setExpandedServices] = useState<string[]>([])
-  const { hasPermission, loading } = usePermissions()
+  const { hasPermission, loading, isPartnerStaff } = usePermissions()
   const { services, loading: servicesLoading, hasService } = usePartnerServices()
   
   // Get current URL with search params (if any)
@@ -124,14 +124,14 @@ export default function Sidebar() {
   // Filter menu items based on permissions
   const visibleMenuItems = loading ? [] : menuItems.filter(item => hasPermission(item.href))
   
-  // Filter service items based on partner enabled services and permissions
-  const visibleServicesItems = (loading || servicesLoading) ? [] : allServicesItems
+  // Filter service items: partner sees services enabled for them; staff see services they have role access to
+  const visibleServicesItems = loading ? [] : allServicesItems
     .filter(service => {
-      // Only show service if it's enabled for the partner
-      return hasService(service.serviceKey)
+      const partnerHasService = hasService(service.serviceKey)
+      const staffHasAccessToService = isPartnerStaff && service.subItems.some(subItem => hasPermission(subItem.href))
+      return partnerHasService || staffHasAccessToService
     })
     .map(service => {
-      // Filter sub-items based on permissions
       const visibleSubItems = service.subItems.filter(subItem => hasPermission(subItem.href))
       return { ...service, subItems: visibleSubItems }
     })

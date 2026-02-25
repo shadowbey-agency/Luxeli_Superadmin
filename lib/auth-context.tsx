@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { UserData, getAuthToken, getUserData, clearAuthData } from '@/lib/auth-utils'
+import { UserData, getAuthToken, getUserData, clearAuthData, updateStoredUserData } from '@/lib/auth-utils'
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -44,6 +44,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setLoading(false)
   }, [])
+
+  // Refresh partner member permissions from API so updated permissions show without re-login
+  useEffect(() => {
+    if (!isAuthenticated || userType !== 'partnermember') return
+    const storedUser = user ?? getUserData()
+    const storedToken = getAuthToken()
+    if (!storedToken || !storedUser?._id) return
+
+    const memberId = (storedUser as any)._id
+    fetch(`/api/partner/members/${memberId}`, {
+      headers: { Authorization: `Bearer ${storedToken}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.success || !data.data?.member) return
+        const fresh = data.data.member
+        const merged = {
+          ...storedUser,
+          ...fresh,
+          _id: fresh._id ?? (storedUser as any)._id,
+          userType: (storedUser as any).userType ?? 'partnermember',
+          permissions: fresh.permissions ?? (storedUser as any).permissions,
+        }
+        updateStoredUserData(merged as UserData)
+        setUser(merged as UserData)
+      })
+      .catch(() => {})
+  }, [isAuthenticated, userType])
 
   const logout = async () => {
     try {

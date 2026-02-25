@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth, AuthenticatedRequest } from '@/lib/middleware'
+import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware'
 import { PartnerController } from '@/controllers/PartnerController'
 
-// GET /api/partner/account - get current partner's account data
+// GET /api/partner/account - get current partner's account data (works for partner, partnermember, partnerstaff)
 export const GET = withAuth(async (request: AuthenticatedRequest) => {
   try {
-    const userId = request.user?.userId
-    if (!userId) {
+    const partnerId = getPartnerId(request)
+    if (!partnerId) {
       return NextResponse.json(
-        { success: false, error: 'Authentication required' },
+        { success: false, error: 'Partner context required' },
         { status: 401 }
       )
     }
 
-    return await PartnerController.getPartnerById(userId)
+    return await PartnerController.getPartnerById(partnerId)
   } catch (error: any) {
     console.error('Get Partner Account API Error:', error)
     return NextResponse.json(
@@ -23,13 +23,13 @@ export const GET = withAuth(async (request: AuthenticatedRequest) => {
   }
 })
 
-// PATCH /api/partner/account - update current partner's account data
+// PATCH /api/partner/account - update current partner's account data (partner only; staff/member use partnerId for GET only)
 export const PATCH = withAuth(async (request: AuthenticatedRequest) => {
   try {
-    const userId = request.user?.userId
-    if (!userId) {
+    const partnerId = getPartnerId(request)
+    if (!partnerId) {
       return NextResponse.json(
-        { success: false, error: 'Authentication required' },
+        { success: false, error: 'Partner context required' },
         { status: 401 }
       )
     }
@@ -48,7 +48,7 @@ export const PATCH = withAuth(async (request: AuthenticatedRequest) => {
       services,
     } = body
 
-    return await PartnerController.updatePartner(userId, {
+    return await PartnerController.updatePartner(partnerId, {
       hotelName,
       hotelCity,
       hotelAddressEmail,

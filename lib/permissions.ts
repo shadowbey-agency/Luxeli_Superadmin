@@ -29,6 +29,9 @@ export interface PartnerMemberPermissions {
     };
     bookingSetting: boolean;
   };
+  customizedServices: {
+    requests: boolean;
+  };
   activityAlert: {
     requests: boolean;
     activities: boolean;
@@ -74,13 +77,18 @@ export const routePermissionMap: Record<string, string> = {
   '/partner/pages/booking/requests': 'booking.internalRequests.allCategories',
   '/partner/pages/booking/settings': 'booking.bookingSetting',
   
-  // Activity Alert
-  '/partner/pages/activity-alert/requests': 'activityAlert.requests',
-  '/partner/pages/activity-alert/activities': 'activityAlert.activities',
+  // Customized services
+  '/partner/pages/customized-services': 'customizedServices.requests',
+  '/partner/pages/customized-services/requests': 'customizedServices.requests',
+  
+  // Activity Alerts (route uses "activity-alerts" with s)
+  '/partner/pages/activity-alerts/requests': 'activityAlert.requests',
+  '/partner/pages/activity-alerts/activities': 'activityAlert.activities',
   
   // Laundry
   '/partner/pages/laundry/requests': 'laundry.requests',
   '/partner/pages/laundry/setting': 'laundry.setting',
+  '/partner/pages/laundry/settings': 'laundry.setting',
   
   // Room Delivery (In-room delivery)
   '/partner/pages/room-delivery/requests': 'inRoomDelivery.requests',

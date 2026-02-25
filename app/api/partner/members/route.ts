@@ -3,14 +3,20 @@ import { PartnerMemberController } from '@/controllers/partner/PartnerMemberCont
 import { withAuth, AuthenticatedRequest, getPartnerId } from '@/lib/middleware';
 
 export const GET = withAuth(async (request: AuthenticatedRequest) => {
-  const { searchParams } = new URL(request.url);
   const partnerId = getPartnerId(request);
+  if (!partnerId) {
+    return Response.json(
+      { success: false, error: 'Partner ID is required' },
+      { status: 401 }
+    );
+  }
+  const { searchParams } = new URL(request.url);
   const query = {
     page: searchParams.get('page') || undefined,
     limit: searchParams.get('limit') || undefined,
     search: searchParams.get('search') || undefined,
     status: searchParams.get('status') || undefined,
-    partnerId: partnerId || undefined,
+    partnerId,
   };
 
   return await PartnerMemberController.getPartnerMembers(query);
@@ -105,6 +111,9 @@ export const POST = withAuth(async (request: AuthenticatedRequest) => {
             categoryName: false,
           },
           bookingSetting: false,
+        },
+        customizedServices: {
+          requests: false,
         },
         activityAlert: {
           requests: false,

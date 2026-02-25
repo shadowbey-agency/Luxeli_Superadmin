@@ -21,13 +21,15 @@ export class PartnerMemberController {
       const limit = parseInt(query.limit || '10');
       const skip = (page - 1) * limit;
 
-      // Build filter object
+      // Build filter object - always require partnerId so we never return all members across partners
       const filter: any = {};
-      
-      // Always filter by partnerId if provided
-      if (query.partnerId) {
-        filter.partnerId = query.partnerId;
+      if (!query.partnerId) {
+        return NextResponse.json(
+          { success: false, error: 'Partner ID is required to list members' },
+          { status: 400 }
+        );
       }
+      filter.partnerId = query.partnerId;
       
       if (query.search) {
         filter.$or = [
@@ -137,6 +139,9 @@ export class PartnerMemberController {
           categoryName: boolean;
         };
         bookingSetting: boolean;
+      };
+      customizedServices: {
+        requests: boolean;
       };
       activityAlert: {
         requests: boolean;
@@ -268,6 +273,9 @@ export class PartnerMemberController {
         };
         bookingSetting?: boolean;
       };
+      customizedServices?: {
+        requests?: boolean;
+      };
       activityAlert?: {
         requests?: boolean;
         activities?: boolean;
@@ -380,6 +388,14 @@ export class PartnerMemberController {
           }
           if (data.permissions.booking.bookingSetting !== undefined) {
             member.permissions.booking.bookingSetting = data.permissions.booking.bookingSetting;
+          }
+        }
+        if (data.permissions.customizedServices) {
+          if (!member.permissions.customizedServices) {
+            member.permissions.customizedServices = { requests: false };
+          }
+          if (data.permissions.customizedServices.requests !== undefined) {
+            member.permissions.customizedServices.requests = data.permissions.customizedServices.requests;
           }
         }
         if (data.permissions.activityAlert) {

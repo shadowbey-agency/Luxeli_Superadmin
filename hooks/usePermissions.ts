@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from 'react';
-import { getUserData } from '@/lib/auth-utils';
+import { getUserData, type UserData } from '@/lib/auth-utils';
+import { useAuth } from '@/lib/auth-context';
 import { 
   hasRoutePermission, 
   hasAnyRoutePermission, 
@@ -28,7 +29,8 @@ export interface UserPermissions {
 }
 
 /**
- * Hook to access user permissions
+ * Hook to access user permissions.
+ * When used inside AuthProvider, reacts to refreshed user (e.g. after member permissions are updated).
  */
 export function usePermissions(): UserPermissions {
   const [permissions, setPermissions] = useState<PartnerMemberPermissions | null>(null);
@@ -36,9 +38,16 @@ export function usePermissions(): UserPermissions {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [accessibleRoutes, setAccessibleRoutes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  let authUser: UserData | null = null;
+  try {
+    const auth = useAuth();
+    authUser = auth?.user ?? null;
+  } catch {
+    // useAuth not available (e.g. outside AuthProvider)
+  }
 
   useEffect(() => {
-    const user = getUserData();
+    const user = authUser ?? getUserData();
     const token = typeof window !== 'undefined' 
       ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token'))
       : null;
@@ -75,7 +84,7 @@ export function usePermissions(): UserPermissions {
     }
     
     setLoading(false);
-  }, []);
+  }, [authUser, authUser?._id, (authUser as any)?.permissions]);
 
   const hasPermission = (route: string): boolean => {
     // If partner staff, use role-based access
